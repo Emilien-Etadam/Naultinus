@@ -95,15 +95,7 @@ namespace Palisades.ViewModel
             set { _selectedShortcut = value; OnPropertyChanged(); }
         }
 
-        public ICommand EditPalisadeCommand { get; } = new RelayCommand<PalisadeViewModel>(viewModel =>
-        {
-            var edit = new EditPalisade
-            {
-                DataContext = viewModel,
-                Owner = PalisadesManager.GetWindow(viewModel.Identifier)
-            };
-            edit.ShowDialog();
-        });
+
 
         public void DragOver(IDropInfo dropInfo)
         {
@@ -182,7 +174,7 @@ namespace Palisades.ViewModel
                 if (built == null)
                     return false;
                 newSc = built;
-                if (IsUnderDesktop(filePath))
+                if (PDirectory.IsUnderDesktop(filePath))
                     desktopLinkToDelete = filePath;
             }
             else if (ext == ".url")
@@ -191,16 +183,16 @@ namespace Palisades.ViewModel
                 if (built == null)
                     return false;
                 newSc = built;
-                if (IsUnderDesktop(filePath))
+                if (PDirectory.IsUnderDesktop(filePath))
                     desktopLinkToDelete = filePath;
             }
             else
             {
                 string uriPath = filePath;
-                if (IsUnderDesktop(filePath))
+                if (PDirectory.IsUnderDesktop(filePath))
                 {
                     string imported = PDirectory.GetPalisadeImportedDirectory(Identifier);
-                    uriPath = AllocateUniqueFilePathInDirectory(filePath, imported);
+                    uriPath = PDirectory.AllocateUniqueFilePath(filePath, imported);
                     var probe = new LnkShortcut
                     {
                         Name = Path.GetFileNameWithoutExtension(uriPath),
@@ -209,14 +201,14 @@ namespace Palisades.ViewModel
                     };
                     if (ContainsShortcutWithSameTarget(probe))
                         return false;
-                    MovePathRobust(filePath, uriPath, isDirectory: false);
+                    PDirectory.MoveRobust(filePath, uriPath, isDirectory: false);
                 }
 
                 newSc = new LnkShortcut
                 {
                     Name = Path.GetFileNameWithoutExtension(uriPath),
                     UriOrFileAction = uriPath,
-                    IconPath = Shortcut.GetIcon(uriPath, Identifier),
+                    IconPath = PDirectory.CreateIconPng(uriPath, Identifier),
                 };
             }
 
@@ -236,10 +228,10 @@ namespace Palisades.ViewModel
         private bool TryAddDirectoryShortcut(string dirPath)
         {
             string uriPath = dirPath;
-            if (IsUnderDesktop(dirPath))
+            if (PDirectory.IsUnderDesktop(dirPath))
             {
                 string imported = PDirectory.GetPalisadeImportedDirectory(Identifier);
-                uriPath = AllocateUniqueDirectoryPathInParent(dirPath, imported);
+                uriPath = PDirectory.AllocateUniqueDirectoryPath(dirPath, imported);
                 var probe = new LnkShortcut
                 {
                     Name = new DirectoryInfo(dirPath).Name,
@@ -248,14 +240,14 @@ namespace Palisades.ViewModel
                 };
                 if (ContainsShortcutWithSameTarget(probe))
                     return false;
-                MovePathRobust(dirPath, uriPath, isDirectory: true);
+                PDirectory.MoveRobust(dirPath, uriPath, isDirectory: true);
             }
 
             var newSc = new LnkShortcut
             {
                 Name = new DirectoryInfo(uriPath).Name,
                 UriOrFileAction = uriPath,
-                IconPath = Shortcut.GetIcon(uriPath, Identifier),
+                IconPath = PDirectory.CreateIconPng(uriPath, Identifier),
             };
             if (ContainsShortcutWithSameTarget(newSc))
                 return false;
@@ -309,91 +301,6 @@ namespace Palisades.ViewModel
                 return string.Equals(a.UriOrFileAction, b.UriOrFileAction, StringComparison.OrdinalIgnoreCase);
             }
         }
-
-        private static IEnumerable<string> DesktopRootPaths()
-        {
-            string d = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            if (!string.IsNullOrEmpty(d))
-                yield return d;
-            string cd = Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory);
-            if (!string.IsNullOrEmpty(cd))
-                yield return cd;
-        }
-
-        private static bool IsUnderDesktop(string path)
-        {
-            if (string.IsNullOrEmpty(path))
-                return false;
-            try
-            {
-                string fullPath = Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-                foreach (var root in DesktopRootPaths())
-                {
-                    string fullRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-                    if (fullPath.Length > fullRoot.Length &&
-                        fullPath.StartsWith(fullRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-                        return true;
-                    if (PathComparer.Equals(fullPath, fullRoot))
-                        return true;
-                }
-            }
-            catch { }
-
-            return false;
-        }
-
-        private static string AllocateUniqueFilePathInDirectory(string sourceFile, string destDirectory)
-        {
-            PDirectory.EnsureExists(destDirectory);
-            string name = Path.GetFileName(sourceFile);
-            string dest = Path.Combine(destDirectory, name);
-            int c = 1;
-            string ext = Path.GetExtension(name);
-            string baseName = Path.GetFileNameWithoutExtension(name);
-            while (File.Exists(dest) || Directory.Exists(dest))
-                dest = Path.Combine(destDirectory, $"{baseName} ({c++}){ext}");
-            return dest;
-        }
-
-        private static string AllocateUniqueDirectoryPathInParent(string sourceDir, string destParent)
-        {
-            PDirectory.EnsureExists(destParent);
-            string name = new DirectoryInfo(sourceDir).Name;
-            string dest = Path.Combine(destParent, name);
-            int c = 1;
-            while (Directory.Exists(dest) || File.Exists(dest))
-                dest = Path.Combine(destParent, $"{name} ({c++})");
-            return dest;
-        }
-
-        private static void MovePathRobust(string source, string dest, bool isDirectory)
-        {
-            if (isDirectory)
-            {
-                try
-                {
-                    Directory.Move(source, dest);
-                }
-                catch (IOException)
-                {
-                    PDirectory.CopyDirectory(source, dest);
-                    Directory.Delete(source, recursive: true);
-                }
-            }
-            else
-            {
-                try
-                {
-                    File.Move(source, dest);
-                }
-                catch (IOException)
-                {
-                    File.Copy(source, dest, overwrite: false);
-                    File.Delete(source);
-                }
-            }
-        }
-
 
         public void SelectShortcut(Shortcut shortcut)
         {

@@ -119,7 +119,7 @@ namespace Palisades.ViewModel
                 await EnsureConnectedAndRefreshAsync();
                 return;
             }
-            IsLoading = true;
+            Dispatch(() => IsLoading = true);
             try
             {
                 var counts = new Dictionary<string, int>();
@@ -177,14 +177,6 @@ namespace Palisades.ViewModel
             {
                 Dispatch(() => IsLoading = false);
             }
-        }
-
-        private static void Dispatch(Action action)
-        {
-            if (Application.Current?.Dispatcher != null)
-                Application.Current.Dispatcher.BeginInvoke(action);
-            else
-                action();
         }
 
         public void OpenWebmail()

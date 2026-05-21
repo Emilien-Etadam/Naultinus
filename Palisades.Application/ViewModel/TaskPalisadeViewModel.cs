@@ -396,14 +396,6 @@ namespace Palisades.ViewModel
             }
         }
 
-        private static void Dispatch(Action action)
-        {
-            if (Application.Current?.Dispatcher.CheckAccess() == true)
-                action();
-            else
-                Application.Current?.Dispatcher.Invoke(action);
-        }
-
         private void Tasks_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
             Save();
@@ -477,13 +469,6 @@ namespace Palisades.ViewModel
                 Dispatch(() => { IsSyncing = false; });
             }
         }
-
-        public ICommand EditTaskPalisadeCommand { get; } = new RelayCommand<TaskPalisadeViewModel>(viewModel =>
-        {
-            var edit = new EditTaskPalisade { DataContext = viewModel };
-            try { edit.Owner = PalisadesManager.GetWindow(viewModel.Identifier); } catch { }
-            edit.ShowDialog();
-        });
 
         public ICommand ShowSettingsCommand { get; } = new RelayCommand<TaskPalisadeViewModel>(viewModel =>
         {

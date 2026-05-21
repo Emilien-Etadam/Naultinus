@@ -28,46 +28,15 @@ namespace Palisades
                 return new FolderPortalViewModel(folderModel);
             if (concrete is TaskPalisadeModel taskModel)
             {
-                string caldavUrl;
-                string username;
-                string password;
-                if (taskModel.ZimbraAccountId is Guid accountId && ZimbraAccountStore.GetById(accountId) is ZimbraAccount account)
-                {
-                    caldavUrl = account.CalDAVBaseUrl ?? string.Empty;
-                    username = account.Email ?? string.Empty;
-                    password = CredentialEncryptor.Decrypt(account.EncryptedPassword ?? "");
-                }
-                else
-                {
-                    caldavUrl = taskModel.CalDAVUrl ?? string.Empty;
-                    username = taskModel.CalDAVUsername ?? string.Empty;
-                    password = CredentialEncryptor.Decrypt(taskModel.CalDAVPassword ?? "");
-                }
-
+                var (caldavUrl, username, password) = ResolveCalDAVCredentials(taskModel.ZimbraAccountId, taskModel.CalDAVUrl, taskModel.CalDAVUsername, taskModel.CalDAVPassword);
                 var client = new CalDAVClient(caldavUrl, username, password);
-                var caldavService = new CalDAVService(client);
-                return new TaskPalisadeViewModel(taskModel, caldavService);
+                return new TaskPalisadeViewModel(taskModel, new CalDAVService(client));
             }
 
             if (concrete is CalendarPalisadeModel calModel)
             {
-                string calUrl = calModel.CalDAVBaseUrl ?? "";
-                string calUser = calModel.CalDAVUsername ?? "";
-                string calPass = "";
-                if (calModel.ZimbraAccountId is Guid zimbraId && ZimbraAccountStore.GetById(zimbraId) is ZimbraAccount zimbraAcc)
-                {
-                    calUrl = !string.IsNullOrEmpty(zimbraAcc.CalDAVBaseUrl) ? zimbraAcc.CalDAVBaseUrl : calUrl;
-                    calUser = !string.IsNullOrEmpty(zimbraAcc.Email) ? zimbraAcc.Email : calUser;
-                    calPass = CredentialEncryptor.Decrypt(zimbraAcc.EncryptedPassword ?? "");
-                }
-                else
-                {
-                    calPass = CredentialEncryptor.Decrypt(calModel.CalDAVPassword ?? "");
-                }
-
-                var calClient = new CalDAVClient(calUrl, calUser, calPass);
-                var calService = new CalendarCalDAVService(calClient);
-                return new CalendarPalisadeViewModel(calModel, calService);
+                var (calUrl, calUser, calPass) = ResolveCalDAVCredentials(calModel.ZimbraAccountId, calModel.CalDAVBaseUrl, calModel.CalDAVUsername, calModel.CalDAVPassword);
+                return new CalendarPalisadeViewModel(calModel, new CalendarCalDAVService(new CalDAVClient(calUrl, calUser, calPass)));
             }
 
             if (concrete is MailPalisadeModel mailModel)
@@ -77,10 +46,23 @@ namespace Palisades
             return null;
         }
 
-        private static void ApplyPosition(PalisadeModelBase model, int? x, int? y)
+        private static (string url, string username, string password) ResolveCalDAVCredentials(Guid? zimbraAccountId, string? modelUrl, string? modelUser, string? modelEncPass)
+        {
+            if (zimbraAccountId is Guid id && ZimbraAccountStore.GetById(id) is ZimbraAccount acc)
+            {
+                string url = !string.IsNullOrEmpty(acc.CalDAVBaseUrl) ? acc.CalDAVBaseUrl : (modelUrl ?? "");
+                string user = !string.IsNullOrEmpty(acc.Email) ? acc.Email : (modelUser ?? "");
+                return (url, user, CredentialEncryptor.Decrypt(acc.EncryptedPassword ?? ""));
+            }
+            return (modelUrl ?? "", modelUser ?? "", CredentialEncryptor.Decrypt(modelEncPass ?? ""));
+        }
+
+        private static void ApplySize(PalisadeModelBase model, int? x, int? y, int? width, int? height, int defW, int defH)
         {
             if (x.HasValue) model.FenceX = x.Value;
             if (y.HasValue) model.FenceY = y.Value;
+            model.Width = width ?? defW;
+            model.Height = height ?? defH;
         }
 
         public static TaskPalisadeViewModel CreateTaskViewModel(string caldavUrl, string username, string password, List<string> taskListIds, string title, int? x, int? y, int? width, int? height)
@@ -94,10 +76,8 @@ namespace Palisades
                 CalDAVPassword = CredentialEncryptor.Encrypt(password),
                 TaskListIds = taskListIds,
                 TaskListId = taskListIds.Count > 0 ? taskListIds[0] : string.Empty,
-                Width = width ?? 600,
-                Height = height ?? 400,
             };
-            ApplyPosition(model, x, y);
+            ApplySize(model, x, y, width, height, 600, 400);
             var client = new CalDAVClient(caldavUrl, username, password);
             var caldavService = new CalDAVService(client);
             return new TaskPalisadeViewModel(model, caldavService);
@@ -114,10 +94,8 @@ namespace Palisades
                 CalendarIds = calendarIds ?? new List<string>(),
                 ViewMode = viewMode,
                 DaysToShow = daysToShow,
-                Width = width ?? 500,
-                Height = height ?? 400,
             };
-            ApplyPosition(model, x, y);
+            ApplySize(model, x, y, width, height, 500, 400);
             var client = new CalDAVClient(caldavUrl, username, password);
             var calendarService = new CalendarCalDAVService(client);
             return new CalendarPalisadeViewModel(model, calendarService);
@@ -136,10 +114,8 @@ namespace Palisades
                 DisplayMode = displayMode,
                 PollIntervalMinutes = pollIntervalMinutes,
                 WebmailUrl = webmailUrl,
-                Width = width ?? 320,
-                Height = height ?? 240,
             };
-            ApplyPosition(model, x, y);
+            ApplySize(model, x, y, width, height, 320, 240);
             return new MailPalisadeViewModel(model);
         }
 

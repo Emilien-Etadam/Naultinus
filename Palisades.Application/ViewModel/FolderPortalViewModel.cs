@@ -229,12 +229,6 @@ namespace Palisades.ViewModel
                     LoadFolder(RootPath);
             });
 
-            EditFolderPortalCommand = new RelayCommand<FolderPortalViewModel>(viewModel =>
-            {
-                var edit = new EditFolderPortal { DataContext = viewModel };
-                try { edit.Owner = PalisadesManager.GetWindow(viewModel.Identifier); } catch { }
-                edit.ShowDialog();
-            });
         }
 
         public void LoadFolder(string path)
@@ -362,12 +356,6 @@ namespace Palisades.ViewModel
             return "";
         }
 
-        private void RefreshItems()
-        {
-            if (!string.IsNullOrEmpty(CurrentPath))
-                LoadFolder(CurrentPath);
-        }
-
         private void SetupWatcher(string? path)
         {
             try
@@ -445,7 +433,7 @@ namespace Palisades.ViewModel
                 {
                     if (_disposed)
                         return;
-                    RefreshItems();
+                    if (!string.IsNullOrEmpty(CurrentPath)) LoadFolder(CurrentPath);
                 });
             }
             catch (Exception ex)
@@ -513,7 +501,7 @@ namespace Palisades.ViewModel
         public void DragDropOperationFinished(DragDropEffects operationResult, IDragInfo dragInfo)
         {
             if (operationResult.HasFlag(DragDropEffects.Move))
-                RefreshItems();
+                if (!string.IsNullOrEmpty(CurrentPath)) LoadFolder(CurrentPath);
         }
 
         public void DragCancelled() { }
@@ -620,7 +608,7 @@ namespace Palisades.ViewModel
                 }
             }
 
-            RefreshItems();
+            if (!string.IsNullOrEmpty(CurrentPath)) LoadFolder(CurrentPath);
         }
 
         #endregion
@@ -634,7 +622,6 @@ namespace Palisades.ViewModel
         public ICommand OpenInExplorerCommand { get; }
         public ICommand RefreshCommand { get; }
         public ICommand NavigateToRootCommand { get; }
-        public ICommand EditFolderPortalCommand { get; }
         #endregion
     }
 }

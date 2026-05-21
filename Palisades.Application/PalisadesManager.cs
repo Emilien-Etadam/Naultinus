@@ -37,12 +37,12 @@ namespace Palisades
                     if (obj is PalisadeModel legacy)
                     {
                         var concrete = PalisadeModelMigration.ToConcreteModel(legacy);
-                        NormalizeSchemaVersion(concrete);
+                        if (concrete.SchemaVersion == 0) concrete.SchemaVersion = 1;
                         loadedConcrete.Add(concrete);
                     }
                     else if (obj is PalisadeModelBase concrete)
                     {
-                        NormalizeSchemaVersion(concrete);
+                        if (concrete.SchemaVersion == 0) concrete.SchemaVersion = 1;
                         loadedConcrete.Add(concrete);
                     }
                 }
@@ -135,7 +135,7 @@ namespace Palisades
         public static void ShowCreateFolderPortalDialogForGroup(PalisadeGroup group, TabbedPalisade tabbedWindow)
         {
             var dialog = new CreateFolderPortalDialog();
-            try { dialog.Owner = tabbedWindow; } catch { }
+            SetOwnerSafe(dialog, tabbedWindow);
             if (dialog.ShowDialog() == true)
                 CreateFolderPortal(dialog.SelectedPath, dialog.PortalTitle, group.X, group.Y, group.Width, group.Height, group.GroupId, tabbedWindow);
         }
@@ -197,7 +197,7 @@ namespace Palisades
             }
 
             var dialog = new CreateFolderPortalDialog();
-            try { dialog.Owner = hostWindow; } catch { }
+            SetOwnerSafe(dialog, hostWindow);
             if (dialog.ShowDialog() != true) return;
             if (hostWindow.DataContext is not IPalisadeViewModel existing) return;
 
@@ -224,7 +224,7 @@ namespace Palisades
             }
 
             var dialog = new CreateTaskPalisadeDialog();
-            try { dialog.Owner = hostWindow; } catch { }
+            SetOwnerSafe(dialog, hostWindow);
             if (dialog.ShowDialog() != true) return;
             if (hostWindow.DataContext is not IPalisadeViewModel existing) return;
 
@@ -242,7 +242,7 @@ namespace Palisades
             }
 
             var dialog = new CreateCalendarPalisadeDialog();
-            try { dialog.Owner = hostWindow; } catch { }
+            SetOwnerSafe(dialog, hostWindow);
             if (dialog.ShowDialog() != true) return;
             if (hostWindow.DataContext is not IPalisadeViewModel existing) return;
 
@@ -259,7 +259,7 @@ namespace Palisades
             }
 
             var dialog = new CreateMailPalisadeDialog();
-            try { dialog.Owner = hostWindow; } catch { }
+            SetOwnerSafe(dialog, hostWindow);
             if (dialog.ShowDialog() != true) return;
             if (hostWindow.DataContext is not IPalisadeViewModel existing) return;
 
@@ -326,7 +326,7 @@ namespace Palisades
         public static void ShowCreateTaskPalisadeDialog(PalisadeGroup? intoGroup = null, TabbedPalisade? tabbedWindow = null)
         {
             var dialog = new CreateTaskPalisadeDialog();
-            try { dialog.Owner = tabbedWindow ?? Application.Current.MainWindow; } catch { }
+            SetOwnerSafe(dialog, tabbedWindow ?? Application.Current.MainWindow);
             if (dialog.ShowDialog() != true) return;
             var listIds = dialog.SelectedTaskListIds ?? new List<string>();
             if (intoGroup != null && tabbedWindow != null)
@@ -343,7 +343,7 @@ namespace Palisades
         public static void ShowCreateCalendarPalisadeDialog(PalisadeGroup? intoGroup = null, TabbedPalisade? tabbedWindow = null)
         {
             var dialog = new CreateCalendarPalisadeDialog();
-            try { dialog.Owner = tabbedWindow ?? Application.Current.MainWindow; } catch { }
+            SetOwnerSafe(dialog, tabbedWindow ?? Application.Current.MainWindow);
             if (dialog.ShowDialog() != true) return;
             if (intoGroup != null && tabbedWindow != null)
                 CreateCalendarPalisade(dialog.CalDAVUrl, dialog.Username, dialog.Password, dialog.SelectedCalendarIds, dialog.PalisadeTitle, dialog.ViewMode, dialog.DaysToShow, intoGroup.X, intoGroup.Y, intoGroup.Width, intoGroup.Height, intoGroup.GroupId, tabbedWindow);
@@ -359,7 +359,7 @@ namespace Palisades
         public static void ShowCreateMailPalisadeDialog(PalisadeGroup? intoGroup = null, TabbedPalisade? tabbedWindow = null)
         {
             var dialog = new CreateMailPalisadeDialog();
-            try { dialog.Owner = tabbedWindow ?? Application.Current.MainWindow; } catch { }
+            SetOwnerSafe(dialog, tabbedWindow ?? Application.Current.MainWindow);
             if (dialog.ShowDialog() != true) return;
             if (intoGroup != null && tabbedWindow != null)
                 CreateMailPalisade(dialog.ImapHost, dialog.ImapPort, dialog.Username, dialog.Password, dialog.SelectedFolders, dialog.PalisadeTitle, dialog.DisplayMode, dialog.PollIntervalMinutes, dialog.WebmailUrl, intoGroup.X, intoGroup.Y, intoGroup.Width, intoGroup.Height, intoGroup.GroupId, tabbedWindow);
@@ -474,10 +474,9 @@ namespace Palisades
             }
         }
 
-        private static void NormalizeSchemaVersion(PalisadeModelBase model)
+        internal static void SetOwnerSafe(Window dialog, Window? owner)
         {
-            if (model.SchemaVersion == 0)
-                model.SchemaVersion = 1;
+            try { dialog.Owner = owner; } catch { }
         }
 
         private static void RescaleVm(IPalisadeViewModel vm, int oldW, int oldH, int newW, int newH, int minW, int minH)

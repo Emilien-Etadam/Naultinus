@@ -112,7 +112,7 @@ namespace Palisades.ViewModel
                 Dispatch(() => OnPropertyChanged(nameof(HasNoEvents)));
                 return;
             }
-            Application.Current?.Dispatcher?.Invoke(() => { IsLoading = true; ErrorMessage = ""; });
+            Dispatch(() => { IsLoading = true; ErrorMessage = ""; });
             try
             {
                 var start = SelectedDate.Date;
@@ -202,27 +202,11 @@ namespace Palisades.ViewModel
             await _calendarService.CreateEventAsync(_model.CalendarIds[0], icalData ?? "");
         }
 
-        private static void Dispatch(Action action)
-        {
-            if (Application.Current?.Dispatcher != null)
-                Application.Current.Dispatcher.BeginInvoke(action);
-            else
-                action();
-        }
-
         public ICommand PreviousDayCommand { get; }
         public ICommand NextDayCommand { get; }
         public ICommand TodayCommand { get; }
         public ICommand AddEventCommand { get; }
         public ICommand RefreshCommand { get; } = new RelayCommand<CalendarPalisadeViewModel>(async vm => { if (vm != null) await vm.LoadEventsAsync(); });
-
-        public ICommand EditCalendarPalisadeCommand { get; } = new RelayCommand<CalendarPalisadeViewModel>(vm =>
-        {
-            if (vm == null) return;
-            var edit = new EditCalendarPalisade(vm);
-            try { edit.Owner = PalisadesManager.GetWindow(vm.Identifier); } catch { }
-            edit.ShowDialog();
-        });
 
         public override void Dispose()
         {
