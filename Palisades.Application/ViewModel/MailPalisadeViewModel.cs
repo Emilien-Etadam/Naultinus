@@ -201,5 +201,11 @@ namespace Palisades.ViewModel
         public ICommand OpenWebmailCommand { get; } = new RelayCommand<MailPalisadeViewModel>(vm => { vm?.OpenWebmail(); });
 
         #endregion
+
+        public override void Dispose()
+        {
+            _pollTimer?.Dispose();
+            base.Dispose();
+        }
     }
 }

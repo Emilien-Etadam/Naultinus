@@ -169,7 +169,7 @@ namespace Palisades.ViewModel
             };
 
             SelectTabCommand = new RelayCommand<TaskTabItem>(tab => { if (tab != null) SelectedTaskTab = tab; });
-            ForceSyncCommand = new RelayCommand(async () => await ForceSyncAsync());
+            ForceSyncCommand = new RelayCommand(async () => await SyncWithCalDAVAsync());
             AddTaskCommand = new RelayCommand(() =>
             {
                 var newTask = new CalDAVTask(Strings.TaskNewTaskName)
@@ -291,12 +291,6 @@ namespace Palisades.ViewModel
                 _visibleTasksView.Source = src;
             _visibleTasksView.View?.Refresh();
             OnPropertyChanged(nameof(FilteredActiveTasks));
-        }
-
-        private string GetListIdForSelectedTask()
-        {
-            if (SelectedTask == null) return TaskListId;
-            return GetListIdForTask(SelectedTask);
         }
 
         private string GetListIdForTask(CalDAVTask task)
@@ -484,11 +478,6 @@ namespace Palisades.ViewModel
             }
         }
 
-        public async Task ForceSyncAsync()
-        {
-            await SyncWithCalDAVAsync();
-        }
-
         public ICommand EditTaskPalisadeCommand { get; } = new RelayCommand<TaskPalisadeViewModel>(viewModel =>
         {
             var edit = new EditTaskPalisade { DataContext = viewModel };
@@ -509,5 +498,11 @@ namespace Palisades.ViewModel
         public ICommand HideTaskCommand { get; }
         public ICommand ToggleTaskCompletedCommand { get; }
         public ICommand SaveTaskCommand { get; }
+
+        public override void Dispose()
+        {
+            _syncTimer?.Dispose();
+            base.Dispose();
+        }
     }
 }

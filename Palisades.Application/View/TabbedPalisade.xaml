@@ -559,13 +559,7 @@
                     <TextBlock Text="+" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource PalisadeTextBrush}" VerticalAlignment="Center"/>
                 </Button>
             </Grid>
-            <ContentControl Content="{Binding SelectedMember}">
-                <ContentControl.ContentTemplate>
-                    <DataTemplate>
-                        <ContentControl Content="{Binding}" />
-                    </DataTemplate>
-                </ContentControl.ContentTemplate>
-            </ContentControl>
+            <ContentControl Content="{Binding SelectedMember}" />
         </DockPanel>
     </Border>
 </Window>

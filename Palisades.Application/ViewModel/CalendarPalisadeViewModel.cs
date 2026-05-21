@@ -31,6 +31,7 @@ namespace Palisades.ViewModel
         private bool _isLoading;
         private Timer? _refreshTimer;
         private readonly HashSet<string> _notifiedEventUids = new HashSet<string>();
+        private static readonly CalendarSerializer _calendarSerializer = new CalendarSerializer();
 
         public CalendarPalisadeViewModel() : this(
             new CalendarPalisadeModel { Name = "Calendar palisade", Width = 500, Height = 400 },
@@ -111,8 +112,7 @@ namespace Palisades.ViewModel
                 Dispatch(() => OnPropertyChanged(nameof(HasNoEvents)));
                 return;
             }
-            IsLoading = true;
-            ErrorMessage = "";
+            Dispatch(() => { IsLoading = true; ErrorMessage = ""; });
             try
             {
                 var start = SelectedDate.Date;
@@ -198,8 +198,7 @@ namespace Palisades.ViewModel
                 DtEnd = dtEnd
             };
             calendar.Events.Add(vevent);
-            var serializer = new CalendarSerializer();
-            var icalData = serializer.SerializeToString(calendar);
+            var icalData = _calendarSerializer.SerializeToString(calendar);
             await _calendarService.CreateEventAsync(_model.CalendarIds[0], icalData ?? "");
         }
 
@@ -221,8 +220,14 @@ namespace Palisades.ViewModel
         {
             if (vm == null) return;
             var edit = new EditCalendarPalisade(vm);
-            edit.Owner = PalisadesManager.GetWindow(vm.Identifier);
+            try { edit.Owner = PalisadesManager.GetWindow(vm.Identifier); } catch { }
             edit.ShowDialog();
         });
+
+        public override void Dispose()
+        {
+            _refreshTimer?.Dispose();
+            base.Dispose();
+        }
     }
 }

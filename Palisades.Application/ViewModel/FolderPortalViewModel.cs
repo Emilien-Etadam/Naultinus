@@ -120,7 +120,7 @@ namespace Palisades.ViewModel
 
             CreateNewFolderCommand = new RelayCommand(() =>
             {
-                var currentPath = GetCurrentDirectoryPath();
+                var currentPath = CurrentPath;
                 if (string.IsNullOrEmpty(currentPath)) return;
                 var name = Strings.NewFolderName;
                 var path = Path.Combine(currentPath, name);
@@ -136,7 +136,7 @@ namespace Palisades.ViewModel
 
             CreateNewFileCommand = new RelayCommand(() =>
             {
-                var currentPath = GetCurrentDirectoryPath();
+                var currentPath = CurrentPath;
                 if (string.IsNullOrEmpty(currentPath)) return;
                 var name = Strings.NewFileName;
                 var path = Path.Combine(currentPath, name);
@@ -152,7 +152,7 @@ namespace Palisades.ViewModel
 
             PasteFromClipboardCommand = new RelayCommand(() =>
             {
-                var currentPath = GetCurrentDirectoryPath();
+                var currentPath = CurrentPath;
                 if (string.IsNullOrEmpty(currentPath)) return;
                 if (!Clipboard.ContainsFileDropList()) return;
                 var files = Clipboard.GetFileDropList();
@@ -167,7 +167,7 @@ namespace Palisades.ViewModel
                         if (File.Exists(source))
                             File.Copy(source, dest, false);
                         else if (Directory.Exists(source))
-                            CopyDirectory(source, dest);
+                            PDirectory.CopyDirectory(source, dest);
                     }
                     catch { }
                 }
@@ -249,13 +249,15 @@ namespace Palisades.ViewModel
             try
             {
                 var newItems = new ObservableCollection<FolderPortalItem>();
+                string iconsDir = PDirectory.GetPalisadeIconsDirectory(Identifier);
+                PDirectory.EnsureExists(iconsDir);
 
                 foreach (string dir in Directory.GetDirectories(path).OrderBy(d => Path.GetFileName(d), StringComparer.OrdinalIgnoreCase))
                 {
                     if (IsHiddenOrSystemEntry(dir))
                         continue;
                     string dirName = Path.GetFileName(dir);
-                    string iconPath = GetOrCreateFolderIcon(dir);
+                    string iconPath = GetOrCreateIcon(dir, "folder_", iconsDir);
                     newItems.Add(new FolderPortalItem(dirName, dir, true, iconPath));
                 }
 
@@ -264,7 +266,7 @@ namespace Palisades.ViewModel
                     string fileName = Path.GetFileName(file);
                     if (fileName.StartsWith("~$") || IsHiddenOrSystemEntry(file))
                         continue;
-                    string iconPath = GetOrCreateFileIcon(file);
+                    string iconPath = GetOrCreateIcon(file, "file_", iconsDir);
                     newItems.Add(new FolderPortalItem(fileName, file, false, iconPath));
                 }
 
@@ -336,42 +338,17 @@ namespace Palisades.ViewModel
         {
             var bytes = Encoding.UTF8.GetBytes(input);
             var hash = SHA256.HashData(bytes);
-            return Convert.ToHexString(hash, 0, 4);
+            return Convert.ToHexString(hash, 0, 8);
         }
 
-        private string GetOrCreateFolderIcon(string folderPath)
+        private static string GetOrCreateIcon(string path, string prefix, string iconsDir)
         {
-            string iconsDir = PDirectory.GetPalisadeIconsDirectory(Identifier);
-            PDirectory.EnsureExists(iconsDir);
-            string hashName = "folder_" + StableHash(folderPath) + ".png";
-            string iconPath = Path.Combine(iconsDir, hashName);
+            string iconPath = Path.Combine(iconsDir, prefix + StableHash(path) + ".png");
             if (File.Exists(iconPath))
                 return iconPath;
             try
             {
-                using Bitmap? icon = IconExtractor.GetFileImageFromPath(folderPath, Helpers.Native.IconSizeEnum.LargeIcon48);
-                if (icon != null)
-                {
-                    using FileStream fileStream = new(iconPath, FileMode.Create);
-                    icon.Save(fileStream, ImageFormat.Png);
-                    return iconPath;
-                }
-            }
-            catch { }
-            return "";
-        }
-
-        private string GetOrCreateFileIcon(string filePath)
-        {
-            string iconsDir = PDirectory.GetPalisadeIconsDirectory(Identifier);
-            PDirectory.EnsureExists(iconsDir);
-            string hashName = "file_" + StableHash(filePath) + ".png";
-            string iconPath = Path.Combine(iconsDir, hashName);
-            if (File.Exists(iconPath))
-                return iconPath;
-            try
-            {
-                using Bitmap? icon = IconExtractor.GetFileImageFromPath(filePath, Helpers.Native.IconSizeEnum.LargeIcon48);
+                using Bitmap? icon = IconExtractor.GetFileImageFromPath(path, Helpers.Native.IconSizeEnum.LargeIcon48);
                 if (icon != null)
                 {
                     using FileStream fileStream = new(iconPath, FileMode.Create);
@@ -499,11 +476,6 @@ namespace Palisades.ViewModel
             base.Dispose();
         }
 
-        private string GetCurrentDirectoryPath()
-        {
-            return CurrentPath ?? "";
-        }
-
         #region IDragSource
         public void StartDrag(IDragInfo dragInfo)
         {
@@ -610,7 +582,7 @@ namespace Palisades.ViewModel
                     if (Directory.Exists(sourcePath))
                     {
                         if (isCopy)
-                            CopyDirectory(sourcePath, destPath);
+                            PDirectory.CopyDirectory(sourcePath, destPath);
                         else
                             Directory.Move(sourcePath, destPath);
                     }
@@ -631,14 +603,6 @@ namespace Palisades.ViewModel
             RefreshItems();
         }
 
-        private static void CopyDirectory(string sourceDir, string destDir)
-        {
-            Directory.CreateDirectory(destDir);
-            foreach (string file in Directory.GetFiles(sourceDir))
-                File.Copy(file, Path.Combine(destDir, Path.GetFileName(file)));
-            foreach (string dir in Directory.GetDirectories(sourceDir))
-                CopyDirectory(dir, Path.Combine(destDir, Path.GetFileName(dir)));
-        }
         #endregion
 
         #region Commands

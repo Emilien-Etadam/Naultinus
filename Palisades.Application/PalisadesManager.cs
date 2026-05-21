@@ -84,6 +84,23 @@ namespace Palisades
             }
         }
 
+        private static void RegisterViewModelInGroup(IPalisadeViewModel vm, string? groupId, TabbedPalisade? tabbedWindow)
+        {
+            if (!string.IsNullOrEmpty(groupId) && tabbedWindow?.DataContext is PalisadeGroup g)
+            {
+                g.AddMember(vm);
+                palisades[vm.Identifier] = tabbedWindow;
+                vm.Save();
+                g.SelectedMember = vm;
+                return;
+            }
+
+            var window = PalisadeFactory.CreateWindow(vm);
+            palisades.Add(vm.Identifier, window);
+            vm.Save();
+            window.Show();
+        }
+
         public static void CreatePalisade(int? x = null, int? y = null, int? width = null, int? height = null, string? groupId = null, TabbedPalisade? tabbedWindow = null)
         {
             var model = new StandardPalisadeModel();
@@ -94,20 +111,7 @@ namespace Palisades
             if (!string.IsNullOrEmpty(groupId))
                 model.GroupId = groupId;
 
-            var viewModel = new PalisadeViewModel(model);
-
-            if (!string.IsNullOrEmpty(groupId) && tabbedWindow != null && tabbedWindow.DataContext is PalisadeGroup g)
-            {
-                g.AddMember(viewModel);
-                palisades[viewModel.Identifier] = tabbedWindow;
-                viewModel.Save();
-                g.SelectedMember = viewModel;
-                return;
-            }
-
-            palisades.Add(viewModel.Identifier, new Palisade(viewModel));
-            viewModel.Save();
-            palisades[viewModel.Identifier].Show();
+            RegisterViewModelInGroup(new PalisadeViewModel(model), groupId, tabbedWindow);
         }
 
         public static void CreateFolderPortal(string rootPath, string title, int? x = null, int? y = null, int? width = null, int? height = null, string? groupId = null, TabbedPalisade? tabbedWindow = null)
@@ -125,20 +129,7 @@ namespace Palisades
             if (!string.IsNullOrEmpty(groupId))
                 model.GroupId = groupId;
 
-            var viewModel = new FolderPortalViewModel(model);
-
-            if (!string.IsNullOrEmpty(groupId) && tabbedWindow != null && tabbedWindow.DataContext is PalisadeGroup g)
-            {
-                g.AddMember(viewModel);
-                palisades[viewModel.Identifier] = tabbedWindow;
-                viewModel.Save();
-                g.SelectedMember = viewModel;
-                return;
-            }
-
-            palisades.Add(viewModel.Identifier, new FolderPortal(viewModel));
-            viewModel.Save();
-            palisades[viewModel.Identifier].Show();
+            RegisterViewModelInGroup(new FolderPortalViewModel(model), groupId, tabbedWindow);
         }
 
         public static void ShowCreateFolderPortalDialogForGroup(PalisadeGroup group, TabbedPalisade tabbedWindow)
@@ -320,20 +311,7 @@ namespace Palisades
 
         public static void CreateTaskPalisade(string caldavUrl, string username, string password, List<string> taskListIds, string title, int? x = null, int? y = null, int? width = null, int? height = null, string? groupId = null, TabbedPalisade? tabbedWindow = null)
         {
-            var viewModel = PalisadeFactory.CreateTaskViewModel(caldavUrl, username, password, taskListIds, title, x, y, width, height);
-
-            if (!string.IsNullOrEmpty(groupId) && tabbedWindow != null && tabbedWindow.DataContext is PalisadeGroup g)
-            {
-                g.AddMember(viewModel);
-                palisades[viewModel.Identifier] = tabbedWindow;
-                viewModel.Save();
-                g.SelectedMember = viewModel;
-                return;
-            }
-
-            palisades.Add(viewModel.Identifier, new TaskPalisade(viewModel));
-            viewModel.Save();
-            palisades[viewModel.Identifier].Show();
+            RegisterViewModelInGroup(PalisadeFactory.CreateTaskViewModel(caldavUrl, username, password, taskListIds, title, x, y, width, height), groupId, tabbedWindow);
         }
 
         public static void ShowCreateFolderPortalDialog()
@@ -359,20 +337,7 @@ namespace Palisades
 
         public static void CreateCalendarPalisade(string caldavUrl, string username, string password, List<string> calendarIds, string title, CalendarViewMode viewMode, int daysToShow, int? x = null, int? y = null, int? width = null, int? height = null, string? groupId = null, TabbedPalisade? tabbedWindow = null)
         {
-            var viewModel = PalisadeFactory.CreateCalendarViewModel(caldavUrl, username, password, calendarIds, title, viewMode, daysToShow, x, y, width, height);
-
-            if (!string.IsNullOrEmpty(groupId) && tabbedWindow != null && tabbedWindow.DataContext is PalisadeGroup g)
-            {
-                g.AddMember(viewModel);
-                palisades[viewModel.Identifier] = tabbedWindow;
-                viewModel.Save();
-                g.SelectedMember = viewModel;
-                return;
-            }
-
-            palisades.Add(viewModel.Identifier, new CalendarPalisade(viewModel));
-            viewModel.Save();
-            palisades[viewModel.Identifier].Show();
+            RegisterViewModelInGroup(PalisadeFactory.CreateCalendarViewModel(caldavUrl, username, password, calendarIds, title, viewMode, daysToShow, x, y, width, height), groupId, tabbedWindow);
         }
 
         public static void ShowCreateCalendarPalisadeDialog(PalisadeGroup? intoGroup = null, TabbedPalisade? tabbedWindow = null)
@@ -388,20 +353,7 @@ namespace Palisades
 
         public static void CreateMailPalisade(string imapHost, int imapPort, string username, string password, List<string> monitoredFolders, string title, MailDisplayMode displayMode, int pollIntervalMinutes, string? webmailUrl = null, int? x = null, int? y = null, int? width = null, int? height = null, string? groupId = null, TabbedPalisade? tabbedWindow = null)
         {
-            var viewModel = PalisadeFactory.CreateMailViewModel(imapHost, imapPort, username, password, monitoredFolders, title, displayMode, pollIntervalMinutes, webmailUrl, x, y, width, height);
-
-            if (!string.IsNullOrEmpty(groupId) && tabbedWindow != null && tabbedWindow.DataContext is PalisadeGroup g)
-            {
-                g.AddMember(viewModel);
-                palisades[viewModel.Identifier] = tabbedWindow;
-                viewModel.Save();
-                g.SelectedMember = viewModel;
-                return;
-            }
-
-            palisades.Add(viewModel.Identifier, new MailPalisade(viewModel));
-            viewModel.Save();
-            palisades[viewModel.Identifier].Show();
+            RegisterViewModelInGroup(PalisadeFactory.CreateMailViewModel(imapHost, imapPort, username, password, monitoredFolders, title, displayMode, pollIntervalMinutes, webmailUrl, x, y, width, height), groupId, tabbedWindow);
         }
 
         public static void ShowCreateMailPalisadeDialog(PalisadeGroup? intoGroup = null, TabbedPalisade? tabbedWindow = null)
@@ -478,11 +430,24 @@ namespace Palisades
         /// <summary>Ferme toutes les palisades et vide le dictionnaire (pour RestoreSnapshot).</summary>
         public static void CloseAllPalisades()
         {
-            var windows = palisades.Values.ToList();
+            var windows = palisades.Values.Distinct().ToList();
             palisades.Clear();
             foreach (var w in windows)
             {
-                try { w.Close(); } catch { }
+                try
+                {
+                    if (w is TabbedPalisade tabbed && tabbed.DataContext is PalisadeGroup group)
+                    {
+                        foreach (var member in group.Members)
+                            (member as IDisposable)?.Dispose();
+                    }
+                    else
+                    {
+                        (w.DataContext as IDisposable)?.Dispose();
+                    }
+                    w.Close();
+                }
+                catch { }
             }
         }
 

@@ -77,6 +77,12 @@ namespace Palisades
             return null;
         }
 
+        private static void ApplyPosition(PalisadeModelBase model, int? x, int? y)
+        {
+            if (x.HasValue) model.FenceX = x.Value;
+            if (y.HasValue) model.FenceY = y.Value;
+        }
+
         public static TaskPalisadeViewModel CreateTaskViewModel(string caldavUrl, string username, string password, List<string> taskListIds, string title, int? x, int? y, int? width, int? height)
         {
             taskListIds = taskListIds ?? new List<string>();
@@ -91,14 +97,7 @@ namespace Palisades
                 Width = width ?? 600,
                 Height = height ?? 400,
             };
-            if (x.HasValue)
-                model.FenceX = x.Value;
-            if (y.HasValue)
-                model.FenceY = y.Value;
-            if (width.HasValue)
-                model.Width = width.Value;
-            if (height.HasValue)
-                model.Height = height.Value;
+            ApplyPosition(model, x, y);
             var client = new CalDAVClient(caldavUrl, username, password);
             var caldavService = new CalDAVService(client);
             return new TaskPalisadeViewModel(model, caldavService);
@@ -118,14 +117,7 @@ namespace Palisades
                 Width = width ?? 500,
                 Height = height ?? 400,
             };
-            if (x.HasValue)
-                model.FenceX = x.Value;
-            if (y.HasValue)
-                model.FenceY = y.Value;
-            if (width.HasValue)
-                model.Width = width.Value;
-            if (height.HasValue)
-                model.Height = height.Value;
+            ApplyPosition(model, x, y);
             var client = new CalDAVClient(caldavUrl, username, password);
             var calendarService = new CalendarCalDAVService(client);
             return new CalendarPalisadeViewModel(model, calendarService);
@@ -147,14 +139,7 @@ namespace Palisades
                 Width = width ?? 320,
                 Height = height ?? 240,
             };
-            if (x.HasValue)
-                model.FenceX = x.Value;
-            if (y.HasValue)
-                model.FenceY = y.Value;
-            if (width.HasValue)
-                model.Width = width.Value;
-            if (height.HasValue)
-                model.Height = height.Value;
+            ApplyPosition(model, x, y);
             return new MailPalisadeViewModel(model);
         }
 

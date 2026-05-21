@@ -376,7 +376,7 @@ namespace Palisades.ViewModel
                 }
                 catch (IOException)
                 {
-                    CopyDirectoryRecursive(source, dest);
+                    PDirectory.CopyDirectory(source, dest);
                     Directory.Delete(source, recursive: true);
                 }
             }
@@ -394,14 +394,6 @@ namespace Palisades.ViewModel
             }
         }
 
-        private static void CopyDirectoryRecursive(string sourceDir, string destDir)
-        {
-            Directory.CreateDirectory(destDir);
-            foreach (string file in Directory.GetFiles(sourceDir))
-                File.Copy(file, Path.Combine(destDir, Path.GetFileName(file)));
-            foreach (string dir in Directory.GetDirectories(sourceDir))
-                CopyDirectoryRecursive(dir, Path.Combine(destDir, new DirectoryInfo(dir).Name));
-        }
 
         public void SelectShortcut(Shortcut shortcut)
         {
