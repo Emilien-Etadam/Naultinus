@@ -108,6 +108,8 @@ namespace Palisades.ViewModel
             _currentFolderName = "";
             _errorMessage = "";
 
+            CleanupLegacyIcons();
+
             if (!string.IsNullOrEmpty(model.CurrentPath) && Directory.Exists(model.CurrentPath))
                 LoadFolder(model.CurrentPath);
             else if (!string.IsNullOrEmpty(model.RootPath) && Directory.Exists(model.RootPath))
@@ -474,6 +476,24 @@ namespace Palisades.ViewModel
             }
 
             base.Dispose();
+        }
+
+        private void CleanupLegacyIcons()
+        {
+            try
+            {
+                string iconsDir = PDirectory.GetPalisadeIconsDirectory(Identifier);
+                if (!Directory.Exists(iconsDir)) return;
+                foreach (var file in Directory.GetFiles(iconsDir, "*.png"))
+                {
+                    string name = Path.GetFileNameWithoutExtension(file);
+                    // Ancien format : "folder_HHHHHHHH" (15 chars) ou "file_HHHHHHHH" (13 chars) — hash 4 octets
+                    if ((name.StartsWith("folder_") && name.Length == 15) ||
+                        (name.StartsWith("file_") && name.Length == 13))
+                        File.Delete(file);
+                }
+            }
+            catch { }
         }
 
         #region IDragSource

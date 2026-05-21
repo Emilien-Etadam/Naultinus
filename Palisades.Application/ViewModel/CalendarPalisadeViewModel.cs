@@ -112,7 +112,7 @@ namespace Palisades.ViewModel
                 Dispatch(() => OnPropertyChanged(nameof(HasNoEvents)));
                 return;
             }
-            Dispatch(() => { IsLoading = true; ErrorMessage = ""; });
+            Application.Current?.Dispatcher?.Invoke(() => { IsLoading = true; ErrorMessage = ""; });
             try
             {
                 var start = SelectedDate.Date;
