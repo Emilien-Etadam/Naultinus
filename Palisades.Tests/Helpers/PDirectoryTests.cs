@@ -107,7 +107,7 @@ namespace Palisades.Tests.Helpers
         [Fact]
         public void AllocateUniqueDirectoryPath_NoConflict_ReturnsOriginalName()
         {
-            string sourceDir = Path.Combine(_tempDir, "myFolder");
+            string sourceDir = Path.Combine(_tempDir, "src", "myFolder");
             Directory.CreateDirectory(sourceDir);
 
             string dest = PDirectory.AllocateUniqueDirectoryPath(sourceDir, _tempDir);
