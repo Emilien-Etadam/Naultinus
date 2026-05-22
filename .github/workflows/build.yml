@@ -26,7 +26,7 @@ jobs:
         run: dotnet build Palisades.Application/Palisades.Application.csproj -c Debug --no-restore
 
       - name: Run tests
-        run: dotnet test Palisades.Tests/Palisades.Tests.csproj -c Debug -v minimal
+        run: dotnet test Palisades.Tests/Palisades.Tests.csproj -c Debug -v normal --logger "console;verbosity=detailed"
 
       - name: Build (Release)
         run: dotnet build Palisades.Application/Palisades.Application.csproj -c Release --no-restore
