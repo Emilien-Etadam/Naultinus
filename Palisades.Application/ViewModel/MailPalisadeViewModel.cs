@@ -8,11 +8,9 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Input;
 
 namespace Palisades.ViewModel
@@ -119,7 +117,7 @@ namespace Palisades.ViewModel
                 await EnsureConnectedAndRefreshAsync();
                 return;
             }
-            IsLoading = true;
+            Dispatch(() => IsLoading = true);
             try
             {
                 var counts = new Dictionary<string, int>();
@@ -179,14 +177,6 @@ namespace Palisades.ViewModel
             }
         }
 
-        private static void Dispatch(Action action)
-        {
-            if (Application.Current?.Dispatcher != null)
-                Application.Current.Dispatcher.BeginInvoke(action);
-            else
-                action();
-        }
-
         public void OpenWebmail()
         {
             var url = _model.WebmailUrl?.Trim();
@@ -201,5 +191,11 @@ namespace Palisades.ViewModel
         public ICommand OpenWebmailCommand { get; } = new RelayCommand<MailPalisadeViewModel>(vm => { vm?.OpenWebmail(); });
 
         #endregion
+
+        public override void Dispose()
+        {
+            _pollTimer?.Dispose();
+            base.Dispose();
+        }
     }
 }

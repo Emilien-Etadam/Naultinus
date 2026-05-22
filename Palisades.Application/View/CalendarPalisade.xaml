@@ -37,7 +37,7 @@
             <Grid DockPanel.Dock="Top" x:Name="Header" Height="32" MouseLeftButtonDown="Header_MouseLeftButtonDown" IsHitTestVisible="True" Background="{DynamicResource PalisadeWindowBrush}" ColumnDefinitions="*,Auto">
                 <Grid.ContextMenu>
                     <ContextMenu>
-                        <MenuItem Header="{x:Static properties:Strings.MenuEdit}" Command="{Binding Path=Data.EditCalendarPalisadeCommand, Source={StaticResource proxy}}" CommandParameter="{Binding}" />
+                        <MenuItem Header="{x:Static properties:Strings.MenuEdit}" Command="{Binding Path=Data.EditCommand, Source={StaticResource proxy}}" />
                         <MenuItem Header="{x:Static properties:Strings.MenuRefresh}" Command="{Binding Path=Data.RefreshCommand, Source={StaticResource proxy}}" CommandParameter="{Binding}" />
                         <Separator />
                         <MenuItem Header="{x:Static properties:Strings.MenuDelete}" Command="{Binding Path=Data.DeletePalisadeCommand, Source={StaticResource proxy}}" CommandParameter="{Binding Identifier}" />

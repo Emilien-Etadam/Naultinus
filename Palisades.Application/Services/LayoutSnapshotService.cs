@@ -169,7 +169,7 @@ namespace Palisades.Services
             if (!Directory.Exists(src)) return false;
             var dest = Path.Combine(destinationFolder, Path.GetFileName(src));
             if (Directory.Exists(dest)) return false;
-            CopyDirectory(src, dest);
+            PDirectory.CopyDirectory(src, dest);
             return true;
         }
 
@@ -186,7 +186,7 @@ namespace Palisades.Services
             var newId = Guid.NewGuid().ToString();
             var destDir = Path.Combine(PDirectory.GetSnapshotsDirectory(), newId);
             PDirectory.EnsureExists(PDirectory.GetSnapshotsDirectory());
-            CopyDirectory(sourceFolder, destDir);
+            PDirectory.CopyDirectory(sourceFolder, destDir);
             var destXml = Path.Combine(destDir, "snapshot.xml");
             if (File.Exists(destXml))
             {
@@ -198,14 +198,6 @@ namespace Palisades.Services
             return newId;
         }
 
-        private static void CopyDirectory(string src, string dest)
-        {
-            Directory.CreateDirectory(dest);
-            foreach (var file in Directory.GetFiles(src))
-                File.Copy(file, Path.Combine(dest, Path.GetFileName(file)));
-            foreach (var dir in Directory.GetDirectories(src))
-                CopyDirectory(dir, Path.Combine(dest, Path.GetFileName(dir)));
-        }
 
         /// <summary>10.3.7 — Auto-save au exit : enregistre un snapshot "Auto-save - {date}", garde les 3 derniers.</summary>
         public static void SaveAutoSnapshotAndPrune(int keepCount = 3)

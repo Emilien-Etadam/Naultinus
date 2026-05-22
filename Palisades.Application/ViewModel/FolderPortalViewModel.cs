@@ -108,6 +108,8 @@ namespace Palisades.ViewModel
             _currentFolderName = "";
             _errorMessage = "";
 
+            CleanupLegacyIcons();
+
             if (!string.IsNullOrEmpty(model.CurrentPath) && Directory.Exists(model.CurrentPath))
                 LoadFolder(model.CurrentPath);
             else if (!string.IsNullOrEmpty(model.RootPath) && Directory.Exists(model.RootPath))
@@ -120,7 +122,7 @@ namespace Palisades.ViewModel
 
             CreateNewFolderCommand = new RelayCommand(() =>
             {
-                var currentPath = GetCurrentDirectoryPath();
+                var currentPath = CurrentPath;
                 if (string.IsNullOrEmpty(currentPath)) return;
                 var name = Strings.NewFolderName;
                 var path = Path.Combine(currentPath, name);
@@ -136,7 +138,7 @@ namespace Palisades.ViewModel
 
             CreateNewFileCommand = new RelayCommand(() =>
             {
-                var currentPath = GetCurrentDirectoryPath();
+                var currentPath = CurrentPath;
                 if (string.IsNullOrEmpty(currentPath)) return;
                 var name = Strings.NewFileName;
                 var path = Path.Combine(currentPath, name);
@@ -152,7 +154,7 @@ namespace Palisades.ViewModel
 
             PasteFromClipboardCommand = new RelayCommand(() =>
             {
-                var currentPath = GetCurrentDirectoryPath();
+                var currentPath = CurrentPath;
                 if (string.IsNullOrEmpty(currentPath)) return;
                 if (!Clipboard.ContainsFileDropList()) return;
                 var files = Clipboard.GetFileDropList();
@@ -167,7 +169,7 @@ namespace Palisades.ViewModel
                         if (File.Exists(source))
                             File.Copy(source, dest, false);
                         else if (Directory.Exists(source))
-                            CopyDirectory(source, dest);
+                            PDirectory.CopyDirectory(source, dest);
                     }
                     catch { }
                 }
@@ -227,12 +229,6 @@ namespace Palisades.ViewModel
                     LoadFolder(RootPath);
             });
 
-            EditFolderPortalCommand = new RelayCommand<FolderPortalViewModel>(viewModel =>
-            {
-                var edit = new EditFolderPortal { DataContext = viewModel };
-                try { edit.Owner = PalisadesManager.GetWindow(viewModel.Identifier); } catch { }
-                edit.ShowDialog();
-            });
         }
 
         public void LoadFolder(string path)
@@ -249,13 +245,15 @@ namespace Palisades.ViewModel
             try
             {
                 var newItems = new ObservableCollection<FolderPortalItem>();
+                string iconsDir = PDirectory.GetPalisadeIconsDirectory(Identifier);
+                PDirectory.EnsureExists(iconsDir);
 
                 foreach (string dir in Directory.GetDirectories(path).OrderBy(d => Path.GetFileName(d), StringComparer.OrdinalIgnoreCase))
                 {
                     if (IsHiddenOrSystemEntry(dir))
                         continue;
                     string dirName = Path.GetFileName(dir);
-                    string iconPath = GetOrCreateFolderIcon(dir);
+                    string iconPath = GetOrCreateIcon(dir, "folder_", iconsDir);
                     newItems.Add(new FolderPortalItem(dirName, dir, true, iconPath));
                 }
 
@@ -264,7 +262,7 @@ namespace Palisades.ViewModel
                     string fileName = Path.GetFileName(file);
                     if (fileName.StartsWith("~$") || IsHiddenOrSystemEntry(file))
                         continue;
-                    string iconPath = GetOrCreateFileIcon(file);
+                    string iconPath = GetOrCreateIcon(file, "file_", iconsDir);
                     newItems.Add(new FolderPortalItem(fileName, file, false, iconPath));
                 }
 
@@ -336,20 +334,17 @@ namespace Palisades.ViewModel
         {
             var bytes = Encoding.UTF8.GetBytes(input);
             var hash = SHA256.HashData(bytes);
-            return Convert.ToHexString(hash, 0, 4);
+            return Convert.ToHexString(hash, 0, 8);
         }
 
-        private string GetOrCreateFolderIcon(string folderPath)
+        private static string GetOrCreateIcon(string path, string prefix, string iconsDir)
         {
-            string iconsDir = PDirectory.GetPalisadeIconsDirectory(Identifier);
-            PDirectory.EnsureExists(iconsDir);
-            string hashName = "folder_" + StableHash(folderPath) + ".png";
-            string iconPath = Path.Combine(iconsDir, hashName);
+            string iconPath = Path.Combine(iconsDir, prefix + StableHash(path) + ".png");
             if (File.Exists(iconPath))
                 return iconPath;
             try
             {
-                using Bitmap? icon = IconExtractor.GetFileImageFromPath(folderPath, Helpers.Native.IconSizeEnum.LargeIcon48);
+                using Bitmap? icon = IconExtractor.GetFileImageFromPath(path, Helpers.Native.IconSizeEnum.LargeIcon48);
                 if (icon != null)
                 {
                     using FileStream fileStream = new(iconPath, FileMode.Create);
@@ -359,34 +354,6 @@ namespace Palisades.ViewModel
             }
             catch { }
             return "";
-        }
-
-        private string GetOrCreateFileIcon(string filePath)
-        {
-            string iconsDir = PDirectory.GetPalisadeIconsDirectory(Identifier);
-            PDirectory.EnsureExists(iconsDir);
-            string hashName = "file_" + StableHash(filePath) + ".png";
-            string iconPath = Path.Combine(iconsDir, hashName);
-            if (File.Exists(iconPath))
-                return iconPath;
-            try
-            {
-                using Bitmap? icon = IconExtractor.GetFileImageFromPath(filePath, Helpers.Native.IconSizeEnum.LargeIcon48);
-                if (icon != null)
-                {
-                    using FileStream fileStream = new(iconPath, FileMode.Create);
-                    icon.Save(fileStream, ImageFormat.Png);
-                    return iconPath;
-                }
-            }
-            catch { }
-            return "";
-        }
-
-        private void RefreshItems()
-        {
-            if (!string.IsNullOrEmpty(CurrentPath))
-                LoadFolder(CurrentPath);
         }
 
         private void SetupWatcher(string? path)
@@ -466,7 +433,7 @@ namespace Palisades.ViewModel
                 {
                     if (_disposed)
                         return;
-                    RefreshItems();
+                    if (!string.IsNullOrEmpty(CurrentPath)) LoadFolder(CurrentPath);
                 });
             }
             catch (Exception ex)
@@ -499,9 +466,22 @@ namespace Palisades.ViewModel
             base.Dispose();
         }
 
-        private string GetCurrentDirectoryPath()
+        private void CleanupLegacyIcons()
         {
-            return CurrentPath ?? "";
+            try
+            {
+                string iconsDir = PDirectory.GetPalisadeIconsDirectory(Identifier);
+                if (!Directory.Exists(iconsDir)) return;
+                foreach (var file in Directory.GetFiles(iconsDir, "*.png"))
+                {
+                    string name = Path.GetFileNameWithoutExtension(file);
+                    // Ancien format : "folder_HHHHHHHH" (15 chars) ou "file_HHHHHHHH" (13 chars) — hash 4 octets
+                    if ((name.StartsWith("folder_") && name.Length == 15) ||
+                        (name.StartsWith("file_") && name.Length == 13))
+                        File.Delete(file);
+                }
+            }
+            catch { }
         }
 
         #region IDragSource
@@ -521,7 +501,7 @@ namespace Palisades.ViewModel
         public void DragDropOperationFinished(DragDropEffects operationResult, IDragInfo dragInfo)
         {
             if (operationResult.HasFlag(DragDropEffects.Move))
-                RefreshItems();
+                if (!string.IsNullOrEmpty(CurrentPath)) LoadFolder(CurrentPath);
         }
 
         public void DragCancelled() { }
@@ -610,7 +590,7 @@ namespace Palisades.ViewModel
                     if (Directory.Exists(sourcePath))
                     {
                         if (isCopy)
-                            CopyDirectory(sourcePath, destPath);
+                            PDirectory.CopyDirectory(sourcePath, destPath);
                         else
                             Directory.Move(sourcePath, destPath);
                     }
@@ -628,17 +608,9 @@ namespace Palisades.ViewModel
                 }
             }
 
-            RefreshItems();
+            if (!string.IsNullOrEmpty(CurrentPath)) LoadFolder(CurrentPath);
         }
 
-        private static void CopyDirectory(string sourceDir, string destDir)
-        {
-            Directory.CreateDirectory(destDir);
-            foreach (string file in Directory.GetFiles(sourceDir))
-                File.Copy(file, Path.Combine(destDir, Path.GetFileName(file)));
-            foreach (string dir in Directory.GetDirectories(sourceDir))
-                CopyDirectory(dir, Path.Combine(destDir, Path.GetFileName(dir)));
-        }
         #endregion
 
         #region Commands
@@ -650,7 +622,6 @@ namespace Palisades.ViewModel
         public ICommand OpenInExplorerCommand { get; }
         public ICommand RefreshCommand { get; }
         public ICommand NavigateToRootCommand { get; }
-        public ICommand EditFolderPortalCommand { get; }
         #endregion
     }
 }

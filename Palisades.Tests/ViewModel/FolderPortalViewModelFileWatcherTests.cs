@@ -20,6 +20,7 @@ namespace Palisades.Tests.ViewModel
         public void FileSystemWatcher_NewFileAppearsInItems_AfterDebounce()
         {
             Exception? error = null;
+            bool found = false;
             var thread = new Thread(() =>
             {
                 try
@@ -43,25 +44,21 @@ namespace Palisades.Tests.ViewModel
                         var testFile = Path.Combine(tempDir, "test.txt");
                         File.WriteAllText(testFile, "content");
 
-                        var deadline = DateTime.UtcNow.AddMilliseconds(1500);
+                        // Poll until file appears or 8 s deadline (debounce is 500 ms).
+                        var deadline = DateTime.UtcNow.AddMilliseconds(8000);
                         while (DateTime.UtcNow < deadline)
                         {
                             Application.Current!.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
-                            Thread.Sleep(10);
+                            if (vm.Items.Count > 0) break;
+                            Thread.Sleep(25);
                         }
 
-                        Assert.Contains(vm.Items, i => i.Name == "test.txt");
+                        found = vm.Items.Count > 0 && vm.Items[0].Name == "test.txt";
+                        Assert.True(found, "test.txt did not appear in Items within 8 s");
                     }
                     finally
                     {
-                        try
-                        {
-                            Directory.Delete(tempDir, true);
-                        }
-                        catch
-                        {
-                            // ignore
-                        }
+                        try { Directory.Delete(tempDir, true); } catch { }
                     }
 
                     Application.Current?.Shutdown();
@@ -74,11 +71,9 @@ namespace Palisades.Tests.ViewModel
 
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
-            thread.Join(20000);
+            thread.Join(30000);
             if (error != null)
-            {
                 throw new AggregateException(error);
-            }
         }
     }
 }

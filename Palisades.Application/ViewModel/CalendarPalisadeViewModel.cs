@@ -11,10 +11,7 @@ using Palisades.View;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -31,6 +28,7 @@ namespace Palisades.ViewModel
         private bool _isLoading;
         private Timer? _refreshTimer;
         private readonly HashSet<string> _notifiedEventUids = new HashSet<string>();
+        private static readonly CalendarSerializer _calendarSerializer = new CalendarSerializer();
 
         public CalendarPalisadeViewModel() : this(
             new CalendarPalisadeModel { Name = "Calendar palisade", Width = 500, Height = 400 },
@@ -111,8 +109,7 @@ namespace Palisades.ViewModel
                 Dispatch(() => OnPropertyChanged(nameof(HasNoEvents)));
                 return;
             }
-            IsLoading = true;
-            ErrorMessage = "";
+            Dispatch(() => { IsLoading = true; ErrorMessage = ""; });
             try
             {
                 var start = SelectedDate.Date;
@@ -198,17 +195,8 @@ namespace Palisades.ViewModel
                 DtEnd = dtEnd
             };
             calendar.Events.Add(vevent);
-            var serializer = new CalendarSerializer();
-            var icalData = serializer.SerializeToString(calendar);
+            var icalData = _calendarSerializer.SerializeToString(calendar);
             await _calendarService.CreateEventAsync(_model.CalendarIds[0], icalData ?? "");
-        }
-
-        private static void Dispatch(Action action)
-        {
-            if (Application.Current?.Dispatcher != null)
-                Application.Current.Dispatcher.BeginInvoke(action);
-            else
-                action();
         }
 
         public ICommand PreviousDayCommand { get; }
@@ -217,12 +205,10 @@ namespace Palisades.ViewModel
         public ICommand AddEventCommand { get; }
         public ICommand RefreshCommand { get; } = new RelayCommand<CalendarPalisadeViewModel>(async vm => { if (vm != null) await vm.LoadEventsAsync(); });
 
-        public ICommand EditCalendarPalisadeCommand { get; } = new RelayCommand<CalendarPalisadeViewModel>(vm =>
+        public override void Dispose()
         {
-            if (vm == null) return;
-            var edit = new EditCalendarPalisade(vm);
-            edit.Owner = PalisadesManager.GetWindow(vm.Identifier);
-            edit.ShowDialog();
-        });
+            _refreshTimer?.Dispose();
+            base.Dispose();
+        }
     }
 }
