@@ -34,6 +34,7 @@ namespace Palisades.ViewModel
         {
             Model = model;
             _saveTimer = new System.Threading.Timer(_ => FlushSave(), null, Timeout.Infinite, Timeout.Infinite);
+            EditCommand = new RelayCommand(() => PalisadesManager.OpenEditDialog(this));
         }
 
         #region Propriétés communes
@@ -140,6 +141,8 @@ namespace Palisades.ViewModel
 
         #region Commandes communes
 
+        public ICommand EditCommand { get; }
+
         public ICommand NewPalisadeCommand { get; } = new RelayCommand(() => PalisadesManager.CreatePalisade());
 
         public ICommand NewFolderPortalCommand { get; } = new RelayCommand(() => PalisadesManager.ShowCreateFolderPortalDialog());
@@ -164,14 +167,14 @@ namespace Palisades.ViewModel
             {
                 DataContext = new AboutViewModel()
             };
-            try { about.Owner = System.Windows.Application.Current.MainWindow; } catch { }
+            PalisadesManager.SetOwnerSafe(about, Application.Current.MainWindow);
             about.ShowDialog();
         });
 
         public ICommand SaveSnapshotCommand { get; } = new RelayCommand(() =>
         {
             var dialog = new SaveSnapshotDialog();
-            try { dialog.Owner = System.Windows.Application.Current.MainWindow; } catch { }
+            PalisadesManager.SetOwnerSafe(dialog, Application.Current.MainWindow);
             if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.SnapshotName))
                 LayoutSnapshotService.SaveSnapshot(dialog.SnapshotName.Trim());
         });
@@ -179,7 +182,7 @@ namespace Palisades.ViewModel
         public ICommand ManageSnapshotsCommand { get; } = new RelayCommand(() =>
         {
             var dialog = new ManageSnapshotsDialog();
-            try { dialog.Owner = System.Windows.Application.Current.MainWindow; } catch { }
+            PalisadesManager.SetOwnerSafe(dialog, Application.Current.MainWindow);
             dialog.ShowDialog();
         });
 
@@ -207,6 +210,14 @@ namespace Palisades.ViewModel
         {
             _saveTimer?.Dispose();
             if (ShouldSave) FlushSave();
+        }
+
+        protected static void Dispatch(Action action)
+        {
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher == null) { action(); return; }
+            if (dispatcher.CheckAccess()) action();
+            else dispatcher.Invoke(action);
         }
 
         #region INotifyPropertyChanged

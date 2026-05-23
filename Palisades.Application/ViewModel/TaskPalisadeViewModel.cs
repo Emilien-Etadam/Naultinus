@@ -171,7 +171,7 @@ namespace Palisades.ViewModel
             };
 
             SelectTabCommand = new RelayCommand<TaskTabItem>(tab => { if (tab != null) SelectedTaskTab = tab; });
-            ForceSyncCommand = new RelayCommand(async () => await ForceSyncAsync());
+            ForceSyncCommand = new RelayCommand(async () => await SyncWithCalDAVAsync());
             AddTaskCommand = new RelayCommand(() =>
             {
                 var newTask = new CalDAVTask(Strings.TaskNewTaskName)
@@ -295,12 +295,6 @@ namespace Palisades.ViewModel
             OnPropertyChanged(nameof(FilteredActiveTasks));
         }
 
-        private string GetListIdForSelectedTask()
-        {
-            if (SelectedTask == null) return TaskListId;
-            return GetListIdForTask(SelectedTask);
-        }
-
         private string GetListIdForTask(CalDAVTask task)
         {
             if (TaskTabs.Count > 1)
@@ -404,14 +398,6 @@ namespace Palisades.ViewModel
             }
         }
 
-        private static void Dispatch(Action action)
-        {
-            if (Application.Current?.Dispatcher.CheckAccess() == true)
-                action();
-            else
-                Application.Current?.Dispatcher.Invoke(action);
-        }
-
         private void Tasks_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
             Save();
@@ -492,18 +478,6 @@ namespace Palisades.ViewModel
                 Interlocked.Exchange(ref _syncInProgress, 0);
             }
         }
-
-        public async Task ForceSyncAsync()
-        {
-            await SyncWithCalDAVAsync();
-        }
-
-        public ICommand EditTaskPalisadeCommand { get; } = new RelayCommand<TaskPalisadeViewModel>(viewModel =>
-        {
-            var edit = new EditTaskPalisade { DataContext = viewModel };
-            try { edit.Owner = PalisadesManager.GetWindow(viewModel.Identifier); } catch { }
-            edit.ShowDialog();
-        });
 
         public ICommand ShowSettingsCommand { get; } = new RelayCommand<TaskPalisadeViewModel>(viewModel =>
         {

@@ -33,12 +33,7 @@ namespace Palisades.Services
             var taskLists = new List<CalDAVTaskList>();
             foreach (var c in calendars)
             {
-                taskLists.Add(new CalDAVTaskList(c.DisplayName, c.DisplayName, c.Href)
-                {
-                    CalDAVUrl = c.Href,
-                    Name = c.CalendarId,
-                    DisplayName = c.DisplayName
-                });
+                taskLists.Add(new CalDAVTaskList(c.CalendarId, c.DisplayName, c.Href));
             }
             return taskLists;
         }
@@ -108,22 +103,23 @@ namespace Palisades.Services
             };
         }
 
+        private static Todo BuildTodo(CalDAVTask task, string uid, DateTime lastModified) => new Todo
+        {
+            Summary = task.Title,
+            Description = task.Description,
+            Due = task.DueDate.HasValue ? new CalDateTime(task.DueDate.Value) : null,
+            Status = task.Completed ? "COMPLETED" : "NEEDS-ACTION",
+            Completed = task.Completed ? new CalDateTime(task.CompletedDate ?? DateTime.Now) : null,
+            Created = new CalDateTime(task.CreatedDate),
+            LastModified = new CalDateTime(lastModified),
+            Uid = uid
+        };
+
         public async Task<CalDAVTask> CreateTaskAsync(string taskListHref, CalDAVTask task)
         {
-            var calendar = new Calendar();
             var uid = string.IsNullOrEmpty(task.Uid) ? Guid.NewGuid().ToString() : task.Uid;
-            var todo = new Todo
-            {
-                Summary = task.Title,
-                Description = task.Description,
-                Due = task.DueDate.HasValue ? new CalDateTime(task.DueDate.Value) : null,
-                Status = task.Completed ? "COMPLETED" : "NEEDS-ACTION",
-                Completed = task.Completed ? new CalDateTime(task.CompletedDate ?? DateTime.Now) : null,
-                Created = new CalDateTime(task.CreatedDate),
-                LastModified = new CalDateTime(task.LastModified),
-                Uid = uid
-            };
-            calendar.Todos.Add(todo);
+            var calendar = new Calendar();
+            calendar.Todos.Add(BuildTodo(task, uid, task.LastModified));
             var calendarData = _serializer.SerializeToString(calendar);
 
             var resourceHref = taskListHref.TrimEnd('/') + "/" + uid + ".ics";
@@ -137,20 +133,9 @@ namespace Palisades.Services
 
         public async Task UpdateTaskAsync(string taskListHref, CalDAVTask task)
         {
-            var calendar = new Calendar();
             var uid = !string.IsNullOrEmpty(task.Uid) ? task.Uid : (!string.IsNullOrEmpty(task.CalDAVId) ? Path.GetFileNameWithoutExtension(task.CalDAVId) : null) ?? Guid.NewGuid().ToString();
-            var todo = new Todo
-            {
-                Summary = task.Title,
-                Description = task.Description,
-                Due = task.DueDate.HasValue ? new CalDateTime(task.DueDate.Value) : null,
-                Status = task.Completed ? "COMPLETED" : "NEEDS-ACTION",
-                Completed = task.Completed ? new CalDateTime(task.CompletedDate ?? DateTime.Now) : null,
-                Created = new CalDateTime(task.CreatedDate),
-                LastModified = new CalDateTime(DateTime.Now),
-                Uid = uid
-            };
-            calendar.Todos.Add(todo);
+            var calendar = new Calendar();
+            calendar.Todos.Add(BuildTodo(task, uid, DateTime.Now));
             var calendarData = _serializer.SerializeToString(calendar);
 
             var resourceHref = taskListHref.TrimEnd('/') + "/" + task.CalDAVId;
@@ -189,10 +174,12 @@ namespace Palisades.Services
                     merged.Add(local.LastModified >= remote.LastModified ? local : remote);
                 }
             }
+            var mergedCalDAVIds = new HashSet<string>(merged.Where(m => !string.IsNullOrEmpty(m.CalDAVId)).Select(m => m.CalDAVId!));
+            var mergedUids = new HashSet<string>(merged.Where(m => !string.IsNullOrEmpty(m.Uid)).Select(m => m.Uid!));
             foreach (var remote in remoteTasks)
             {
-                bool alreadyMerged = (!string.IsNullOrEmpty(remote.CalDAVId) && merged.Any(m => m.CalDAVId == remote.CalDAVId))
-                    || (!string.IsNullOrEmpty(remote.Uid) && merged.Any(m => m.Uid == remote.Uid));
+                bool alreadyMerged = (!string.IsNullOrEmpty(remote.CalDAVId) && mergedCalDAVIds.Contains(remote.CalDAVId))
+                    || (!string.IsNullOrEmpty(remote.Uid) && mergedUids.Contains(remote.Uid));
                 if (!alreadyMerged)
                     merged.Add(remote);
             }

@@ -8,11 +8,9 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Input;
 
 namespace Palisades.ViewModel
@@ -124,6 +122,7 @@ namespace Palisades.ViewModel
             if (_disposed || Interlocked.Exchange(ref _refreshInProgress, 1) == 1)
                 return;
 
+            Dispatch(() => IsLoading = true);
             try
             {
                 if (_mailService == null || !_mailService.IsConnected)
@@ -194,14 +193,6 @@ namespace Palisades.ViewModel
                 Dispatch(() => IsLoading = false);
                 Interlocked.Exchange(ref _refreshInProgress, 0);
             }
-        }
-
-        private static void Dispatch(Action action)
-        {
-            if (Application.Current?.Dispatcher != null)
-                Application.Current.Dispatcher.BeginInvoke(action);
-            else
-                action();
         }
 
         public void OpenWebmail()

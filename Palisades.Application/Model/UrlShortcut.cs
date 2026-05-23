@@ -26,7 +26,7 @@ namespace Palisades.Model
             url = url.Replace("BASE", "");
 
             string name = Shortcut.GetName(shortcut);
-            string iconPath = Shortcut.GetIcon(shortcut, palisadeIdentifier);
+            string iconPath = Palisades.Helpers.PDirectory.CreateIconPng(shortcut, palisadeIdentifier);
 
             return new UrlShortcut(name, iconPath, url);
         }
