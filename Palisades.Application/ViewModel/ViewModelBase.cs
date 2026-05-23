@@ -120,9 +120,13 @@ namespace Palisades.ViewModel
                         PDirectory.EnsureExists(saveDirectory);
                         using StreamWriter writer = new(Path.Combine(saveDirectory, "state.xml"));
                         SharedSerializer.Serialize(writer, Model);
+                        ShouldSave = false;
                     }
-                    catch { /* réessayer au prochain Save */ }
-                    finally { ShouldSave = false; }
+                    catch (Exception ex)
+                    {
+                        PalisadeDiagnostics.Log("ViewModelBase", "Sauvegarde impossible pour la palisade " + Identifier, ex);
+                        // Conserver ShouldSave=true pour qu'un prochain Save() retente l'écriture.
+                    }
                 }
             }
 

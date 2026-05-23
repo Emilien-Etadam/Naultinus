@@ -27,6 +27,8 @@ namespace Palisades.ViewModel
         private string _errorMessage = string.Empty;
         private bool _isLoading;
         private Timer? _refreshTimer;
+        private int _loadEventsInProgress;
+        private bool _disposed;
         private readonly HashSet<string> _notifiedEventUids = new HashSet<string>();
         private static readonly CalendarSerializer _calendarSerializer = new CalendarSerializer();
 
@@ -103,15 +105,21 @@ namespace Palisades.ViewModel
 
         public async Task LoadEventsAsync()
         {
-            if (_model.CalendarIds == null || _model.CalendarIds.Count == 0)
-            {
-                Dispatch(() => { Events.Clear(); ErrorMessage = Strings.CalendarNoCalendarsConfigured; });
-                Dispatch(() => OnPropertyChanged(nameof(HasNoEvents)));
+            if (_disposed || Interlocked.Exchange(ref _loadEventsInProgress, 1) == 1)
                 return;
-            }
+
             Dispatch(() => { IsLoading = true; ErrorMessage = ""; });
             try
             {
+                if (_model.CalendarIds == null || _model.CalendarIds.Count == 0)
+                {
+                    Dispatch(() => { Events.Clear(); ErrorMessage = Strings.CalendarNoCalendarsConfigured; });
+                    Dispatch(() => OnPropertyChanged(nameof(HasNoEvents)));
+                    return;
+                }
+
+                IsLoading = true;
+                ErrorMessage = "";
                 var start = SelectedDate.Date;
                 var end = start.AddDays(DaysToShow);
                 var allEvents = new List<Model.CalendarEvent>();
@@ -155,13 +163,20 @@ namespace Palisades.ViewModel
             finally
             {
                 Dispatch(() => { IsLoading = false; OnPropertyChanged(nameof(HasNoEvents)); });
+                Interlocked.Exchange(ref _loadEventsInProgress, 0);
             }
         }
 
         private void StartRefreshTimer()
         {
             _refreshTimer?.Dispose();
-            _refreshTimer = new Timer(async _ => await LoadEventsAsync(), null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
+            _refreshTimer = new Timer(async _ =>
+            {
+                if (_disposed)
+                    return;
+
+                await LoadEventsAsync();
+            }, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
         }
 
         private async void ShowAddEventDialog()
@@ -207,7 +222,10 @@ namespace Palisades.ViewModel
 
         public override void Dispose()
         {
+            _disposed = true;
             _refreshTimer?.Dispose();
+            _refreshTimer = null;
+            (_calendarService as IDisposable)?.Dispose();
             base.Dispose();
         }
     }

@@ -1,5 +1,6 @@
 using Palisades.Helpers;
 using Palisades.Model;
+using System;
 using System.IO;
 using System.Xml.Serialization;
 
@@ -23,7 +24,11 @@ namespace Palisades.Services
                 if (Serializer.Deserialize(reader) is AppSettings settings)
                     return settings;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                PalisadeDiagnostics.Log("AppSettingsStore", "Impossible de charger les paramètres : " + path, ex);
+            }
+
             return new AppSettings();
         }
 

@@ -25,7 +25,11 @@ namespace Palisades.Services
                 if (Serializer.Deserialize(reader) is List<ZimbraAccount> list)
                     return list;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                PalisadeDiagnostics.Log("ZimbraAccountStore", "Lecture des comptes impossible : " + path, ex);
+            }
+
             return new List<ZimbraAccount>();
         }
 

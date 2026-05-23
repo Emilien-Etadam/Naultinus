@@ -12,13 +12,18 @@ namespace Palisades.Services
     /// <summary>
     /// Service CalDAV pour les calendriers (VEVENT). Utilise CalDAVClient pour le transport.
     /// </summary>
-    public class CalendarCalDAVService : ICalendarCalDAVService
+    public class CalendarCalDAVService : ICalendarCalDAVService, IDisposable
     {
         private readonly ICalDAVClient _client;
 
         public CalendarCalDAVService(ICalDAVClient client)
         {
             _client = client ?? throw new ArgumentNullException(nameof(client));
+        }
+
+        public void Dispose()
+        {
+            _client.Dispose();
         }
 
         /// <summary>

@@ -12,7 +12,7 @@ using Ical.Net.Serialization;
 
 namespace Palisades.Services
 {
-    public class CalDAVService : ICalDAVService
+    public class CalDAVService : ICalDAVService, IDisposable
     {
         private readonly ICalDAVClient _client;
         private readonly CalendarSerializer _serializer = new CalendarSerializer();
@@ -20,6 +20,11 @@ namespace Palisades.Services
         public CalDAVService(ICalDAVClient client)
         {
             _client = client ?? throw new ArgumentNullException(nameof(client));
+        }
+
+        public void Dispose()
+        {
+            _client.Dispose();
         }
 
         public async Task<List<CalDAVTaskList>> GetTaskListsAsync()

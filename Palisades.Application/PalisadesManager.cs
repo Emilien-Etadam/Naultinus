@@ -48,7 +48,7 @@ namespace Palisades
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[PalisadesManager] Failed to load {stateFile}: {ex.Message}");
+                    PalisadeDiagnostics.Log("PalisadesManager", "Failed to load " + stateFile, ex);
                 }
             }
 

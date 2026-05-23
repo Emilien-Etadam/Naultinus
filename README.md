@@ -27,9 +27,12 @@ Prérequis : [SDK .NET 10](https://dotnet.microsoft.com/download) (voir `global.
 ```bash
 git clone https://github.com/Emilien-Etadam/Palisades-Navigation.git
 cd Palisades-Navigation
-dotnet restore Palisades.sln
-dotnet build Palisades.sln -c Release
+dotnet restore Palisades.Application/Palisades.Application.csproj
+dotnet build Palisades.Application/Palisades.Application.csproj -c Release
+dotnet test Palisades.Tests/Palisades.Tests.csproj -c Release
 ```
+
+La solution contient aussi un projet d’installateur Visual Studio historique (`.vdproj`) ; les commandes ci-dessus ciblent les projets compatibles avec le CLI .NET.
 
 L’exécutable se trouve sous `Palisades.Application\bin\Release\net10.0-windows10.0.17763.0\Palisades.exe`.
 
