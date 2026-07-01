@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
+using System.Xml;
 using System.Xml.Serialization;
 
 namespace Palisades.Services
@@ -14,6 +15,21 @@ namespace Palisades.Services
     public static class LayoutSnapshotService
     {
         private static readonly XmlSerializer SnapshotSerializer = new(typeof(LayoutSnapshot), new[] { typeof(SnapshotEntry) });
+
+        // Désérialisation durcie (CA5369) : DTD interdit et aucun résolveur d'entités externes.
+        // Les snapshots peuvent être importés depuis un dossier externe (ImportSnapshot).
+        private static readonly XmlReaderSettings SafeXmlSettings = new()
+        {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null,
+        };
+
+        private static LayoutSnapshot? DeserializeSnapshot(string path)
+        {
+            using var stream = File.OpenRead(path);
+            using var xmlReader = XmlReader.Create(stream, SafeXmlSettings);
+            return SnapshotSerializer.Deserialize(xmlReader) as LayoutSnapshot;
+        }
 
         public static LayoutSnapshot SaveSnapshot(string name)
         {
@@ -46,7 +62,8 @@ namespace Palisades.Services
                 try
                 {
                     using var sr = new StringReader(content);
-                    if (PalisadeXmlSerialization.PalisadeModelSerializer.Deserialize(sr) is PalisadeModelBase model)
+                    using var xr = XmlReader.Create(sr, SafeXmlSettings);
+                    if (PalisadeXmlSerialization.PalisadeModelSerializer.Deserialize(xr) is PalisadeModelBase model)
                     {
                         groupId = model.GroupId;
                         tabOrder = model.TabOrder;
@@ -84,8 +101,7 @@ namespace Palisades.Services
                 if (!File.Exists(path)) continue;
                 try
                 {
-                    using var reader = new StreamReader(path);
-                    if (SnapshotSerializer.Deserialize(reader) is LayoutSnapshot s)
+                    if (DeserializeSnapshot(path) is LayoutSnapshot s)
                     {
                         s.Id = Path.GetFileName(dir);
                         list.Add(s);
@@ -103,11 +119,7 @@ namespace Palisades.Services
         {
             var path = Path.Combine(PDirectory.GetSnapshotsDirectory(), snapshotId, "snapshot.xml");
             if (!File.Exists(path)) return;
-            LayoutSnapshot? snapshot;
-            using (var reader = new StreamReader(path))
-            {
-                snapshot = SnapshotSerializer.Deserialize(reader) as LayoutSnapshot;
-            }
+            LayoutSnapshot? snapshot = DeserializeSnapshot(path);
             if (snapshot?.Entries == null) return;
 
             if (snapshot.SchemaVersion == 0)
@@ -152,11 +164,7 @@ namespace Palisades.Services
         {
             var path = Path.Combine(PDirectory.GetSnapshotsDirectory(), snapshotId, "snapshot.xml");
             if (!File.Exists(path)) return;
-            LayoutSnapshot? snapshot;
-            using (var reader = new StreamReader(path))
-            {
-                snapshot = SnapshotSerializer.Deserialize(reader) as LayoutSnapshot;
-            }
+            LayoutSnapshot? snapshot = DeserializeSnapshot(path);
             if (snapshot == null) return;
             snapshot.Name = newName ?? "";
             using (var writer = new StreamWriter(path))
@@ -177,11 +185,7 @@ namespace Palisades.Services
         {
             var snapshotPath = Path.Combine(sourceFolder, "snapshot.xml");
             if (!File.Exists(snapshotPath)) return null;
-            LayoutSnapshot? snapshot;
-            using (var reader = new StreamReader(snapshotPath))
-            {
-                snapshot = SnapshotSerializer.Deserialize(reader) as LayoutSnapshot;
-            }
+            LayoutSnapshot? snapshot = DeserializeSnapshot(snapshotPath);
             if (snapshot?.Id == null) return null;
             var newId = Guid.NewGuid().ToString();
             var destDir = Path.Combine(PDirectory.GetSnapshotsDirectory(), newId);
