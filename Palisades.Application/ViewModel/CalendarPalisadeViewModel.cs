@@ -185,8 +185,17 @@ namespace Palisades.ViewModel
             try { dialog.Owner = PalisadesManager.GetWindow(Identifier); } catch { }
             if (dialog.ShowDialog() == true && dialog.NewEvent != null)
             {
-                await CreateEventAsync(dialog.NewEvent);
-                await LoadEventsAsync();
+                try
+                {
+                    await CreateEventAsync(dialog.NewEvent);
+                    await LoadEventsAsync();
+                }
+                catch (Exception ex)
+                {
+                    // Sans ce catch, un échec du PUT CalDAV partait dans un async void et était
+                    // avalé par le handler global : l'utilisateur croyait l'événement créé.
+                    Dispatch(() => ErrorMessage = ex.Message);
+                }
             }
         }
 
