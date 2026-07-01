@@ -14,7 +14,7 @@ Zimbra OVH expose : CalDAV sur `https://<serveur>/dav/<email>/Calendar` (calendr
 
 **0.1 — Résoudre le conflit Git dans `TaskPalisadeViewModel.cs`.** Le fichier contient un marqueur de merge non résolu (`=======`) avec deux implémentations concurrentes de la propriété `CalDAVPassword`. Conserver la version chiffrée (celle utilisant `CredentialEncryptor`), supprimer la version en clair et le marqueur.
 
-**0.2 — Sortir le DSN Sentry du code source.** Déplacer `o.Dsn` dans un fichier `appsettings.json` (ou variable d'environnement injectée au build). Le DSN actuel (`ffd9f3db270c...`) est exposé publiquement. Ajouter `appsettings.json` au `.gitignore`, fournir un `appsettings.example.json`.
+**0.2 — ~~Sortir le DSN Sentry du code source.~~ Obsolète : Sentry a été entièrement retiré du projet.** Plus aucun package ni code de reporting d'erreurs ; `appsettings.example.json` et le crédit « Sentry » de la fenêtre À propos ont été supprimés. (Le DSN historiquement exposé n'est plus présent dans le dépôt.)
 
 **0.3 — Vérifier la compilation.** Après 0.1 et 0.2, s'assurer que la solution compile sans erreur ni warning sur .NET 10.
 
@@ -23,7 +23,7 @@ Zimbra OVH expose : CalDAV sur `https://<serveur>/dav/<email>/Calendar` (calendr
 - **Cible .NET :** projet en `net8.0-windows` (les packages WPF ne ciblent pas encore net10.0). Fichier `global.json` pour privilégier le SDK 8.0 sur Windows.
 - **Référence COM supprimée :** la référence COM `IWshRuntimeLibrary` bloquait `dotnet build`. Remplacée par un lecteur .lnk en code : `Helpers/LnkReader.cs` (parsing binaire MS-SHLLINK) et `LnkShortcut.BuildFrom` utilise `LnkReader.GetTargetPath()`.
 - **Sélection de couleurs :** le package PixiEditor.ColorPicker a été retiré. Utilisation de `System.Windows.Forms.ColorDialog` (API Windows standard) via `Helpers/ColorConversion.cs` (conversion Drawing.Color ↔ Media.Color), contrôle `View/ColorPickerButton.xaml` (carré couleur cliquable), et `EditTaskPalisade` appelle directement `ColorDialog`. Plus de dépendance tierce pour le color picker.
-- **Packages mis à jour :** gong-wpf-dragdrop 4.0.0, MaterialDesignThemes 5.3.0, Microsoft.Xaml.Behaviors.Wpf 1.1.135, Sentry 5.16.2. Microsoft.Extensions.Configuration 8.0.0, Ical.Net 4.3.0, System.Drawing.Common 8.0.0 conservés pour compatibilité net8.
+- **Packages mis à jour :** gong-wpf-dragdrop 4.0.0, MaterialDesignThemes 5.3.0, Microsoft.Xaml.Behaviors.Wpf 1.1.135. Microsoft.Extensions.Configuration 8.0.0, Ical.Net 4.3.0, System.Drawing.Common 8.0.0 conservés pour compatibilité net8. (Sentry ultérieurement retiré, cf. 0.2.)
 - **Tests unitaires :** `CalDAVServiceTests.cs` (xUnit) exclu de la compilation du projet application (`<Compile Remove="Services\CalDAVServiceTests.cs" />`) en attendant la Phase 8.1 (projet Palisades.Tests).
 - **Corrections diverses :** chaîne XML dans `CalDAVService.cs` (guillemets verbatim `""`), `using System` dans `App.xaml.cs`, `Descendants().FirstOrDefault()` au lieu de `Descendant` en LINQ to XML, `using Ical.Net` et `using System.Collections.Generic` où nécessaire, `nuget.config` avec source nuget.org explicite.
 - **About.xaml :** mention de PixiEditor's ColorPicker retirée.
