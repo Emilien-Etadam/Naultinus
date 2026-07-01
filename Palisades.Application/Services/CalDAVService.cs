@@ -164,6 +164,13 @@ namespace Palisades.Services
                     remote = byUid;
                 if (remote == null)
                 {
+                    // Le serveur fait foi pour ce qui a déjà été synchronisé : une tâche portant un
+                    // CalDAVId/Uid mais absente du serveur y a été supprimée (par un autre client) ; on
+                    // ne la recrée pas, on la laisse tomber du cache local. Seule une tâche jamais
+                    // synchronisée (sans CalDAVId ni Uid) est une vraie création locale à pousser.
+                    bool alreadySynced = !string.IsNullOrEmpty(local.CalDAVId) || !string.IsNullOrEmpty(local.Uid);
+                    if (alreadySynced)
+                        continue;
                     var created = await CreateTaskAsync(taskListHref, local).ConfigureAwait(false);
                     merged.Add(created);
                 }
