@@ -127,18 +127,47 @@ namespace Palisades.Services
 
             PalisadesManager.CloseAllPalisades();
             var savedDir = PDirectory.GetPalisadesDirectory();
-            if (Directory.Exists(savedDir))
+
+            // Sauvegarde de sûreté : on déplace l'état courant dans un dossier de secours plutôt que de
+            // le supprimer d'emblée. Ainsi, si l'écriture du nouvel état échoue en cours de route, on
+            // restaure l'état précédent au lieu de laisser l'utilisateur avec des palisades perdues.
+            string? backupDir = null;
+            if (Directory.Exists(savedDir) && Directory.GetDirectories(savedDir).Length > 0)
             {
-                foreach (var dir in Directory.GetDirectories(savedDir))
-                    Directory.Delete(dir, true);
+                backupDir = savedDir + ".restore-backup";
+                if (Directory.Exists(backupDir))
+                    Directory.Delete(backupDir, true);
+                Directory.Move(savedDir, backupDir);
             }
-            PDirectory.EnsureExists(savedDir);
-            foreach (var entry in snapshot.Entries)
+
+            try
             {
-                var palDir = Path.Combine(savedDir, entry.PalisadeIdentifier);
-                Directory.CreateDirectory(palDir);
-                File.WriteAllText(Path.Combine(palDir, "state.xml"), entry.StateXmlContent);
+                PDirectory.EnsureExists(savedDir);
+                foreach (var entry in snapshot.Entries)
+                {
+                    var palDir = Path.Combine(savedDir, entry.PalisadeIdentifier);
+                    Directory.CreateDirectory(palDir);
+                    File.WriteAllText(Path.Combine(palDir, "state.xml"), entry.StateXmlContent);
+                }
             }
+            catch (Exception ex)
+            {
+                PalisadeDiagnostics.Log("LayoutSnapshot", "Restauration échouée, retour à l'état précédent.", ex);
+                if (backupDir != null && Directory.Exists(backupDir))
+                {
+                    if (Directory.Exists(savedDir))
+                        Directory.Delete(savedDir, true);
+                    Directory.Move(backupDir, savedDir);
+                    backupDir = null;
+                }
+                PalisadesManager.LoadPalisades();
+                throw;
+            }
+
+            // Succès : le dossier de secours n'est plus nécessaire.
+            if (backupDir != null && Directory.Exists(backupDir))
+                Directory.Delete(backupDir, true);
+
             PalisadesManager.LoadPalisades();
             ApplyRescaleIfNeeded(snapshot);
         }
