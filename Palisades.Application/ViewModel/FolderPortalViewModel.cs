@@ -120,6 +120,14 @@ namespace Palisades.ViewModel
 
             UpdateBreadcrumb();
 
+            // Assigné avant les commandes qui l'invoquent (CreateNewFolder/File, Paste) pour que
+            // le flux nullable le voie initialisé.
+            RefreshCommand = new RelayCommand(() =>
+            {
+                if (!string.IsNullOrEmpty(CurrentPath))
+                    LoadFolder(CurrentPath);
+            });
+
             CreateNewFolderCommand = new RelayCommand(() =>
             {
                 var currentPath = CurrentPath;
@@ -215,12 +223,6 @@ namespace Palisades.ViewModel
                     Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = CurrentPath, UseShellExecute = true });
                 }
                 catch (Exception ex) { PalisadeDiagnostics.Log("FolderPortal", "Ouverture dans l'Explorateur impossible : " + CurrentPath, ex); }
-            });
-
-            RefreshCommand = new RelayCommand(() =>
-            {
-                if (!string.IsNullOrEmpty(CurrentPath))
-                    LoadFolder(CurrentPath);
             });
 
             NavigateToRootCommand = new RelayCommand(() =>
@@ -538,9 +540,9 @@ namespace Palisades.ViewModel
         {
             string[]? files = null;
             if (dropInfo.Data is DataObject dataObject && dataObject.GetDataPresent(DataFormats.FileDrop))
-                files = (string[])dataObject.GetData(DataFormats.FileDrop);
+                files = dataObject.GetData(DataFormats.FileDrop) as string[];
             else if (dropInfo.Data is IDataObject iDataObject && iDataObject.GetDataPresent(DataFormats.FileDrop))
-                files = (string[])iDataObject.GetData(DataFormats.FileDrop);
+                files = iDataObject.GetData(DataFormats.FileDrop) as string[];
             else if (dropInfo.Data is FolderPortalItem item && !string.IsNullOrEmpty(item.FullPath))
                 files = new[] { item.FullPath };
 

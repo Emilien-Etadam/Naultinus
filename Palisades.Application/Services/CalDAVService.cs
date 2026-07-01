@@ -71,6 +71,8 @@ namespace Palisades.Services
                 try
                 {
                     var calendar = Calendar.Load(calendarData);
+                    if (calendar == null)
+                        continue;
                     foreach (var todo in calendar.Todos)
                         tasks.Add(MapTodoToCalDAVTask(todo, caldavId, etag));
                 }
@@ -120,7 +122,7 @@ namespace Palisades.Services
             var uid = string.IsNullOrEmpty(task.Uid) ? Guid.NewGuid().ToString() : task.Uid;
             var calendar = new Calendar();
             calendar.Todos.Add(BuildTodo(task, uid, task.LastModified));
-            var calendarData = _serializer.SerializeToString(calendar);
+            var calendarData = _serializer.SerializeToString(calendar) ?? string.Empty;
 
             var resourceHref = taskListHref.TrimEnd('/') + "/" + uid + ".ics";
             var createdEtag = await _client.PutAsync(resourceHref, calendarData).ConfigureAwait(false);
@@ -136,7 +138,7 @@ namespace Palisades.Services
             var uid = !string.IsNullOrEmpty(task.Uid) ? task.Uid : (!string.IsNullOrEmpty(task.CalDAVId) ? Path.GetFileNameWithoutExtension(task.CalDAVId) : null) ?? Guid.NewGuid().ToString();
             var calendar = new Calendar();
             calendar.Todos.Add(BuildTodo(task, uid, DateTime.Now));
-            var calendarData = _serializer.SerializeToString(calendar);
+            var calendarData = _serializer.SerializeToString(calendar) ?? string.Empty;
 
             var resourceHref = taskListHref.TrimEnd('/') + "/" + task.CalDAVId;
             var etag = await _client.PutAsync(resourceHref, calendarData, task.CalDAVEtag).ConfigureAwait(false);

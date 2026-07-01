@@ -24,7 +24,7 @@ namespace Palisades.Services
         private ImapClient? _client;
         private readonly object _clientLock = new object();
 
-        public ImapMailService(string host, int port, string username, string password)
+        public ImapMailService(string? host, int port, string? username, string? password)
         {
             _host = host ?? "";
             _port = port > 0 ? port : 993;

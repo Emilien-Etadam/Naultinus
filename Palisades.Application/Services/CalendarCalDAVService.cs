@@ -80,6 +80,8 @@ namespace Palisades.Services
                 try
                 {
                     var calendar = Ical.Net.Calendar.Load(calendarData);
+                    if (calendar == null)
+                        continue;
                     foreach (var evt in calendar.Events)
                         events.Add(MapIcalEventToCalendarEvent(evt, href, etag, calendarName, defaultColorHex));
                 }

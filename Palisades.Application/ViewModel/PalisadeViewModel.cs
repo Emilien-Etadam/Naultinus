@@ -4,6 +4,7 @@ using Palisades.Model;
 using Palisades.View;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -379,7 +380,7 @@ namespace Palisades.ViewModel
 
         public bool TryCatchOccurredException(Exception exception) => false;
 
-        private static bool TryGetFileDropPathsForShortcut(Shortcut sc, out string[]? paths)
+        private static bool TryGetFileDropPathsForShortcut(Shortcut sc, [NotNullWhen(true)] out string[]? paths)
         {
             paths = null;
             var t = sc.UriOrFileAction?.Trim() ?? string.Empty;
