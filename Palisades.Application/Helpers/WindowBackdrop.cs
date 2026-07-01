@@ -31,17 +31,31 @@ namespace Palisades.Helpers
             var hwnd = new WindowInteropHelper(window).Handle;
             if (hwnd == IntPtr.Zero) return;
 
-            int mica = 2; // DWMSBT_MAINWINDOW = Mica
-            DwmSetWindowAttribute(hwnd, 38, ref mica, sizeof(int));
-
-            // DWMWCP_DONOTROUND : sans cela, Windows 11 trace ombre + liseré autour des fenêtres sans chrome / transparentes.
-            int corner = 1; // DWMWCP_DONOTROUND (voir DWM_WINDOW_CORNER_PREFERENCE)
-            DwmSetWindowAttribute(hwnd, 33, ref corner, sizeof(int));
-
+            // Le mode sombre du chrome DWM (attr. 20) est supporté dès Windows 10 1809.
             int useDark = IsSystemDarkMode() ? 1 : 0;
             DwmSetWindowAttribute(hwnd, 20, ref useDark, sizeof(int));
 
-            window.Background = Brushes.Transparent;
+            // Mica (attr. 38) et la préférence de coins (attr. 33) sont spécifiques à Windows 11
+            // (build >= 22000). Sous Windows 10 ces appels échouent en silence, et laisser le fond
+            // transparent rendrait la fenêtre illisible (aucun backdrop dessous). On ne rend donc la
+            // fenêtre transparente que là où Mica est réellement appliqué.
+            if (IsWindows11OrGreater())
+            {
+                int mica = 2; // DWMSBT_MAINWINDOW = Mica
+                DwmSetWindowAttribute(hwnd, 38, ref mica, sizeof(int));
+
+                // DWMWCP_DONOTROUND : sans cela, Windows 11 trace ombre + liseré autour des fenêtres sans chrome / transparentes.
+                int corner = 1; // DWMWCP_DONOTROUND (voir DWM_WINDOW_CORNER_PREFERENCE)
+                DwmSetWindowAttribute(hwnd, 33, ref corner, sizeof(int));
+
+                window.Background = Brushes.Transparent;
+            }
+        }
+
+        private static bool IsWindows11OrGreater()
+        {
+            var v = Environment.OSVersion.Version;
+            return v.Major >= 10 && v.Build >= 22000;
         }
 
         private static bool IsSystemDarkMode()

@@ -7,7 +7,7 @@ using System.Windows.Interop;
 
 namespace Palisades.Helpers
 {
-    internal class WindowSinker
+    internal class WindowSinker : IDisposable
     {
         #region Windows API
         private const int WM_WINDOWPOSCHANGING = 0x0046;
@@ -45,13 +45,13 @@ namespace Palisades.Helpers
             window.Closing += OnWindowClosing;
         }
 
-        ~WindowSinker()
-        {
-            Dispose(false);
-        }
-
         #region Methods
-        protected virtual void Dispose(bool? disposing)
+
+        // Pas de finaliseur : WindowSinker ne détient aucune ressource non managée, et son nettoyage
+        // désabonne des événements d'un objet Window à affinité de thread. Cela ne doit donc s'exécuter
+        // que sur le thread UI (Dispose est appelé depuis OnAlwaysOnBottomChanged), jamais depuis le
+        // thread finaliseur du GC.
+        public void Dispose()
         {
             if (disposed)
             {
@@ -63,12 +63,6 @@ namespace Palisades.Helpers
             window.PreviewMouseDown -= OnPreviewMouseDown;
 
             disposed = true;
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
         }
         #endregion
 
