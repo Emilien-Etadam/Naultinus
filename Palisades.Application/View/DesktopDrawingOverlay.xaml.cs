@@ -146,7 +146,7 @@ namespace Palisades.View
                 HideDrawing();
         }
 
-        private (int x, int y, int w, int h) GetNormalizedRect()
+        private (int X, int Y, int W, int H) GetNormalizedRect()
         {
             double x = Canvas.GetLeft(SelectionRect);
             double y = Canvas.GetTop(SelectionRect);

@@ -46,7 +46,7 @@ namespace Palisades
             return null;
         }
 
-        private static (string url, string username, string password) ResolveCalDAVCredentials(Guid? zimbraAccountId, string? modelUrl, string? modelUser, string? modelEncPass)
+        private static (string Url, string Username, string Password) ResolveCalDAVCredentials(Guid? zimbraAccountId, string? modelUrl, string? modelUser, string? modelEncPass)
         {
             if (zimbraAccountId is Guid id && ZimbraAccountStore.GetById(id) is ZimbraAccount acc)
             {
