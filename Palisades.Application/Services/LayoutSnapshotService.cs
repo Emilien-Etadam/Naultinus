@@ -85,8 +85,7 @@ namespace Palisades.Services
             var snapDir = Path.Combine(PDirectory.GetSnapshotsDirectory(), snapshot.Id);
             PDirectory.EnsureExists(PDirectory.GetSnapshotsDirectory());
             Directory.CreateDirectory(snapDir);
-            using (var writer = new StreamWriter(Path.Combine(snapDir, "snapshot.xml")))
-                SnapshotSerializer.Serialize(writer, snapshot);
+            PDirectory.WriteAtomicText(Path.Combine(snapDir, "snapshot.xml"), writer => SnapshotSerializer.Serialize(writer, snapshot));
             return snapshot;
         }
 

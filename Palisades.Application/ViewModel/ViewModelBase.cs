@@ -117,9 +117,7 @@ namespace Palisades.ViewModel
                     try
                     {
                         string saveDirectory = PDirectory.GetPalisadeDirectory(Identifier);
-                        PDirectory.EnsureExists(saveDirectory);
-                        using StreamWriter writer = new(Path.Combine(saveDirectory, "state.xml"));
-                        SharedSerializer.Serialize(writer, Model);
+                        PDirectory.WriteAtomicText(Path.Combine(saveDirectory, "state.xml"), writer => SharedSerializer.Serialize(writer, Model));
                         ShouldSave = false;
                     }
                     catch (Exception ex)

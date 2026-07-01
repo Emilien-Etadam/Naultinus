@@ -36,9 +36,7 @@ namespace Palisades.Services
         public static void Save(List<ZimbraAccount> accounts)
         {
             var path = PDirectory.GetAccountsFilePath();
-            PDirectory.EnsureExists(Path.GetDirectoryName(path)!);
-            using var writer = new StreamWriter(path);
-            Serializer.Serialize(writer, accounts ?? new List<ZimbraAccount>());
+            PDirectory.WriteAtomicText(path, writer => Serializer.Serialize(writer, accounts ?? new List<ZimbraAccount>()));
         }
 
         public static ZimbraAccount? GetById(Guid id)

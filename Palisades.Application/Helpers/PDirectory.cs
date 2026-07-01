@@ -57,6 +57,40 @@ namespace Palisades.Helpers
             }
         }
 
+        /// <summary>
+        /// Écrit un fichier de façon atomique : écriture dans un fichier temporaire puis remplacement
+        /// du fichier cible. Évite de corrompre le fichier existant si l'écriture est interrompue
+        /// (disque plein, plantage). Le contenu est produit par <paramref name="writeContent"/>.
+        /// </summary>
+        internal static void WriteAtomic(string path, Action<Stream> writeContent)
+        {
+            EnsureExists(Path.GetDirectoryName(path)!);
+            string tmp = path + ".tmp";
+            using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                writeContent(fs);
+                fs.Flush(true);
+            }
+
+            if (File.Exists(path))
+                File.Replace(tmp, path, null);
+            else
+                File.Move(tmp, path);
+        }
+
+        /// <summary>
+        /// Variante texte de <see cref="WriteAtomic"/> : fournit un <see cref="TextWriter"/> UTF-8
+        /// (même encodage qu'un StreamWriter par défaut), pour préserver le format de sortie existant.
+        /// </summary>
+        internal static void WriteAtomicText(string path, Action<TextWriter> writeContent)
+        {
+            WriteAtomic(path, stream =>
+            {
+                using var writer = new StreamWriter(stream, leaveOpen: true);
+                writeContent(writer);
+            });
+        }
+
         internal static void CopyDirectory(string sourceDir, string destDir)
         {
             Directory.CreateDirectory(destDir);

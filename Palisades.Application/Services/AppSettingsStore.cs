@@ -35,9 +35,7 @@ namespace Palisades.Services
         public static void Save(AppSettings settings)
         {
             var path = PDirectory.GetSettingsFilePath();
-            PDirectory.EnsureExists(Path.GetDirectoryName(path)!);
-            using var writer = new StreamWriter(path);
-            Serializer.Serialize(writer, settings ?? new AppSettings());
+            PDirectory.WriteAtomicText(path, writer => Serializer.Serialize(writer, settings ?? new AppSettings()));
         }
     }
 }
