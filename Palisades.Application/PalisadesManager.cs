@@ -33,7 +33,7 @@ namespace Palisades
                 try
                 {
                     using var reader = new StreamReader(stateFile);
-                    var obj = ViewModelBase.SharedSerializer.Deserialize(reader);
+                    var obj = SafeXml.Deserialize(ViewModelBase.SharedSerializer, reader);
                     if (obj is PalisadeModel legacy)
                     {
                         var concrete = PalisadeModelMigration.ToConcreteModel(legacy);

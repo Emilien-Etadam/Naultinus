@@ -21,7 +21,7 @@ namespace Palisades.Services
             try
             {
                 using var reader = new StreamReader(path);
-                if (Serializer.Deserialize(reader) is AppSettings settings)
+                if (SafeXml.Deserialize(Serializer, reader) is AppSettings settings)
                     return settings;
             }
             catch (Exception ex)

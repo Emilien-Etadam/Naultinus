@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
-using System.Xml;
 using System.Xml.Serialization;
 
 namespace Palisades.Services
@@ -16,19 +15,10 @@ namespace Palisades.Services
     {
         private static readonly XmlSerializer SnapshotSerializer = new(typeof(LayoutSnapshot), new[] { typeof(SnapshotEntry) });
 
-        // Désérialisation durcie (CA5369) : DTD interdit et aucun résolveur d'entités externes.
-        // Les snapshots peuvent être importés depuis un dossier externe (ImportSnapshot).
-        private static readonly XmlReaderSettings SafeXmlSettings = new()
-        {
-            DtdProcessing = DtdProcessing.Prohibit,
-            XmlResolver = null,
-        };
-
         private static LayoutSnapshot? DeserializeSnapshot(string path)
         {
             using var stream = File.OpenRead(path);
-            using var xmlReader = XmlReader.Create(stream, SafeXmlSettings);
-            return SnapshotSerializer.Deserialize(xmlReader) as LayoutSnapshot;
+            return SafeXml.Deserialize(SnapshotSerializer, stream) as LayoutSnapshot;
         }
 
         public static LayoutSnapshot SaveSnapshot(string name)
@@ -62,8 +52,7 @@ namespace Palisades.Services
                 try
                 {
                     using var sr = new StringReader(content);
-                    using var xr = XmlReader.Create(sr, SafeXmlSettings);
-                    if (PalisadeXmlSerialization.PalisadeModelSerializer.Deserialize(xr) is PalisadeModelBase model)
+                    if (SafeXml.Deserialize(PalisadeXmlSerialization.PalisadeModelSerializer, sr) is PalisadeModelBase model)
                     {
                         groupId = model.GroupId;
                         tabOrder = model.TabOrder;

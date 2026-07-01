@@ -22,7 +22,7 @@ namespace Palisades.Services
             try
             {
                 using var reader = new StreamReader(path);
-                if (Serializer.Deserialize(reader) is List<ZimbraAccount> list)
+                if (SafeXml.Deserialize(Serializer, reader) is List<ZimbraAccount> list)
                     return list;
             }
             catch (Exception ex)
