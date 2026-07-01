@@ -48,17 +48,19 @@ namespace Palisades.Helpers
                 return null;
             }
 
-            Icon? myIcon = Icon.FromHandle(hIcon);
-            if (myIcon == null)
+            try
             {
-                return null;
-            }
+                using Icon? myIcon = Icon.FromHandle(hIcon);
 
-            Bitmap bitmap = myIcon.ToBitmap();
-            myIcon.Dispose();
-            Bindings.DestroyIcon(hIcon);
-            Bindings.SendMessage(hIcon, CONSTS.WM_CLOSE, 0, 0);
-            return bitmap;
+                // ToBitmap() produit une copie managée indépendante du HICON.
+                return myIcon?.ToBitmap();
+            }
+            finally
+            {
+                // Icon.FromHandle ne possède pas le HICON : il faut le libérer explicitement,
+                // y compris sur les chemins d'échec (sinon fuite de handle GDI).
+                Bindings.DestroyIcon(hIcon);
+            }
         }
 
         internal static IntPtr GetIconHandleFromFilePathWithFlags(
@@ -70,12 +72,23 @@ namespace Palisades.Helpers
             int iconIndex = shinfo.iIcon;
             Guid iImageListGuid = new("46EB5926-582E-4017-9FDF-E8998DAA0950");
             IImageList? iml = null;
-#pragma warning disable CS8601
-            Bindings.SHGetImageList((int)iconsize, ref iImageListGuid, ref iml);
-#pragma warning restore CS8601
-            IntPtr hIcon = IntPtr.Zero;
-            iml.GetIcon(iconIndex, ILD_TRANSPARENT, ref hIcon);
-            return hIcon;
+            if (Bindings.SHGetImageList((int)iconsize, ref iImageListGuid, ref iml) != 0 || iml == null)
+            {
+                // Échec de récupération de l'image list : pas d'icône plutôt qu'un NullReferenceException.
+                return IntPtr.Zero;
+            }
+
+            try
+            {
+                IntPtr hIcon = IntPtr.Zero;
+                iml.GetIcon(iconIndex, ILD_TRANSPARENT, ref hIcon);
+                return hIcon;
+            }
+            finally
+            {
+                // Libère la référence COM sur l'image list (sinon fuite à chaque extraction d'icône).
+                Marshal.ReleaseComObject(iml);
+            }
         }
     }
 
@@ -303,7 +316,6 @@ namespace Palisades.Helpers
             internal const int SHGFI_LARGEICON = 0x0;
             internal const int SHIL_JUMBO = 0x4;
             internal const int SHIL_EXTRALARGE = 0x2;
-            internal const int WM_CLOSE = 0x0010;
         }
 
 
@@ -317,11 +329,8 @@ namespace Palisades.Helpers
 
         internal static class Bindings
         {
-            [DllImport("user32.dll", CharSet = CharSet.Auto)]
-            internal static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, nuint wParam, nint lParam);
-
             [DllImport("shell32.dll", EntryPoint = "#727")]
-            internal extern static int SHGetImageList(int iImageList, ref Guid riid, ref IImageList ppv);
+            internal extern static int SHGetImageList(int iImageList, ref Guid riid, ref IImageList? ppv);
 
             [DllImport("shell32.dll", CharSet = CharSet.Auto)]
             public static extern IntPtr SHGetFileInfo(string pszPath, uint dwFileAttributes, ref SHFILEINFO psfi, uint cbFileInfo, uint uFlags);
