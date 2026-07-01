@@ -10,6 +10,9 @@ using System.Windows.Threading;
 
 namespace Palisades
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Reliability", "CA1001:Types that own disposable fields should be disposable",
+        Justification = "_trayIcon est libéré dans le gestionnaire Exit — cycle de vie approprié pour une App WPF, que personne ne Dispose.")]
     public partial class App : System.Windows.Application
     {
         private TrayIconManager? _trayIcon;

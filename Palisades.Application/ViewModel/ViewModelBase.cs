@@ -208,6 +208,7 @@ namespace Palisades.ViewModel
         {
             _saveTimer?.Dispose();
             if (ShouldSave) FlushSave();
+            GC.SuppressFinalize(this);
         }
 
         protected static void Dispatch(Action action)

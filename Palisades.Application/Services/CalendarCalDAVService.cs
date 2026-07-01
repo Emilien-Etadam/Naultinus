@@ -24,6 +24,7 @@ namespace Palisades.Services
         public void Dispose()
         {
             _client.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>

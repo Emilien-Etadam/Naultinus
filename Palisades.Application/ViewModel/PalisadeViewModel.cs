@@ -431,6 +431,10 @@ namespace Palisades.ViewModel
 
         #endregion
 
-        public override void Dispose() => base.Dispose();
+        public override void Dispose()
+        {
+            base.Dispose();
+            GC.SuppressFinalize(this);
+        }
     }
 }

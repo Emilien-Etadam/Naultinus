@@ -501,6 +501,7 @@ namespace Palisades.ViewModel
             _syncTimer = null;
             (_caldavService as IDisposable)?.Dispose();
             base.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

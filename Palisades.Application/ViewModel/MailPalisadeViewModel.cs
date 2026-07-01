@@ -217,6 +217,7 @@ namespace Palisades.ViewModel
             _pollTimer = null;
             _mailService?.Disconnect();
             base.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

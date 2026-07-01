@@ -262,7 +262,7 @@ namespace Palisades.ViewModel
                 foreach (string file in Directory.GetFiles(path).OrderBy(f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase))
                 {
                     string fileName = Path.GetFileName(file);
-                    if (fileName.StartsWith("~$") || IsHiddenOrSystemEntry(file))
+                    if (fileName.StartsWith("~$", StringComparison.Ordinal) || IsHiddenOrSystemEntry(file))
                         continue;
                     string iconPath = GetOrCreateIcon(file, "file_", iconsDir);
                     newItems.Add(new FolderPortalItem(fileName, file, false, iconPath));
@@ -466,6 +466,7 @@ namespace Palisades.ViewModel
             }
 
             base.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         private void CleanupLegacyIcons()
@@ -478,8 +479,8 @@ namespace Palisades.ViewModel
                 {
                     string name = Path.GetFileNameWithoutExtension(file);
                     // Ancien format : "folder_HHHHHHHH" (15 chars) ou "file_HHHHHHHH" (13 chars) — hash 4 octets
-                    if ((name.StartsWith("folder_") && name.Length == 15) ||
-                        (name.StartsWith("file_") && name.Length == 13))
+                    if ((name.StartsWith("folder_", StringComparison.Ordinal) && name.Length == 15) ||
+                        (name.StartsWith("file_", StringComparison.Ordinal) && name.Length == 13))
                         File.Delete(file);
                 }
             }

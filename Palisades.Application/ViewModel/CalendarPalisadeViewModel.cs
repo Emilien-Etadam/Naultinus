@@ -241,6 +241,7 @@ namespace Palisades.ViewModel
             _refreshTimer = null;
             (_calendarService as IDisposable)?.Dispose();
             base.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }
