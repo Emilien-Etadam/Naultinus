@@ -154,6 +154,10 @@ namespace Palisades.ViewModel
                         if (evt.DtStart >= now && evt.DtStart <= threshold && _notifiedEventUids.Add(evt.Uid))
                             ToastHelper.ShowEventReminder(evt.Summary, evt.DtStart);
                     }
+
+                    // Borne la taille du set (sinon croissance sans fin) : on ne garde que les UID
+                    // des événements encore chargés.
+                    _notifiedEventUids.IntersectWith(Events.Select(e => e.Uid));
                 });
             }
             catch (Exception ex)

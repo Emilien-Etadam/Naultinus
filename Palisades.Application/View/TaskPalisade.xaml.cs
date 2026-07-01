@@ -18,7 +18,8 @@ namespace Palisades.View
         private void Header_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             base.OnMouseLeftButtonDown(e);
-            DragMove();
+            try { DragMove(); }
+            catch (System.InvalidOperationException) { /* le bouton gauche n'est plus enfoncé : sans effet */ }
         }
 
         private void LayoutsSubmenu_SubmenuOpened(object sender, RoutedEventArgs e)
