@@ -67,7 +67,7 @@ namespace Palisades.Helpers
                 var val = key?.GetValue("AppsUseLightTheme");
                 return val is int i && i == 0;
             }
-            catch { return false; }
+            catch (Exception ex) { PalisadeDiagnostics.LogDebug("WindowBackdrop.IsSystemDarkMode", ex); return false; }
         }
 
         [DllImport("dwmapi.dll", PreserveSig = true)]

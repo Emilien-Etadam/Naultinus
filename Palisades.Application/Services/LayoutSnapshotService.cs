@@ -38,7 +38,7 @@ namespace Palisades.Services
             {
                 screenCount = System.Windows.Forms.Screen.AllScreens.Length;
             }
-            catch { }
+            catch (Exception ex) { PalisadeDiagnostics.LogDebug("LayoutSnapshot: comptage des écrans", ex); }
 
             var snapshot = new LayoutSnapshot
             {

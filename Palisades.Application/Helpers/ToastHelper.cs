@@ -17,7 +17,7 @@ namespace Palisades.Helpers
                     .AddAttributionText(Strings.ToastMailAttribution)
                     .Show();
             }
-            catch { }
+            catch (Exception ex) { PalisadeDiagnostics.LogDebug("ToastHelper: notification courriel", ex); }
         }
 
         public static void ShowEventReminder(string summary, DateTime startTime)
@@ -31,12 +31,12 @@ namespace Palisades.Helpers
                     .AddAttributionText(Strings.ToastCalendarAttribution)
                     .Show();
             }
-            catch { }
+            catch (Exception ex) { PalisadeDiagnostics.LogDebug("ToastHelper: rappel d'événement", ex); }
         }
 
         public static void Cleanup()
         {
-            try { ToastNotificationManagerCompat.Uninstall(); } catch { }
+            try { ToastNotificationManagerCompat.Uninstall(); } catch (Exception ex) { PalisadeDiagnostics.LogDebug("ToastHelper.Cleanup", ex); }
         }
     }
 }

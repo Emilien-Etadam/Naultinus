@@ -182,7 +182,8 @@ namespace Palisades.ViewModel
         private async void ShowAddEventDialog()
         {
             var dialog = new AddCalendarEventDialog();
-            try { dialog.Owner = PalisadesManager.GetWindow(Identifier); } catch { }
+            try { dialog.Owner = PalisadesManager.GetWindow(Identifier); }
+            catch (KeyNotFoundException) { /* fenêtre non enregistrée : dialogue sans owner */ }
             if (dialog.ShowDialog() == true && dialog.NewEvent != null)
             {
                 try

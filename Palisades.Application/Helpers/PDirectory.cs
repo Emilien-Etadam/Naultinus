@@ -124,7 +124,7 @@ namespace Palisades.Helpers
                         return true;
                 }
             }
-            catch { }
+            catch (Exception ex) { PalisadeDiagnostics.LogDebug("PDirectory.IsUnderDesktop: chemin invalide", ex); }
             return false;
         }
 

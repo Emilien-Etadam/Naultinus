@@ -219,7 +219,8 @@ namespace Palisades.ViewModel
 
             if (!string.IsNullOrEmpty(desktopLinkToDelete))
             {
-                try { File.Delete(desktopLinkToDelete); } catch { }
+                try { File.Delete(desktopLinkToDelete); }
+                catch (Exception ex) { PalisadeDiagnostics.Log("PalisadeViewModel", "Suppression du raccourci bureau importé impossible : " + desktopLinkToDelete, ex); }
             }
 
             return true;

@@ -143,7 +143,7 @@ namespace Palisades
                             if (Application.Current.MainWindow != null)
                                 Application.Current.MainWindow.Title = string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.MainWindowTitleUpdatingFormat, percent);
                         }
-                        catch { }
+                        catch (Exception ex) { PalisadeDiagnostics.LogDebug("App: MAJ du titre de progression", ex); }
                     });
                 });
                 await UpdateChecker.ApplyUpdateAsync(update, progressHandler);

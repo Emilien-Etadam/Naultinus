@@ -23,7 +23,7 @@ namespace Palisades.Helpers
                 if (File.Exists(iconPath))
                     icon = new Icon(iconPath);
             }
-            catch { }
+            catch (Exception ex) { PalisadeDiagnostics.LogDebug("TrayIcon: chargement de l'icône", ex); }
 
             if (icon == null)
                 icon = SystemIcons.Application;
@@ -66,7 +66,7 @@ namespace Palisades.Helpers
                             w.Show();
                             w.Activate();
                         }
-                        catch { }
+                        catch (Exception ex) { PalisadeDiagnostics.LogDebug("TrayIcon: activation de la fenêtre", ex); }
                     }
                 });
             };

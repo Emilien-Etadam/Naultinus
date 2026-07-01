@@ -171,7 +171,7 @@ namespace Palisades.ViewModel
                         else if (Directory.Exists(source))
                             PDirectory.CopyDirectory(source, dest);
                     }
-                    catch { }
+                    catch (Exception ex) { PalisadeDiagnostics.Log("FolderPortal", "Collage depuis le presse-papiers impossible : " + source, ex); }
                 }
                 RefreshCommand.Execute(null);
             });
@@ -214,7 +214,7 @@ namespace Palisades.ViewModel
                 {
                     Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = CurrentPath, UseShellExecute = true });
                 }
-                catch { }
+                catch (Exception ex) { PalisadeDiagnostics.Log("FolderPortal", "Ouverture dans l'Explorateur impossible : " + CurrentPath, ex); }
             });
 
             RefreshCommand = new RelayCommand(() =>
@@ -327,7 +327,7 @@ namespace Palisades.ViewModel
                 var attrs = File.GetAttributes(path);
                 return (attrs & FileAttributes.Hidden) != 0 || (attrs & FileAttributes.System) != 0;
             }
-            catch { return false; }
+            catch (Exception ex) { PalisadeDiagnostics.LogDebug("FolderPortal.IsHiddenOrSystemEntry", ex); return false; }
         }
 
         private static string StableHash(string input)
@@ -352,7 +352,7 @@ namespace Palisades.ViewModel
                     return iconPath;
                 }
             }
-            catch { }
+            catch (Exception ex) { PalisadeDiagnostics.LogDebug("FolderPortal.GetOrCreateIcon", ex); }
             return "";
         }
 
@@ -481,7 +481,7 @@ namespace Palisades.ViewModel
                         File.Delete(file);
                 }
             }
-            catch { }
+            catch (Exception ex) { PalisadeDiagnostics.LogDebug("FolderPortal.CleanupLegacyIcons", ex); }
         }
 
         #region IDragSource
