@@ -65,9 +65,6 @@
                         <Label Padding="8,2,8,2" FontSize="14" HorizontalContentAlignment="Left">
                             <helpers:HyperlinkCommander Foreground="{DynamicResource PalisadeAccentBrush}" Command="{Binding NavigateCommand}" CommandParameter="https://github.com/CommunityToolkit/WindowsCommunityToolkit">Microsoft.Toolkit.Uwp.Notifications</helpers:HyperlinkCommander>
                         </Label>
-                        <Label Padding="8,2,8,2" FontSize="14" HorizontalContentAlignment="Left">
-                            <helpers:HyperlinkCommander Foreground="{DynamicResource PalisadeAccentBrush}" Command="{Binding NavigateCommand}" CommandParameter="https://sentry.io/">Sentry</helpers:HyperlinkCommander>
-                        </Label>
                     </ItemsControl.Items>
                 </ItemsControl>
                 <Label FontSize="18" HorizontalAlignment="Center" Content="{x:Static properties:Strings.AboutInspiredBy}" Margin="0,16,0,0" />
