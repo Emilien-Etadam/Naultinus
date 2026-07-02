@@ -33,7 +33,7 @@ namespace Palisades.Helpers
 
             // Le mode sombre du chrome DWM (attr. 20) est supporté dès Windows 10 1809.
             int useDark = IsSystemDarkMode() ? 1 : 0;
-            DwmSetWindowAttribute(hwnd, 20, ref useDark, sizeof(int));
+            TrySetAttribute(hwnd, 20, useDark, "dark-mode");
 
             // Mica (attr. 38) et la préférence de coins (attr. 33) sont spécifiques à Windows 11
             // (build >= 22000). Sous Windows 10 ces appels échouent en silence, et laisser le fond
@@ -41,15 +41,18 @@ namespace Palisades.Helpers
             // fenêtre transparente que là où Mica est réellement appliqué.
             if (IsWindows11OrGreater())
             {
-                int mica = 2; // DWMSBT_MAINWINDOW = Mica
-                DwmSetWindowAttribute(hwnd, 38, ref mica, sizeof(int));
-
-                // DWMWCP_DONOTROUND : sans cela, Windows 11 trace ombre + liseré autour des fenêtres sans chrome / transparentes.
-                int corner = 1; // DWMWCP_DONOTROUND (voir DWM_WINDOW_CORNER_PREFERENCE)
-                DwmSetWindowAttribute(hwnd, 33, ref corner, sizeof(int));
-
+                TrySetAttribute(hwnd, 38, 2, "mica");    // DWMSBT_MAINWINDOW
+                TrySetAttribute(hwnd, 33, 1, "corner");  // DWMWCP_DONOTROUND
                 window.Background = Brushes.Transparent;
             }
+        }
+
+        // Applique un attribut DWM et journalise si l'appel échoue, au lieu d'ignorer le HRESULT.
+        private static void TrySetAttribute(IntPtr hwnd, int attribute, int value, string label)
+        {
+            int hr = DwmSetWindowAttribute(hwnd, attribute, ref value, sizeof(int));
+            if (hr != 0)
+                PalisadeDiagnostics.LogDebug($"WindowBackdrop: DwmSetWindowAttribute({label}) a échoué (0x{hr:X8})");
         }
 
         private static bool IsWindows11OrGreater()

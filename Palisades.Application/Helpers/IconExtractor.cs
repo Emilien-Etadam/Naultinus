@@ -58,8 +58,9 @@ namespace Palisades.Helpers
             finally
             {
                 // Icon.FromHandle ne possède pas le HICON : il faut le libérer explicitement,
-                // y compris sur les chemins d'échec (sinon fuite de handle GDI).
-                Bindings.DestroyIcon(hIcon);
+                // y compris sur les chemins d'échec (sinon fuite de handle GDI). L'échec éventuel
+                // de DestroyIcon n'est pas actionnable ici -> discard explicite.
+                _ = Bindings.DestroyIcon(hIcon);
             }
         }
 
@@ -298,7 +299,7 @@ namespace Palisades.Helpers
             ref int piIndex);
         };
 
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         internal struct SHFILEINFO
         {
             public IntPtr hIcon;
@@ -332,7 +333,7 @@ namespace Palisades.Helpers
             [DllImport("shell32.dll", EntryPoint = "#727")]
             internal extern static int SHGetImageList(int iImageList, ref Guid riid, ref IImageList? ppv);
 
-            [DllImport("shell32.dll", CharSet = CharSet.Auto)]
+            [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
             public static extern IntPtr SHGetFileInfo(string pszPath, uint dwFileAttributes, ref SHFILEINFO psfi, uint cbFileInfo, uint uFlags);
 
             [DllImport("user32")]

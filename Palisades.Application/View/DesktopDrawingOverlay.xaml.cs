@@ -10,8 +10,8 @@ namespace Palisades.View
 {
     public partial class DesktopDrawingOverlay : Window
     {
-        private const int MinWidth = 100;
-        private const int MinHeight = 80;
+        private const int MinPalisadeWidth = 100;
+        private const int MinPalisadeHeight = 80;
         private const double MinDragDistance = 5;
 
         private Point _startPoint;
@@ -136,7 +136,7 @@ namespace Palisades.View
             }
 
             var (_, _, w, h) = GetNormalizedRect();
-            if (w >= MinWidth && h >= MinHeight && _creationMenu != null)
+            if (w >= MinPalisadeWidth && h >= MinPalisadeHeight && _creationMenu != null)
             {
                 _creationMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
                 _creationMenu.IsOpen = true;
@@ -156,7 +156,7 @@ namespace Palisades.View
             if (h < 0) { y += h; h = -h; }
             int screenX = (int)(Left + x);
             int screenY = (int)(Top + y);
-            return (screenX, screenY, (int)Math.Max(MinWidth, w), (int)Math.Max(MinHeight, h));
+            return (screenX, screenY, (int)Math.Max(MinPalisadeWidth, w), (int)Math.Max(MinPalisadeHeight, h));
         }
 
         private void HideDrawing()
