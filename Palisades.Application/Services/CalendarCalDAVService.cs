@@ -39,11 +39,11 @@ namespace Palisades.Services
         /// Récupère les événements (VEVENT) dans la plage [start, end] pour un calendrier.
         /// calendarHref : HREF complet de la collection calendrier.
         /// </summary>
-        public async Task<List<Model.CalendarEvent>> GetEventsAsync(string calendarHref, DateTime start, DateTime end)
+        public async Task<List<Model.CalendarEvent>> GetEventsAsync(string calendarHref, DateTime start, DateTime rangeEnd)
         {
             var events = new List<Model.CalendarEvent>();
             var startUtc = start.ToUniversalTime().ToString("yyyyMMddTHHmmssZ");
-            var endUtc = end.ToUniversalTime().ToString("yyyyMMddTHHmmssZ");
+            var endUtc = rangeEnd.ToUniversalTime().ToString("yyyyMMddTHHmmssZ");
             var requestBody = $@"<?xml version=""1.0"" encoding=""utf-8""?>
 <c:calendar-query xmlns:c=""urn:ietf:params:xml:ns:caldav"" xmlns:d=""DAV:"">
     <d:prop><d:getetag></d:getetag><c:calendar-data></c:calendar-data></d:prop>

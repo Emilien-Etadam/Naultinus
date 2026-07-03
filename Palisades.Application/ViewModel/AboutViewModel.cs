@@ -36,6 +36,7 @@ namespace Palisades.ViewModel
             }
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Propriété liée en XAML ({Binding FrameworkRuntime}) : doit rester une instance.")]
         public string FrameworkRuntime => RuntimeInformation.FrameworkDescription;
         #endregion
 

@@ -92,7 +92,7 @@ namespace Palisades.Services
             return result;
         }
 
-        private async Task CollectFoldersAsync(IMailFolder parent, List<string> result)
+        private static async Task CollectFoldersAsync(IMailFolder parent, List<string> result)
         {
             var subfolders = await parent.GetSubfoldersAsync(false).ConfigureAwait(false);
             foreach (var folder in subfolders)
@@ -128,7 +128,7 @@ namespace Palisades.Services
                 {
                     var env = s.Envelope;
                     var from = env?.From?.ToString() ?? "";
-                    if (from.Length > 50) from = from.Substring(0, 47) + "...";
+                    if (from.Length > 50) from = string.Concat(from.AsSpan(0, 47), "...");
                     result.Add(new MailSummaryItem
                     {
                         Sender = from,

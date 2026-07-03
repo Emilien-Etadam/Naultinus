@@ -315,7 +315,7 @@ namespace Palisades.ViewModel
             return Array.Empty<string>();
         }
 
-        private string GetDisplayNameForListId(string href)
+        private static string GetDisplayNameForListId(string href)
         {
             if (string.IsNullOrEmpty(href)) return Strings.TaskListDefaultName;
             var idx = href.TrimEnd('/').LastIndexOf('/');

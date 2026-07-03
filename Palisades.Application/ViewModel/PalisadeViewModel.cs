@@ -279,7 +279,7 @@ namespace Palisades.ViewModel
             return Shortcuts.Any(s => ShortcutTargetsEqual(s, candidate));
         }
 
-        private bool ShortcutTargetsEqual(Shortcut a, Shortcut b)
+        private static bool ShortcutTargetsEqual(Shortcut a, Shortcut b)
         {
             if (a is UrlShortcut && b is UrlShortcut)
             {
