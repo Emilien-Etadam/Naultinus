@@ -188,84 +188,67 @@ namespace Palisades
             MergeStandaloneIntoTabbedWithNewMember(hostWindow, existing, vm);
         }
 
-        private static void AddTabFolderPortal(Window hostWindow)
+        // Squelette commun aux ajouts d'onglet passant par un dialogue de création : si l'hôte est déjà
+        // un groupe à onglets, on délègue au dialogue « pour groupe » ; sinon on affiche le dialogue puis
+        // on fusionne la palisade autonome existante avec le nouveau membre construit à partir du dialogue.
+        private static void AddTabWithDialog<TDialog>(
+            Window hostWindow,
+            Action<PalisadeGroup, TabbedPalisade> showForGroup,
+            Func<TDialog, IPalisadeViewModel, IPalisadeViewModel> buildViewModel)
+            where TDialog : Window, new()
         {
             if (hostWindow is TabbedPalisade tabbed && tabbed.DataContext is PalisadeGroup g)
             {
-                ShowCreateFolderPortalDialogForGroup(g, tabbed);
+                showForGroup(g, tabbed);
                 return;
             }
 
-            var dialog = new CreateFolderPortalDialog();
+            var dialog = new TDialog();
             SetOwnerSafe(dialog, hostWindow);
             if (dialog.ShowDialog() != true) return;
             if (hostWindow.DataContext is not IPalisadeViewModel existing) return;
 
-            var modelNew = new FolderPortalModel
-            {
-                Name = dialog.PortalTitle,
-                RootPath = dialog.SelectedPath,
-                CurrentPath = dialog.SelectedPath,
-                FenceX = existing.FenceX,
-                FenceY = existing.FenceY,
-                Width = existing.Width,
-                Height = existing.Height,
-            };
-            var vmNew = new FolderPortalViewModel(modelNew);
+            var vmNew = buildViewModel(dialog, existing);
             MergeStandaloneIntoTabbedWithNewMember(hostWindow, existing, vmNew);
         }
 
-        private static void AddTabTaskPalisade(Window hostWindow)
-        {
-            if (hostWindow is TabbedPalisade tabbed && tabbed.DataContext is PalisadeGroup g)
-            {
-                ShowCreateTaskPalisadeDialog(g, tabbed);
-                return;
-            }
+        private static void AddTabFolderPortal(Window hostWindow) =>
+            AddTabWithDialog<CreateFolderPortalDialog>(hostWindow,
+                (g, t) => ShowCreateFolderPortalDialogForGroup(g, t),
+                (dialog, existing) => new FolderPortalViewModel(new FolderPortalModel
+                {
+                    Name = dialog.PortalTitle,
+                    RootPath = dialog.SelectedPath,
+                    CurrentPath = dialog.SelectedPath,
+                    FenceX = existing.FenceX,
+                    FenceY = existing.FenceY,
+                    Width = existing.Width,
+                    Height = existing.Height,
+                }));
 
-            var dialog = new CreateTaskPalisadeDialog();
-            SetOwnerSafe(dialog, hostWindow);
-            if (dialog.ShowDialog() != true) return;
-            if (hostWindow.DataContext is not IPalisadeViewModel existing) return;
+        private static void AddTabTaskPalisade(Window hostWindow) =>
+            AddTabWithDialog<CreateTaskPalisadeDialog>(hostWindow,
+                (g, t) => ShowCreateTaskPalisadeDialog(g, t),
+                (dialog, existing) => PalisadeFactory.CreateTaskViewModel(
+                    dialog.CalDAVUrl, dialog.Username, dialog.Password,
+                    dialog.SelectedTaskListIds ?? new List<string>(), dialog.PalisadeTitle,
+                    existing.FenceX, existing.FenceY, existing.Width, existing.Height));
 
-            var listIds = dialog.SelectedTaskListIds ?? new List<string>();
-            var vm = PalisadeFactory.CreateTaskViewModel(dialog.CalDAVUrl, dialog.Username, dialog.Password, listIds, dialog.PalisadeTitle, existing.FenceX, existing.FenceY, existing.Width, existing.Height);
-            MergeStandaloneIntoTabbedWithNewMember(hostWindow, existing, vm);
-        }
+        private static void AddTabCalendarPalisade(Window hostWindow) =>
+            AddTabWithDialog<CreateCalendarPalisadeDialog>(hostWindow,
+                (g, t) => ShowCreateCalendarPalisadeDialog(g, t),
+                (dialog, existing) => PalisadeFactory.CreateCalendarViewModel(
+                    dialog.CalDAVUrl, dialog.Username, dialog.Password, dialog.SelectedCalendarIds,
+                    dialog.PalisadeTitle, dialog.ViewMode, dialog.DaysToShow,
+                    existing.FenceX, existing.FenceY, existing.Width, existing.Height));
 
-        private static void AddTabCalendarPalisade(Window hostWindow)
-        {
-            if (hostWindow is TabbedPalisade tabbed && tabbed.DataContext is PalisadeGroup g)
-            {
-                ShowCreateCalendarPalisadeDialog(g, tabbed);
-                return;
-            }
-
-            var dialog = new CreateCalendarPalisadeDialog();
-            SetOwnerSafe(dialog, hostWindow);
-            if (dialog.ShowDialog() != true) return;
-            if (hostWindow.DataContext is not IPalisadeViewModel existing) return;
-
-            var vm = PalisadeFactory.CreateCalendarViewModel(dialog.CalDAVUrl, dialog.Username, dialog.Password, dialog.SelectedCalendarIds, dialog.PalisadeTitle, dialog.ViewMode, dialog.DaysToShow, existing.FenceX, existing.FenceY, existing.Width, existing.Height);
-            MergeStandaloneIntoTabbedWithNewMember(hostWindow, existing, vm);
-        }
-
-        private static void AddTabMailPalisade(Window hostWindow)
-        {
-            if (hostWindow is TabbedPalisade tabbed && tabbed.DataContext is PalisadeGroup g)
-            {
-                ShowCreateMailPalisadeDialog(g, tabbed);
-                return;
-            }
-
-            var dialog = new CreateMailPalisadeDialog();
-            SetOwnerSafe(dialog, hostWindow);
-            if (dialog.ShowDialog() != true) return;
-            if (hostWindow.DataContext is not IPalisadeViewModel existing) return;
-
-            var vm = PalisadeFactory.CreateMailViewModel(dialog.ImapHost, dialog.ImapPort, dialog.Username, dialog.Password, dialog.SelectedFolders, dialog.PalisadeTitle, dialog.DisplayMode, dialog.PollIntervalMinutes, dialog.WebmailUrl, existing.FenceX, existing.FenceY, existing.Width, existing.Height);
-            MergeStandaloneIntoTabbedWithNewMember(hostWindow, existing, vm);
-        }
+        private static void AddTabMailPalisade(Window hostWindow) =>
+            AddTabWithDialog<CreateMailPalisadeDialog>(hostWindow,
+                (g, t) => ShowCreateMailPalisadeDialog(g, t),
+                (dialog, existing) => PalisadeFactory.CreateMailViewModel(
+                    dialog.ImapHost, dialog.ImapPort, dialog.Username, dialog.Password, dialog.SelectedFolders,
+                    dialog.PalisadeTitle, dialog.DisplayMode, dialog.PollIntervalMinutes, dialog.WebmailUrl,
+                    existing.FenceX, existing.FenceY, existing.Width, existing.Height));
 
         private static void MergeStandaloneIntoTabbedWithNewMember(Window hostWindow, IPalisadeViewModel existing, IPalisadeViewModel vmNew)
         {
