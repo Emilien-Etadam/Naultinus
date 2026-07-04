@@ -10,8 +10,7 @@ namespace Palisades.Model
     {
         public static PalisadeModelBase ToConcreteModel(PalisadeModel legacy)
         {
-            if (legacy == null)
-                throw new ArgumentNullException(nameof(legacy));
+            ArgumentNullException.ThrowIfNull(legacy);
 
             switch (legacy.Type)
             {

@@ -33,7 +33,7 @@ namespace Palisades
                 try
                 {
                     using var reader = new StreamReader(stateFile);
-                    var obj = ViewModelBase.SharedSerializer.Deserialize(reader);
+                    var obj = SafeXml.Deserialize(ViewModelBase.SharedSerializer, reader);
                     if (obj is PalisadeModel legacy)
                     {
                         var concrete = PalisadeModelMigration.ToConcreteModel(legacy);
@@ -291,7 +291,8 @@ namespace Palisades
         {
             if (vm == null) return;
             Window? owner = null;
-            try { owner = GetWindow(vm.Identifier); } catch { }
+            try { owner = GetWindow(vm.Identifier); }
+            catch (KeyNotFoundException) { /* fenêtre non enregistrée : dialogue affiché sans owner */ }
             switch (vm)
             {
                 case PalisadeViewModel p:
@@ -447,7 +448,7 @@ namespace Palisades
                     }
                     w.Close();
                 }
-                catch { }
+                catch (Exception ex) { PalisadeDiagnostics.LogDebug("PalisadesManager.CloseAllPalisades", ex); }
             }
         }
 
@@ -476,7 +477,8 @@ namespace Palisades
 
         internal static void SetOwnerSafe(Window dialog, Window? owner)
         {
-            try { dialog.Owner = owner; } catch { }
+            try { dialog.Owner = owner; }
+            catch (InvalidOperationException ex) { PalisadeDiagnostics.LogDebug("PalisadesManager.SetOwnerSafe", ex); }
         }
 
         private static void RescaleVm(IPalisadeViewModel vm, int oldW, int oldH, int newW, int newH, int minW, int minH)

@@ -25,6 +25,7 @@ namespace Palisades.Services
         public void Dispose()
         {
             _client.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         public async Task<List<CalDAVTaskList>> GetTaskListsAsync()
@@ -71,6 +72,8 @@ namespace Palisades.Services
                 try
                 {
                     var calendar = Calendar.Load(calendarData);
+                    if (calendar == null)
+                        continue;
                     foreach (var todo in calendar.Todos)
                         tasks.Add(MapTodoToCalDAVTask(todo, caldavId, etag));
                 }
@@ -120,7 +123,7 @@ namespace Palisades.Services
             var uid = string.IsNullOrEmpty(task.Uid) ? Guid.NewGuid().ToString() : task.Uid;
             var calendar = new Calendar();
             calendar.Todos.Add(BuildTodo(task, uid, task.LastModified));
-            var calendarData = _serializer.SerializeToString(calendar);
+            var calendarData = _serializer.SerializeToString(calendar) ?? string.Empty;
 
             var resourceHref = taskListHref.TrimEnd('/') + "/" + uid + ".ics";
             var createdEtag = await _client.PutAsync(resourceHref, calendarData).ConfigureAwait(false);
@@ -136,7 +139,7 @@ namespace Palisades.Services
             var uid = !string.IsNullOrEmpty(task.Uid) ? task.Uid : (!string.IsNullOrEmpty(task.CalDAVId) ? Path.GetFileNameWithoutExtension(task.CalDAVId) : null) ?? Guid.NewGuid().ToString();
             var calendar = new Calendar();
             calendar.Todos.Add(BuildTodo(task, uid, DateTime.Now));
-            var calendarData = _serializer.SerializeToString(calendar);
+            var calendarData = _serializer.SerializeToString(calendar) ?? string.Empty;
 
             var resourceHref = taskListHref.TrimEnd('/') + "/" + task.CalDAVId;
             var etag = await _client.PutAsync(resourceHref, calendarData, task.CalDAVEtag).ConfigureAwait(false);
@@ -164,6 +167,13 @@ namespace Palisades.Services
                     remote = byUid;
                 if (remote == null)
                 {
+                    // Le serveur fait foi pour ce qui a déjà été synchronisé : une tâche portant un
+                    // CalDAVId/Uid mais absente du serveur y a été supprimée (par un autre client) ; on
+                    // ne la recrée pas, on la laisse tomber du cache local. Seule une tâche jamais
+                    // synchronisée (sans CalDAVId ni Uid) est une vraie création locale à pousser.
+                    bool alreadySynced = !string.IsNullOrEmpty(local.CalDAVId) || !string.IsNullOrEmpty(local.Uid);
+                    if (alreadySynced)
+                        continue;
                     var created = await CreateTaskAsync(taskListHref, local).ConfigureAwait(false);
                     merged.Add(created);
                 }

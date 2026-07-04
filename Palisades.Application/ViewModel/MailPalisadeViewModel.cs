@@ -200,7 +200,7 @@ namespace Palisades.ViewModel
             var url = _model.WebmailUrl?.Trim();
             if (string.IsNullOrEmpty(url)) return;
             try { Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true }); }
-            catch { }
+            catch (Exception ex) { PalisadeDiagnostics.Log("MailPalisade", "Ouverture du webmail impossible : " + url, ex); }
         }
 
         #region Commands
@@ -217,6 +217,7 @@ namespace Palisades.ViewModel
             _pollTimer = null;
             _mailService?.Disconnect();
             base.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

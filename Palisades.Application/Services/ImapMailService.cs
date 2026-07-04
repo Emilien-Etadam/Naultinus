@@ -15,7 +15,7 @@ namespace Palisades.Services
     /// <summary>
     /// Service IMAP pour compter les mails non lus et récupérer les sujets (Zimbra, etc.).
     /// </summary>
-    public class ImapMailService : IImapMailService
+    public class ImapMailService : IImapMailService, IDisposable
     {
         private readonly string _host;
         private readonly int _port;
@@ -24,7 +24,7 @@ namespace Palisades.Services
         private ImapClient? _client;
         private readonly object _clientLock = new object();
 
-        public ImapMailService(string host, int port, string username, string password)
+        public ImapMailService(string? host, int port, string? username, string? password)
         {
             _host = host ?? "";
             _port = port > 0 ? port : 993;
@@ -66,6 +66,12 @@ namespace Palisades.Services
             }
         }
 
+        public void Dispose()
+        {
+            Disconnect();
+            GC.SuppressFinalize(this);
+        }
+
         /// <summary>Retourne le nombre de messages non lus dans le dossier (IMAP STATUS).</summary>
         public async Task<int> GetUnreadCountAsync(string folderName)
         {
@@ -86,7 +92,7 @@ namespace Palisades.Services
             return result;
         }
 
-        private async Task CollectFoldersAsync(IMailFolder parent, List<string> result)
+        private static async Task CollectFoldersAsync(IMailFolder parent, List<string> result)
         {
             var subfolders = await parent.GetSubfoldersAsync(false).ConfigureAwait(false);
             foreach (var folder in subfolders)
@@ -100,37 +106,44 @@ namespace Palisades.Services
         public async Task<List<MailSummaryItem>> GetRecentUnreadSubjectsAsync(string folderName, int maxCount)
         {
             EnsureConnected();
-            IMailFolder folder;
-            if (string.Equals(folderName, "INBOX", StringComparison.OrdinalIgnoreCase))
+
+            // Résolution par nom complet (GetFolderAsync), comme GetUnreadCountAsync : gère aussi bien
+            // les dossiers racine (Junk, Archive…) que les sous-dossiers, contrairement à
+            // Inbox.GetSubfolderAsync qui supposait à tort un sous-dossier d'INBOX.
+            IMailFolder folder = string.Equals(folderName, "INBOX", StringComparison.OrdinalIgnoreCase)
+                ? _client!.Inbox
+                : await _client!.GetFolderAsync(folderName).ConfigureAwait(false);
+
+            await folder.OpenAsync(FolderAccess.ReadOnly).ConfigureAwait(false);
+            try
             {
-                folder = _client!.Inbox;
-                await folder.OpenAsync(FolderAccess.ReadOnly).ConfigureAwait(false);
-            }
-            else
-            {
-                folder = await _client!.Inbox.GetSubfolderAsync(folderName).ConfigureAwait(false);
-                await folder.OpenAsync(FolderAccess.ReadOnly).ConfigureAwait(false);
-            }
-            var uids = await folder.SearchAsync(SearchQuery.NotSeen).ConfigureAwait(false);
-            if (uids.Count == 0)
-                return new List<MailSummaryItem>();
-            var take = Math.Min(maxCount, uids.Count);
-            var lastUids = uids.TakeLast(take).ToArray();
-            var summaries = await folder.FetchAsync(lastUids, MessageSummaryItems.Envelope | MessageSummaryItems.InternalDate).ConfigureAwait(false);
-            var result = new List<MailSummaryItem>();
-            foreach (var s in summaries.OrderByDescending(x => x.InternalDate))
-            {
-                var env = s.Envelope;
-                var from = env?.From?.ToString() ?? "";
-                if (from.Length > 50) from = from.Substring(0, 47) + "...";
-                result.Add(new MailSummaryItem
+                var uids = await folder.SearchAsync(SearchQuery.NotSeen).ConfigureAwait(false);
+                if (uids.Count == 0)
+                    return new List<MailSummaryItem>();
+                var take = Math.Min(maxCount, uids.Count);
+                var lastUids = uids.TakeLast(take).ToArray();
+                var summaries = await folder.FetchAsync(lastUids, MessageSummaryItems.Envelope | MessageSummaryItems.InternalDate).ConfigureAwait(false);
+                var result = new List<MailSummaryItem>();
+                foreach (var s in summaries.OrderByDescending(x => x.InternalDate))
                 {
-                    Sender = from,
-                    Subject = env?.Subject ?? "",
-                    Date = s.InternalDate?.DateTime ?? default
-                });
+                    var env = s.Envelope;
+                    var from = env?.From?.ToString() ?? "";
+                    if (from.Length > 50) from = string.Concat(from.AsSpan(0, 47), "...");
+                    result.Add(new MailSummaryItem
+                    {
+                        Sender = from,
+                        Subject = env?.Subject ?? "",
+                        Date = s.InternalDate?.DateTime ?? default
+                    });
+                }
+                return result;
             }
-            return result;
+            finally
+            {
+                // Ferme le dossier ouvert (GetUnreadCountAsync le faisait, pas cette méthode).
+                if (folder.IsOpen)
+                    await folder.CloseAsync().ConfigureAwait(false);
+            }
         }
 
         private void EnsureConnected()

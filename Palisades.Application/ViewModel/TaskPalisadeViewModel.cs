@@ -51,7 +51,7 @@ namespace Palisades.ViewModel
                 if (string.IsNullOrEmpty(_model.CalDAVPassword))
                     return string.Empty;
                 try { return CredentialEncryptor.Decrypt(_model.CalDAVPassword); }
-                catch { return string.Empty; }
+                catch (Exception ex) { PalisadeDiagnostics.LogDebug("TaskPalisade.CalDAVPassword", ex); return string.Empty; }
             }
             set
             {
@@ -315,7 +315,7 @@ namespace Palisades.ViewModel
             return Array.Empty<string>();
         }
 
-        private string GetDisplayNameForListId(string href)
+        private static string GetDisplayNameForListId(string href)
         {
             if (string.IsNullOrEmpty(href)) return Strings.TaskListDefaultName;
             var idx = href.TrimEnd('/').LastIndexOf('/');
@@ -482,7 +482,8 @@ namespace Palisades.ViewModel
         public ICommand ShowSettingsCommand { get; } = new RelayCommand<TaskPalisadeViewModel>(viewModel =>
         {
             var settings = new TaskPalisadeSettingsDialog { DataContext = viewModel };
-            try { settings.Owner = PalisadesManager.GetWindow(viewModel.Identifier); } catch { }
+            try { settings.Owner = PalisadesManager.GetWindow(viewModel.Identifier); }
+            catch (KeyNotFoundException) { /* fenêtre non enregistrée : dialogue sans owner */ }
             settings.ShowDialog();
         });
 
@@ -500,6 +501,7 @@ namespace Palisades.ViewModel
             _syncTimer = null;
             (_caldavService as IDisposable)?.Dispose();
             base.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

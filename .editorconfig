@@ -46,3 +46,31 @@ dotnet_diagnostic.SA1325.severity = error
 dotnet_diagnostic.SA1326.severity = error
 dotnet_diagnostic.SA1327.severity = error
 dotnet_diagnostic.SA1328.severity = error
+
+# --- Alignement du ruleset StyleCop sur les conventions réelles du projet ---
+# Règles cosmétiques désactivées : elles combattent le style délibéré du code
+# (champs _underscore, if/return sur une ligne, ordonnancement libre) ou n'apportent
+# pas de valeur de correction. Objectif : garder un lint à signal, pas 3000 nits ignorés.
+
+# Champs privés préfixés par _ : convention .NET moderne assumée dans tout le projet.
+dotnet_diagnostic.SA1309.severity = none
+# Style d'accolades / instructions sur une seule ligne (if (x) return;) : choix assumé.
+dotnet_diagnostic.SA1503.severity = none
+dotnet_diagnostic.SA1501.severity = none
+dotnet_diagnostic.SA1502.severity = none
+# Mise en page (lignes vides entre/autour des membres et blocs) : purement cosmétique.
+dotnet_diagnostic.SA1516.severity = none
+dotnet_diagnostic.SA1513.severity = none
+dotnet_diagnostic.SA1515.severity = none
+# Ordonnancement des using / des membres : non suivi, sans valeur de correction.
+dotnet_diagnostic.SA1208.severity = none
+dotnet_diagnostic.SA1210.severity = none
+dotnet_diagnostic.SA1201.severity = none
+dotnet_diagnostic.SA1202.severity = none
+# Divers nits de mise en forme.
+dotnet_diagnostic.SA1107.severity = none
+dotnet_diagnostic.SA1122.severity = none
+dotnet_diagnostic.SA1128.severity = none
+dotnet_diagnostic.SA1413.severity = none
+dotnet_diagnostic.SA1117.severity = none
+dotnet_diagnostic.SA1305.severity = none

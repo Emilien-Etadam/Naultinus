@@ -154,6 +154,10 @@ namespace Palisades.ViewModel
                         if (evt.DtStart >= now && evt.DtStart <= threshold && _notifiedEventUids.Add(evt.Uid))
                             ToastHelper.ShowEventReminder(evt.Summary, evt.DtStart);
                     }
+
+                    // Borne la taille du set (sinon croissance sans fin) : on ne garde que les UID
+                    // des événements encore chargés.
+                    _notifiedEventUids.IntersectWith(Events.Select(e => e.Uid));
                 });
             }
             catch (Exception ex)
@@ -182,11 +186,21 @@ namespace Palisades.ViewModel
         private async void ShowAddEventDialog()
         {
             var dialog = new AddCalendarEventDialog();
-            try { dialog.Owner = PalisadesManager.GetWindow(Identifier); } catch { }
+            try { dialog.Owner = PalisadesManager.GetWindow(Identifier); }
+            catch (KeyNotFoundException) { /* fenêtre non enregistrée : dialogue sans owner */ }
             if (dialog.ShowDialog() == true && dialog.NewEvent != null)
             {
-                await CreateEventAsync(dialog.NewEvent);
-                await LoadEventsAsync();
+                try
+                {
+                    await CreateEventAsync(dialog.NewEvent);
+                    await LoadEventsAsync();
+                }
+                catch (Exception ex)
+                {
+                    // Sans ce catch, un échec du PUT CalDAV partait dans un async void et était
+                    // avalé par le handler global : l'utilisateur croyait l'événement créé.
+                    Dispatch(() => ErrorMessage = ex.Message);
+                }
             }
         }
 
@@ -227,6 +241,7 @@ namespace Palisades.ViewModel
             _refreshTimer = null;
             (_calendarService as IDisposable)?.Dispose();
             base.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

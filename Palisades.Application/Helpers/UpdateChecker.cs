@@ -222,11 +222,11 @@ namespace Palisades.Helpers
             public uint FdwRevocationChecks;
             public uint DwUnionChoice;
             public IntPtr PFile;
-            public uint DwStateAction = 0;
+            public uint DwStateAction;
             public IntPtr HWvtStateData = IntPtr.Zero;
             public IntPtr PwszUrlReference = IntPtr.Zero;
             public uint DwProvFlags;
-            public uint DwUIContext = 0;
+            public uint DwUIContext;
 
             public void Dispose()
             {

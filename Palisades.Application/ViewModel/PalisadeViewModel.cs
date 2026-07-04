@@ -4,6 +4,7 @@ using Palisades.Model;
 using Palisades.View;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -219,7 +220,8 @@ namespace Palisades.ViewModel
 
             if (!string.IsNullOrEmpty(desktopLinkToDelete))
             {
-                try { File.Delete(desktopLinkToDelete); } catch { }
+                try { File.Delete(desktopLinkToDelete); }
+                catch (Exception ex) { PalisadeDiagnostics.Log("PalisadeViewModel", "Suppression du raccourci bureau importé impossible : " + desktopLinkToDelete, ex); }
             }
 
             return true;
@@ -277,7 +279,7 @@ namespace Palisades.ViewModel
             return Shortcuts.Any(s => ShortcutTargetsEqual(s, candidate));
         }
 
-        private bool ShortcutTargetsEqual(Shortcut a, Shortcut b)
+        private static bool ShortcutTargetsEqual(Shortcut a, Shortcut b)
         {
             if (a is UrlShortcut && b is UrlShortcut)
             {
@@ -378,7 +380,7 @@ namespace Palisades.ViewModel
 
         public bool TryCatchOccurredException(Exception exception) => false;
 
-        private static bool TryGetFileDropPathsForShortcut(Shortcut sc, out string[]? paths)
+        private static bool TryGetFileDropPathsForShortcut(Shortcut sc, [NotNullWhen(true)] out string[]? paths)
         {
             paths = null;
             var t = sc.UriOrFileAction?.Trim() ?? string.Empty;
@@ -429,6 +431,10 @@ namespace Palisades.ViewModel
 
         #endregion
 
-        public override void Dispose() => base.Dispose();
+        public override void Dispose()
+        {
+            base.Dispose();
+            GC.SuppressFinalize(this);
+        }
     }
 }

@@ -15,7 +15,7 @@ namespace Palisades.Model
 
         public static UrlShortcut? BuildFrom(string shortcut, string palisadeIdentifier)
         {
-            string? line = File.ReadLines(shortcut).FirstOrDefault((value) => value.StartsWith("URL="));
+            string? line = File.ReadLines(shortcut).FirstOrDefault((value) => value.StartsWith("URL=", System.StringComparison.Ordinal));
             if (line == null)
             {
                 return null;

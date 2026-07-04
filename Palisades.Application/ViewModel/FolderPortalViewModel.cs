@@ -120,6 +120,14 @@ namespace Palisades.ViewModel
 
             UpdateBreadcrumb();
 
+            // Assigné avant les commandes qui l'invoquent (CreateNewFolder/File, Paste) pour que
+            // le flux nullable le voie initialisé.
+            RefreshCommand = new RelayCommand(() =>
+            {
+                if (!string.IsNullOrEmpty(CurrentPath))
+                    LoadFolder(CurrentPath);
+            });
+
             CreateNewFolderCommand = new RelayCommand(() =>
             {
                 var currentPath = CurrentPath;
@@ -171,7 +179,7 @@ namespace Palisades.ViewModel
                         else if (Directory.Exists(source))
                             PDirectory.CopyDirectory(source, dest);
                     }
-                    catch { }
+                    catch (Exception ex) { PalisadeDiagnostics.Log("FolderPortal", "Collage depuis le presse-papiers impossible : " + source, ex); }
                 }
                 RefreshCommand.Execute(null);
             });
@@ -214,13 +222,7 @@ namespace Palisades.ViewModel
                 {
                     Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = CurrentPath, UseShellExecute = true });
                 }
-                catch { }
-            });
-
-            RefreshCommand = new RelayCommand(() =>
-            {
-                if (!string.IsNullOrEmpty(CurrentPath))
-                    LoadFolder(CurrentPath);
+                catch (Exception ex) { PalisadeDiagnostics.Log("FolderPortal", "Ouverture dans l'Explorateur impossible : " + CurrentPath, ex); }
             });
 
             NavigateToRootCommand = new RelayCommand(() =>
@@ -260,7 +262,7 @@ namespace Palisades.ViewModel
                 foreach (string file in Directory.GetFiles(path).OrderBy(f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase))
                 {
                     string fileName = Path.GetFileName(file);
-                    if (fileName.StartsWith("~$") || IsHiddenOrSystemEntry(file))
+                    if (fileName.StartsWith("~$", StringComparison.Ordinal) || IsHiddenOrSystemEntry(file))
                         continue;
                     string iconPath = GetOrCreateIcon(file, "file_", iconsDir);
                     newItems.Add(new FolderPortalItem(fileName, file, false, iconPath));
@@ -327,7 +329,7 @@ namespace Palisades.ViewModel
                 var attrs = File.GetAttributes(path);
                 return (attrs & FileAttributes.Hidden) != 0 || (attrs & FileAttributes.System) != 0;
             }
-            catch { return false; }
+            catch (Exception ex) { PalisadeDiagnostics.LogDebug("FolderPortal.IsHiddenOrSystemEntry", ex); return false; }
         }
 
         private static string StableHash(string input)
@@ -352,7 +354,7 @@ namespace Palisades.ViewModel
                     return iconPath;
                 }
             }
-            catch { }
+            catch (Exception ex) { PalisadeDiagnostics.LogDebug("FolderPortal.GetOrCreateIcon", ex); }
             return "";
         }
 
@@ -464,6 +466,7 @@ namespace Palisades.ViewModel
             }
 
             base.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         private void CleanupLegacyIcons()
@@ -476,12 +479,12 @@ namespace Palisades.ViewModel
                 {
                     string name = Path.GetFileNameWithoutExtension(file);
                     // Ancien format : "folder_HHHHHHHH" (15 chars) ou "file_HHHHHHHH" (13 chars) — hash 4 octets
-                    if ((name.StartsWith("folder_") && name.Length == 15) ||
-                        (name.StartsWith("file_") && name.Length == 13))
+                    if ((name.StartsWith("folder_", StringComparison.Ordinal) && name.Length == 15) ||
+                        (name.StartsWith("file_", StringComparison.Ordinal) && name.Length == 13))
                         File.Delete(file);
                 }
             }
-            catch { }
+            catch (Exception ex) { PalisadeDiagnostics.LogDebug("FolderPortal.CleanupLegacyIcons", ex); }
         }
 
         #region IDragSource
@@ -538,9 +541,9 @@ namespace Palisades.ViewModel
         {
             string[]? files = null;
             if (dropInfo.Data is DataObject dataObject && dataObject.GetDataPresent(DataFormats.FileDrop))
-                files = (string[])dataObject.GetData(DataFormats.FileDrop);
+                files = dataObject.GetData(DataFormats.FileDrop) as string[];
             else if (dropInfo.Data is IDataObject iDataObject && iDataObject.GetDataPresent(DataFormats.FileDrop))
-                files = (string[])iDataObject.GetData(DataFormats.FileDrop);
+                files = iDataObject.GetData(DataFormats.FileDrop) as string[];
             else if (dropInfo.Data is FolderPortalItem item && !string.IsNullOrEmpty(item.FullPath))
                 files = new[] { item.FullPath };
 

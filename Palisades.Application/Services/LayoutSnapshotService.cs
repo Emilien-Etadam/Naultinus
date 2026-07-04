@@ -15,6 +15,12 @@ namespace Palisades.Services
     {
         private static readonly XmlSerializer SnapshotSerializer = new(typeof(LayoutSnapshot), new[] { typeof(SnapshotEntry) });
 
+        private static LayoutSnapshot? DeserializeSnapshot(string path)
+        {
+            using var stream = File.OpenRead(path);
+            return SafeXml.Deserialize(SnapshotSerializer, stream) as LayoutSnapshot;
+        }
+
         public static LayoutSnapshot SaveSnapshot(string name)
         {
             int screenCount = 1;
@@ -22,7 +28,7 @@ namespace Palisades.Services
             {
                 screenCount = System.Windows.Forms.Screen.AllScreens.Length;
             }
-            catch { }
+            catch (Exception ex) { PalisadeDiagnostics.LogDebug("LayoutSnapshot: comptage des écrans", ex); }
 
             var snapshot = new LayoutSnapshot
             {
@@ -46,7 +52,7 @@ namespace Palisades.Services
                 try
                 {
                     using var sr = new StringReader(content);
-                    if (PalisadeXmlSerialization.PalisadeModelSerializer.Deserialize(sr) is PalisadeModelBase model)
+                    if (SafeXml.Deserialize(PalisadeXmlSerialization.PalisadeModelSerializer, sr) is PalisadeModelBase model)
                     {
                         groupId = model.GroupId;
                         tabOrder = model.TabOrder;
@@ -68,8 +74,7 @@ namespace Palisades.Services
             var snapDir = Path.Combine(PDirectory.GetSnapshotsDirectory(), snapshot.Id);
             PDirectory.EnsureExists(PDirectory.GetSnapshotsDirectory());
             Directory.CreateDirectory(snapDir);
-            using (var writer = new StreamWriter(Path.Combine(snapDir, "snapshot.xml")))
-                SnapshotSerializer.Serialize(writer, snapshot);
+            PDirectory.WriteAtomicText(Path.Combine(snapDir, "snapshot.xml"), writer => SnapshotSerializer.Serialize(writer, snapshot));
             return snapshot;
         }
 
@@ -84,8 +89,7 @@ namespace Palisades.Services
                 if (!File.Exists(path)) continue;
                 try
                 {
-                    using var reader = new StreamReader(path);
-                    if (SnapshotSerializer.Deserialize(reader) is LayoutSnapshot s)
+                    if (DeserializeSnapshot(path) is LayoutSnapshot s)
                     {
                         s.Id = Path.GetFileName(dir);
                         list.Add(s);
@@ -103,11 +107,7 @@ namespace Palisades.Services
         {
             var path = Path.Combine(PDirectory.GetSnapshotsDirectory(), snapshotId, "snapshot.xml");
             if (!File.Exists(path)) return;
-            LayoutSnapshot? snapshot;
-            using (var reader = new StreamReader(path))
-            {
-                snapshot = SnapshotSerializer.Deserialize(reader) as LayoutSnapshot;
-            }
+            LayoutSnapshot? snapshot = DeserializeSnapshot(path);
             if (snapshot?.Entries == null) return;
 
             if (snapshot.SchemaVersion == 0)
@@ -115,18 +115,47 @@ namespace Palisades.Services
 
             PalisadesManager.CloseAllPalisades();
             var savedDir = PDirectory.GetPalisadesDirectory();
-            if (Directory.Exists(savedDir))
+
+            // Sauvegarde de sûreté : on déplace l'état courant dans un dossier de secours plutôt que de
+            // le supprimer d'emblée. Ainsi, si l'écriture du nouvel état échoue en cours de route, on
+            // restaure l'état précédent au lieu de laisser l'utilisateur avec des palisades perdues.
+            string? backupDir = null;
+            if (Directory.Exists(savedDir) && Directory.GetDirectories(savedDir).Length > 0)
             {
-                foreach (var dir in Directory.GetDirectories(savedDir))
-                    Directory.Delete(dir, true);
+                backupDir = savedDir + ".restore-backup";
+                if (Directory.Exists(backupDir))
+                    Directory.Delete(backupDir, true);
+                Directory.Move(savedDir, backupDir);
             }
-            PDirectory.EnsureExists(savedDir);
-            foreach (var entry in snapshot.Entries)
+
+            try
             {
-                var palDir = Path.Combine(savedDir, entry.PalisadeIdentifier);
-                Directory.CreateDirectory(palDir);
-                File.WriteAllText(Path.Combine(palDir, "state.xml"), entry.StateXmlContent);
+                PDirectory.EnsureExists(savedDir);
+                foreach (var entry in snapshot.Entries)
+                {
+                    var palDir = Path.Combine(savedDir, entry.PalisadeIdentifier);
+                    Directory.CreateDirectory(palDir);
+                    File.WriteAllText(Path.Combine(palDir, "state.xml"), entry.StateXmlContent);
+                }
             }
+            catch (Exception ex)
+            {
+                PalisadeDiagnostics.Log("LayoutSnapshot", "Restauration échouée, retour à l'état précédent.", ex);
+                if (backupDir != null && Directory.Exists(backupDir))
+                {
+                    if (Directory.Exists(savedDir))
+                        Directory.Delete(savedDir, true);
+                    Directory.Move(backupDir, savedDir);
+                    backupDir = null;
+                }
+                PalisadesManager.LoadPalisades();
+                throw;
+            }
+
+            // Succès : le dossier de secours n'est plus nécessaire.
+            if (backupDir != null && Directory.Exists(backupDir))
+                Directory.Delete(backupDir, true);
+
             PalisadesManager.LoadPalisades();
             ApplyRescaleIfNeeded(snapshot);
         }
@@ -152,11 +181,7 @@ namespace Palisades.Services
         {
             var path = Path.Combine(PDirectory.GetSnapshotsDirectory(), snapshotId, "snapshot.xml");
             if (!File.Exists(path)) return;
-            LayoutSnapshot? snapshot;
-            using (var reader = new StreamReader(path))
-            {
-                snapshot = SnapshotSerializer.Deserialize(reader) as LayoutSnapshot;
-            }
+            LayoutSnapshot? snapshot = DeserializeSnapshot(path);
             if (snapshot == null) return;
             snapshot.Name = newName ?? "";
             using (var writer = new StreamWriter(path))
@@ -177,11 +202,7 @@ namespace Palisades.Services
         {
             var snapshotPath = Path.Combine(sourceFolder, "snapshot.xml");
             if (!File.Exists(snapshotPath)) return null;
-            LayoutSnapshot? snapshot;
-            using (var reader = new StreamReader(snapshotPath))
-            {
-                snapshot = SnapshotSerializer.Deserialize(reader) as LayoutSnapshot;
-            }
+            LayoutSnapshot? snapshot = DeserializeSnapshot(snapshotPath);
             if (snapshot?.Id == null) return null;
             var newId = Guid.NewGuid().ToString();
             var destDir = Path.Combine(PDirectory.GetSnapshotsDirectory(), newId);

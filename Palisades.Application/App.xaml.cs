@@ -10,6 +10,9 @@ using System.Windows.Threading;
 
 namespace Palisades
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Reliability", "CA1001:Types that own disposable fields should be disposable",
+        Justification = "_trayIcon est libéré dans le gestionnaire Exit — cycle de vie approprié pour une App WPF, que personne ne Dispose.")]
     public partial class App : System.Windows.Application
     {
         private TrayIconManager? _trayIcon;
@@ -143,7 +146,7 @@ namespace Palisades
                             if (Application.Current.MainWindow != null)
                                 Application.Current.MainWindow.Title = string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.MainWindowTitleUpdatingFormat, percent);
                         }
-                        catch { }
+                        catch (Exception ex) { PalisadeDiagnostics.LogDebug("App: MAJ du titre de progression", ex); }
                     });
                 });
                 await UpdateChecker.ApplyUpdateAsync(update, progressHandler);
