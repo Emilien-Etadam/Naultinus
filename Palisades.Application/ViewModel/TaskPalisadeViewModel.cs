@@ -171,7 +171,7 @@ namespace Palisades.ViewModel
             };
 
             SelectTabCommand = new RelayCommand<TaskTabItem>(tab => { if (tab != null) SelectedTaskTab = tab; });
-            ForceSyncCommand = new RelayCommand(async () => await SyncWithCalDAVAsync());
+            ForceSyncCommand = new AsyncRelayCommand(() => SyncWithCalDAVAsync());
             AddTaskCommand = new RelayCommand(() =>
             {
                 var newTask = new CalDAVTask(Strings.TaskNewTaskName)
@@ -198,7 +198,7 @@ namespace Palisades.ViewModel
                 RefreshVisibleTasksFilter();
                 OnPropertyChanged(nameof(HasNoTasks));
             });
-            ToggleTaskCompletedCommand = new RelayCommand<CalDAVTask>(async task =>
+            ToggleTaskCompletedCommand = new AsyncRelayCommand<CalDAVTask>(async task =>
             {
                 var t = task ?? SelectedTask;
                 if (t == null) return;
@@ -218,7 +218,7 @@ namespace Palisades.ViewModel
                     t.CompletedDate = t.Completed ? DateTime.Now : null;
                 }
             });
-            SaveTaskCommand = new RelayCommand<CalDAVTask>(async task =>
+            SaveTaskCommand = new AsyncRelayCommand<CalDAVTask>(async task =>
             {
                 var t = task ?? SelectedTask;
                 if (t == null) return;

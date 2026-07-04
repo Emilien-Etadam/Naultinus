@@ -232,7 +232,7 @@ namespace Palisades.ViewModel
         public ICommand NextDayCommand { get; }
         public ICommand TodayCommand { get; }
         public ICommand AddEventCommand { get; }
-        public ICommand RefreshCommand { get; } = new RelayCommand<CalendarPalisadeViewModel>(async vm => { if (vm != null) await vm.LoadEventsAsync(); });
+        public ICommand RefreshCommand { get; } = new AsyncRelayCommand<CalendarPalisadeViewModel>(async vm => { if (vm != null) await vm.LoadEventsAsync(); });
 
         public override void Dispose()
         {
