@@ -205,7 +205,7 @@ namespace Palisades.ViewModel
 
         #region Commands
 
-        public ICommand RefreshCommand { get; } = new RelayCommand<MailPalisadeViewModel>(async vm => { if (vm != null) await vm.RefreshAsync(); });
+        public ICommand RefreshCommand { get; } = new AsyncRelayCommand<MailPalisadeViewModel>(async vm => { if (vm != null) await vm.RefreshAsync(); });
         public ICommand OpenWebmailCommand { get; } = new RelayCommand<MailPalisadeViewModel>(vm => { vm?.OpenWebmail(); });
 
         #endregion
