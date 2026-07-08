@@ -62,7 +62,7 @@ Zimbra OVH expose : CalDAV sur `https://<serveur>/dav/<email>/Calendar` (calendr
 
 **3.2 — Remplacer `CredentialEncryptor` par DPAPI.** ✅ Fait. `CredentialEncryptor` utilise `ProtectedData.Protect` / `Unprotect` (scope `CurrentUser`). API : `Encrypt(plainText)` et `Decrypt(cipherText)` sans clé utilisateur. Surcharges à deux paramètres conservées (obsoletes) pour compatibilité.
 
-**3.3 — Valider HTTPS.** ✅ Fait. Dans le constructeur de `CalDAVService`, `EnsureHttps(url)` refuse toute URL non vide qui ne commence pas par `https://` (exception `InvalidOperationException`). Les URLs vides (palissade non configurée) sont acceptées.
+**3.3 — Valider HTTPS.** ✅ Fait. Dans le constructeur de `CalDAVService`, `EnsureHttps(url)` refuse toute URL non vide qui ne commence pas par `https://` (exception `InvalidOperationException`). Les URLs vides (naultinus non configurée) sont acceptées.
 
 **3.4 — Créer un modèle `ZimbraAccount`.** ✅ Fait. `Model/ZimbraAccount.cs` (Id, Server, Email, EncryptedPassword, CalDAVBaseUrl). `Services/ZimbraAccountStore.cs` : Load/Save vers `%LOCALAPPDATA%\Naultinus\accounts.xml`, `GetById(Guid)`. `TaskNaultinusModel.ZimbraAccountId` (Guid?) : si défini, les credentials sont résolus depuis le store au chargement (`NaultinusManager.LoadNaultinus`). Sinon, usage des champs CalDAVUrl/Username/Password (rétrocompat).
 

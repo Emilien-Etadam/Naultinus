@@ -261,57 +261,57 @@
   },
   {
     "key": "AddTabShortcutNaultinus",
-    "fr": "Palissade raccourcis",
+    "fr": "Naultinus raccourcis",
     "en": "Shortcut Naultinus"
   },
   {
     "key": "AddTabBrowseNaultinus",
-    "fr": "Palissade navigation",
+    "fr": "Naultinus navigation",
     "en": "Browse Naultinus"
   },
   {
     "key": "AddTabTaskNaultinus",
-    "fr": "Palissade tâches",
+    "fr": "Naultinus tâches",
     "en": "Task Naultinus"
   },
   {
     "key": "AddTabCalendarNaultinus",
-    "fr": "Palissade calendrier",
+    "fr": "Naultinus calendrier",
     "en": "Calendar Naultinus"
   },
   {
     "key": "AddTabMailNaultinus",
-    "fr": "Palissade courriel",
+    "fr": "Naultinus courriel",
     "en": "Mail Naultinus"
   },
   {
     "key": "DesktopShortcutNaultinus",
-    "fr": "Palissade raccourcis",
+    "fr": "Naultinus raccourcis",
     "en": "Shortcut Naultinus"
   },
   {
     "key": "DesktopBrowseNaultinus",
-    "fr": "Palissade navigation",
+    "fr": "Naultinus navigation",
     "en": "Browse Naultinus"
   },
   {
     "key": "DesktopTaskNaultinus",
-    "fr": "Palissade tâches",
+    "fr": "Naultinus tâches",
     "en": "Task Naultinus"
   },
   {
     "key": "DesktopCalendarNaultinus",
-    "fr": "Palissade calendrier",
+    "fr": "Naultinus calendrier",
     "en": "Calendar Naultinus"
   },
   {
     "key": "DesktopMailNaultinus",
-    "fr": "Palissade courriel",
+    "fr": "Naultinus courriel",
     "en": "Mail Naultinus"
   },
   {
     "key": "FolderDefaultName",
-    "fr": "Palissade navigation",
+    "fr": "Naultinus navigation",
     "en": "Browse Naultinus"
   },
   {
@@ -371,17 +371,17 @@
   },
   {
     "key": "MailDefaultName",
-    "fr": "Palissade courriel",
+    "fr": "Naultinus courriel",
     "en": "Mail Naultinus"
   },
   {
     "key": "CalendarDefaultName",
-    "fr": "Palissade calendrier",
+    "fr": "Naultinus calendrier",
     "en": "Calendar Naultinus"
   },
   {
     "key": "TaskDefaultName",
-    "fr": "Palissade tâches",
+    "fr": "Naultinus tâches",
     "en": "Task Naultinus"
   },
   {
@@ -516,7 +516,7 @@
   },
   {
     "key": "WindowTitleEditShortcutNaultinus",
-    "fr": "Modifier la palissade raccourcis",
+    "fr": "Modifier la naultinus raccourcis",
     "en": "Edit Shortcut Naultinus"
   },
   {
@@ -531,12 +531,12 @@
   },
   {
     "key": "WindowTitleEditCalendarNaultinus",
-    "fr": "Modifier la palissade calendrier",
+    "fr": "Modifier la naultinus calendrier",
     "en": "Edit Calendar Naultinus"
   },
   {
     "key": "WindowTitleTaskNaultinusSettings",
-    "fr": "Paramètres de la palissade tâches",
+    "fr": "Paramètres de la naultinus tâches",
     "en": "Task Naultinus settings"
   },
   {
@@ -546,7 +546,7 @@
   },
   {
     "key": "WindowTitleEditBrowseNaultinus",
-    "fr": "Modifier la palissade navigation",
+    "fr": "Modifier la naultinus navigation",
     "en": "Edit Browse Naultinus"
   },
   {
@@ -561,22 +561,22 @@
   },
   {
     "key": "WindowTitleNewBrowseNaultinus",
-    "fr": "Nouvelle palissade navigation",
+    "fr": "Nouvelle naultinus navigation",
     "en": "New Browse Naultinus"
   },
   {
     "key": "WindowTitleNewCalendarNaultinus",
-    "fr": "Nouvelle palissade calendrier",
+    "fr": "Nouvelle naultinus calendrier",
     "en": "New Calendar Naultinus"
   },
   {
     "key": "WindowTitleNewTaskNaultinus",
-    "fr": "Nouvelle palissade tâches",
+    "fr": "Nouvelle naultinus tâches",
     "en": "New Task Naultinus"
   },
   {
     "key": "WindowTitleNewMailNaultinus",
-    "fr": "Nouvelle palissade courriel",
+    "fr": "Nouvelle naultinus courriel",
     "en": "New Mail Naultinus"
   },
   {
@@ -586,7 +586,7 @@
   },
   {
     "key": "WindowTitleEditTaskNaultinus",
-    "fr": "Modifier la palissade tâches",
+    "fr": "Modifier la naultinus tâches",
     "en": "Edit Task Naultinus"
   },
   {
@@ -741,12 +741,12 @@
   },
   {
     "key": "DefaultBrowseNaultinusTitle",
-    "fr": "Ma palissade navigation",
+    "fr": "Ma naultinus navigation",
     "en": "My Browse Naultinus"
   },
   {
     "key": "DefaultTaskNaultinusTitle",
-    "fr": "Palissade tâches",
+    "fr": "Naultinus tâches",
     "en": "Task Naultinus"
   },
   {
@@ -841,7 +841,7 @@
   },
   {
     "key": "LabelNaultinusTitle",
-    "fr": "Titre de la palissade",
+    "fr": "Titre de la naultinus",
     "en": "Naultinus title"
   },
   {
@@ -901,7 +901,7 @@
   },
   {
     "key": "LabelZimbraImapHostForMail",
-    "fr": "Hôte IMAP (palissade courriel)",
+    "fr": "Hôte IMAP (naultinus courriel)",
     "en": "IMAP host (Mail Naultinus)"
   },
   {
@@ -926,7 +926,7 @@
   },
   {
     "key": "ManageSnapshotsNaultinusCountFormat",
-    "fr": "{0} palissades",
+    "fr": "{0} naultinus",
     "en": "{0} naultinus"
   },
   {
@@ -966,12 +966,12 @@
   },
   {
     "key": "MenuNewBrowseNaultinus",
-    "fr": "Nouvelle palissade navigation",
+    "fr": "Nouvelle naultinus navigation",
     "en": "New Browse Naultinus"
   },
   {
     "key": "MenuNewCalendarNaultinus",
-    "fr": "Nouvelle palissade calendrier",
+    "fr": "Nouvelle naultinus calendrier",
     "en": "New Calendar Naultinus"
   },
   {
@@ -981,17 +981,17 @@
   },
   {
     "key": "MenuNewMailNaultinus",
-    "fr": "Nouvelle palissade courriel",
+    "fr": "Nouvelle naultinus courriel",
     "en": "New Mail Naultinus"
   },
   {
     "key": "MenuNewShortcutNaultinus",
-    "fr": "Nouvelle palissade raccourcis",
+    "fr": "Nouvelle naultinus raccourcis",
     "en": "New Shortcut Naultinus"
   },
   {
     "key": "MenuNewTaskNaultinus",
-    "fr": "Nouvelle palissade tâches",
+    "fr": "Nouvelle naultinus tâches",
     "en": "New Task Naultinus"
   },
   {
@@ -1041,7 +1041,7 @@
   },
   {
     "key": "TooltipAddTabBrowseSameGroup",
-    "fr": "Ajouter un onglet : palissade navigation (même groupe)",
+    "fr": "Ajouter un onglet : naultinus navigation (même groupe)",
     "en": "Add tab: Browse Naultinus (same group)"
   },
   {
