@@ -19,8 +19,8 @@ namespace Naultinus
 
         public static void LoadNaultinus()
         {
-            string saveDirectory = PDirectory.GetNaultinusDirectory();
-            PDirectory.EnsureExists(saveDirectory);
+            string saveDirectory = AppPaths.GetNaultinusDirectory();
+            AppPaths.EnsureExists(saveDirectory);
 
             var loadedConcrete = new List<NaultinusModelBase>();
 

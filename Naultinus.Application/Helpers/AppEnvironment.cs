@@ -1,6 +1,6 @@
-﻿namespace Naultinus.Helpers
+namespace Naultinus.Helpers
 {
-    internal class PEnv
+    internal static class AppEnvironment
     {
         internal static bool IsDev()
         {

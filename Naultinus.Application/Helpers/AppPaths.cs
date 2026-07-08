@@ -6,11 +6,11 @@ using System.IO;
 
 namespace Naultinus.Helpers
 {
-    internal static class PDirectory
+    internal static class AppPaths
     {
         internal static string GetAppDirectory()
         {
-            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), PEnv.IsDev() ? "NaultinusDev" : "Naultinus");
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppEnvironment.IsDev() ? "NaultinusDev" : "Naultinus");
         }
 
         internal static string GetNaultinusDirectory()
@@ -124,7 +124,7 @@ namespace Naultinus.Helpers
                         return true;
                 }
             }
-            catch (Exception ex) { NaultinusDiagnostics.LogDebug("PDirectory.IsUnderDesktop: chemin invalide", ex); }
+            catch (Exception ex) { NaultinusDiagnostics.LogDebug("AppPaths.IsUnderDesktop: chemin invalide", ex); }
             return false;
         }
 

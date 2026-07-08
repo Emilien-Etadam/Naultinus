@@ -15,7 +15,7 @@ namespace Naultinus.Services
 
         public static AppSettings Load()
         {
-            var path = PDirectory.GetSettingsFilePath();
+            var path = AppPaths.GetSettingsFilePath();
             if (!File.Exists(path))
                 return new AppSettings();
             try
@@ -34,8 +34,8 @@ namespace Naultinus.Services
 
         public static void Save(AppSettings settings)
         {
-            var path = PDirectory.GetSettingsFilePath();
-            PDirectory.WriteAtomicText(path, writer => Serializer.Serialize(writer, settings ?? new AppSettings()));
+            var path = AppPaths.GetSettingsFilePath();
+            AppPaths.WriteAtomicText(path, writer => Serializer.Serialize(writer, settings ?? new AppSettings()));
         }
     }
 }

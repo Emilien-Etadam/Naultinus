@@ -177,7 +177,7 @@ namespace Naultinus.ViewModel
                         if (File.Exists(source))
                             File.Copy(source, dest, false);
                         else if (Directory.Exists(source))
-                            PDirectory.CopyDirectory(source, dest);
+                            AppPaths.CopyDirectory(source, dest);
                     }
                     catch (Exception ex) { NaultinusDiagnostics.Log("FolderPortal", "Collage depuis le presse-papiers impossible : " + source, ex); }
                 }
@@ -247,8 +247,8 @@ namespace Naultinus.ViewModel
             try
             {
                 var newItems = new ObservableCollection<FolderPortalItem>();
-                string iconsDir = PDirectory.GetNaultinusIconsDirectory(Identifier);
-                PDirectory.EnsureExists(iconsDir);
+                string iconsDir = AppPaths.GetNaultinusIconsDirectory(Identifier);
+                AppPaths.EnsureExists(iconsDir);
 
                 foreach (string dir in Directory.GetDirectories(path).OrderBy(d => Path.GetFileName(d), StringComparer.OrdinalIgnoreCase))
                 {
@@ -473,7 +473,7 @@ namespace Naultinus.ViewModel
         {
             try
             {
-                string iconsDir = PDirectory.GetNaultinusIconsDirectory(Identifier);
+                string iconsDir = AppPaths.GetNaultinusIconsDirectory(Identifier);
                 if (!Directory.Exists(iconsDir)) return;
                 foreach (var file in Directory.GetFiles(iconsDir, "*.png"))
                 {
@@ -593,7 +593,7 @@ namespace Naultinus.ViewModel
                     if (Directory.Exists(sourcePath))
                     {
                         if (isCopy)
-                            PDirectory.CopyDirectory(sourcePath, destPath);
+                            AppPaths.CopyDirectory(sourcePath, destPath);
                         else
                             Directory.Move(sourcePath, destPath);
                     }

@@ -16,7 +16,7 @@ namespace Naultinus.Services
 
         public static List<ZimbraAccount> Load()
         {
-            var path = PDirectory.GetAccountsFilePath();
+            var path = AppPaths.GetAccountsFilePath();
             if (!File.Exists(path))
                 return new List<ZimbraAccount>();
             try
@@ -35,8 +35,8 @@ namespace Naultinus.Services
 
         public static void Save(List<ZimbraAccount> accounts)
         {
-            var path = PDirectory.GetAccountsFilePath();
-            PDirectory.WriteAtomicText(path, writer => Serializer.Serialize(writer, accounts ?? new List<ZimbraAccount>()));
+            var path = AppPaths.GetAccountsFilePath();
+            AppPaths.WriteAtomicText(path, writer => Serializer.Serialize(writer, accounts ?? new List<ZimbraAccount>()));
         }
 
         public static ZimbraAccount? GetById(Guid id)

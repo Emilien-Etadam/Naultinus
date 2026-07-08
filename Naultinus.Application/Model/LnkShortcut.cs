@@ -18,7 +18,7 @@ namespace Naultinus.Model
                 return null;
 
             string name = Shortcut.GetName(shortcut);
-            string iconPath = Naultinus.Helpers.PDirectory.CreateIconPng(shortcut, naultinusIdentifier);
+            string iconPath = Naultinus.Helpers.AppPaths.CreateIconPng(shortcut, naultinusIdentifier);
 
             return new LnkShortcut(name, iconPath, targetPath);
         }
