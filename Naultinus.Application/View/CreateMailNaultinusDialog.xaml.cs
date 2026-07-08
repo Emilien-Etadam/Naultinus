@@ -12,7 +12,7 @@ namespace Naultinus.View
 {
     public partial class CreateMailNaultinusDialog : Window
     {
-        public string NaultinusTitle { get; set; } = "Mail naultinus";
+        public string NaultinusTitle { get; set; } = Strings.MailDefaultName;
         public string ImapHost { get; set; } = string.Empty;
         public int ImapPort { get; set; } = 993;
         public string Username { get; set; } = string.Empty;

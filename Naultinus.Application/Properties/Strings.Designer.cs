@@ -51,7 +51,6 @@ namespace Naultinus.Properties
         public static string NaultinusErrorTitle => ResourceManager.GetString(nameof(NaultinusErrorTitle)) ?? string.Empty;
         public static string UpdateAvailableFormat => ResourceManager.GetString(nameof(UpdateAvailableFormat)) ?? string.Empty;
         public static string UpdateTitle => ResourceManager.GetString(nameof(UpdateTitle)) ?? string.Empty;
-        public static string UpdateNoneAvailable => ResourceManager.GetString(nameof(UpdateNoneAvailable)) ?? string.Empty;
         public static string UpdateFailedFormat => ResourceManager.GetString(nameof(UpdateFailedFormat)) ?? string.Empty;
         public static string ErrorGenericTitle => ResourceManager.GetString(nameof(ErrorGenericTitle)) ?? string.Empty;
         public static string TabRenameMenu => ResourceManager.GetString(nameof(TabRenameMenu)) ?? string.Empty;
@@ -194,7 +193,6 @@ namespace Naultinus.Properties
         public static string MailComboCountOnly => ResourceManager.GetString(nameof(MailComboCountOnly)) ?? string.Empty;
         public static string ManageSnapshotsNaultinusCountFormat => ResourceManager.GetString(nameof(ManageSnapshotsNaultinusCountFormat)) ?? string.Empty;
         public static string MenuAbout => ResourceManager.GetString(nameof(MenuAbout)) ?? string.Empty;
-        public static string MenuCheckForUpdates => ResourceManager.GetString(nameof(MenuCheckForUpdates)) ?? string.Empty;
         public static string MenuDelete => ResourceManager.GetString(nameof(MenuDelete)) ?? string.Empty;
         public static string MenuDeleteSelection => ResourceManager.GetString(nameof(MenuDeleteSelection)) ?? string.Empty;
         public static string MenuEdit => ResourceManager.GetString(nameof(MenuEdit)) ?? string.Empty;
@@ -235,5 +233,14 @@ namespace Naultinus.Properties
         public static string LabelZimbraAccount => ResourceManager.GetString(nameof(LabelZimbraAccount)) ?? string.Empty;
         public static string ZimbraManualEntry => ResourceManager.GetString(nameof(ZimbraManualEntry)) ?? string.Empty;
         public static string ButtonCreateNaultinus => ResourceManager.GetString(nameof(ButtonCreateNaultinus)) ?? string.Empty;
+        public static string MenuCheckForUpdates => ResourceManager.GetString(nameof(MenuCheckForUpdates)) ?? string.Empty;
+        public static string MenuQuit => ResourceManager.GetString(nameof(MenuQuit)) ?? string.Empty;
+        public static string BrowseNaultinusFolderPickerDescription => ResourceManager.GetString(nameof(BrowseNaultinusFolderPickerDescription)) ?? string.Empty;
+        public static string BrowseNaultinusTitleRequired => ResourceManager.GetString(nameof(BrowseNaultinusTitleRequired)) ?? string.Empty;
+        public static string BrowseNaultinusSelectFolder => ResourceManager.GetString(nameof(BrowseNaultinusSelectFolder)) ?? string.Empty;
+        public static string BrowseNaultinusFolderNotFound => ResourceManager.GetString(nameof(BrowseNaultinusFolderNotFound)) ?? string.Empty;
+        public static string EventDayHeaderTodayFormat => ResourceManager.GetString(nameof(EventDayHeaderTodayFormat)) ?? string.Empty;
+        public static string EventTimeRangeFormat => ResourceManager.GetString(nameof(EventTimeRangeFormat)) ?? string.Empty;
+        public static string UpdateNoneAvailable => ResourceManager.GetString(nameof(UpdateNoneAvailable)) ?? string.Empty;
     }
 }

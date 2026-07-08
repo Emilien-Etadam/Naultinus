@@ -33,7 +33,7 @@ namespace Naultinus.ViewModel
         private static readonly CalendarSerializer _calendarSerializer = new CalendarSerializer();
 
         public CalendarNaultinusViewModel() : this(
-            new CalendarNaultinusModel { Name = "Calendar naultinus", Width = 500, Height = 400 },
+            new CalendarNaultinusModel { Name = Strings.CalendarDefaultName, Width = 500, Height = 400 },
             new CalendarCalDAVService(new CalDAVClient("https://localhost/", "", "")))
         { }
 

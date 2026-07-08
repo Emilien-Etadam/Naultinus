@@ -3,6 +3,7 @@ using System.Drawing;
 using System.IO;
 using System.Windows;
 using System.Windows.Forms;
+using Naultinus.Properties;
 using Naultinus.View;
 using Naultinus.ViewModel;
 
@@ -29,26 +30,26 @@ namespace Naultinus.Helpers
                 icon = SystemIcons.Application;
 
             _notifyIcon.Icon = icon;
-            _notifyIcon.Text = "Naultinus";
+            _notifyIcon.Text = Strings.AppNameNaultinus;
             _notifyIcon.Visible = true;
 
             var menu = new ContextMenuStrip();
-            menu.Items.Add(CreateItem("New shortcut naultinus", () => NaultinusManager.CreateNaultinus()));
-            menu.Items.Add(CreateItem("New browse naultinus", () => NaultinusManager.ShowCreateFolderPortalDialog()));
-            menu.Items.Add(CreateItem("New task naultinus", () => NaultinusManager.ShowCreateTaskNaultinusDialog()));
-            menu.Items.Add(CreateItem("New calendar naultinus", () => NaultinusManager.ShowCreateCalendarNaultinusDialog()));
-            menu.Items.Add(CreateItem("New mail naultinus", () => NaultinusManager.ShowCreateMailNaultinusDialog()));
+            menu.Items.Add(CreateItem(Strings.MenuNewShortcutNaultinus, () => NaultinusManager.CreateNaultinus()));
+            menu.Items.Add(CreateItem(Strings.MenuNewBrowseNaultinus, () => NaultinusManager.ShowCreateFolderPortalDialog()));
+            menu.Items.Add(CreateItem(Strings.MenuNewTaskNaultinus, () => NaultinusManager.ShowCreateTaskNaultinusDialog()));
+            menu.Items.Add(CreateItem(Strings.MenuNewCalendarNaultinus, () => NaultinusManager.ShowCreateCalendarNaultinusDialog()));
+            menu.Items.Add(CreateItem(Strings.MenuNewMailNaultinus, () => NaultinusManager.ShowCreateMailNaultinusDialog()));
             menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add(CreateItem("Manage Zimbra Accounts", () => new ManageAccountsDialog().ShowDialog()));
+            menu.Items.Add(CreateItem(Strings.MenuManageZimbraAccounts, () => new ManageAccountsDialog().ShowDialog()));
             menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add(CreateItem("About", () =>
+            menu.Items.Add(CreateItem(Strings.MenuAbout, () =>
             {
                 var about = new About { DataContext = new AboutViewModel() };
                 about.ShowDialog();
             }));
-            menu.Items.Add(CreateItem(Properties.Strings.MenuCheckForUpdates, () => _ = App.CheckForUpdatesAsync(announceIfNone: true)));
+            menu.Items.Add(CreateItem(Strings.MenuCheckForUpdates, () => _ = App.CheckForUpdatesAsync(announceIfNone: true)));
             menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add(CreateItem("Quit", () =>
+            menu.Items.Add(CreateItem(Strings.MenuQuit, () =>
             {
                 NaultinusManager.CloseAllNaultinus();
                 System.Windows.Application.Current.Shutdown();

@@ -1,4 +1,5 @@
 using System.Windows;
+using Naultinus.Properties;
 
 namespace Naultinus.View
 {
@@ -6,7 +7,7 @@ namespace Naultinus.View
     {
         public string? NewName { get; private set; }
         public string CurrentName { get; set; } = "";
-        public string PromptLabel { get; set; } = "New name";
+        public string PromptLabel { get; set; } = Strings.DialogLayoutNameLabel;
 
         public RenameSnapshotInputDialog()
         {

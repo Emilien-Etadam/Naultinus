@@ -383,7 +383,7 @@
     <value> (Twometer) and </value>
   </data>
   <data name="AboutReleasedUnderMitSuffix" xml:space="preserve">
-    <value>Released under the MIT license. Report issues, check for updates, or contribute on the </value>
+    <value>. Released under the MIT license. Report issues, check for updates, or contribute on the </value>
   </data>
   <data name="AboutStardockSuffix" xml:space="preserve">
     <value> (Stardock).</value>
@@ -687,6 +687,27 @@
   </data>
   <data name="MenuCheckForUpdates" xml:space="preserve">
     <value>Check for updates…</value>
+  </data>
+  <data name="MenuQuit" xml:space="preserve">
+    <value>Quit</value>
+  </data>
+  <data name="BrowseNaultinusFolderPickerDescription" xml:space="preserve">
+    <value>Select the folder to show in this Browse Naultinus.</value>
+  </data>
+  <data name="BrowseNaultinusTitleRequired" xml:space="preserve">
+    <value>Please enter a title.</value>
+  </data>
+  <data name="BrowseNaultinusSelectFolder" xml:space="preserve">
+    <value>Please select a folder.</value>
+  </data>
+  <data name="BrowseNaultinusFolderNotFound" xml:space="preserve">
+    <value>The selected folder does not exist.</value>
+  </data>
+  <data name="EventDayHeaderTodayFormat" xml:space="preserve">
+    <value>{0} — Today</value>
+  </data>
+  <data name="EventTimeRangeFormat" xml:space="preserve">
+    <value>{0} → {1}</value>
   </data>
   <data name="UpdateNoneAvailable" xml:space="preserve">
     <value>You're already on the latest version.</value>

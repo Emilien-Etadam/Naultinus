@@ -383,7 +383,7 @@
     <value> (Twometer) et </value>
   </data>
   <data name="AboutReleasedUnderMitSuffix" xml:space="preserve">
-    <value>Publié sous licence MIT. Signalez les problèmes, vérifiez les mises à jour ou contribuez sur le </value>
+    <value>. Publié sous licence MIT. Signalez les problèmes, vérifiez les mises à jour ou contribuez sur le </value>
   </data>
   <data name="AboutStardockSuffix" xml:space="preserve">
     <value> (Stardock).</value>
@@ -687,6 +687,27 @@
   </data>
   <data name="MenuCheckForUpdates" xml:space="preserve">
     <value>Vérifier les mises à jour…</value>
+  </data>
+  <data name="MenuQuit" xml:space="preserve">
+    <value>Quitter</value>
+  </data>
+  <data name="BrowseNaultinusFolderPickerDescription" xml:space="preserve">
+    <value>Sélectionnez le dossier à afficher dans cette naultinus navigation.</value>
+  </data>
+  <data name="BrowseNaultinusTitleRequired" xml:space="preserve">
+    <value>Veuillez saisir un titre.</value>
+  </data>
+  <data name="BrowseNaultinusSelectFolder" xml:space="preserve">
+    <value>Veuillez sélectionner un dossier.</value>
+  </data>
+  <data name="BrowseNaultinusFolderNotFound" xml:space="preserve">
+    <value>Le dossier sélectionné n'existe pas.</value>
+  </data>
+  <data name="EventDayHeaderTodayFormat" xml:space="preserve">
+    <value>{0} — Aujourd'hui</value>
+  </data>
+  <data name="EventTimeRangeFormat" xml:space="preserve">
+    <value>{0} → {1}</value>
   </data>
   <data name="UpdateNoneAvailable" xml:space="preserve">
     <value>Vous utilisez déjà la dernière version.</value>

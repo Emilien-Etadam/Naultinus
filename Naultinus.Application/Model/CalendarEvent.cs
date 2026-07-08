@@ -1,4 +1,6 @@
 using System;
+using System.Globalization;
+using Naultinus.Properties;
 
 namespace Naultinus.Model
 {
@@ -15,7 +17,7 @@ namespace Naultinus.Model
         public bool IsToday { get; set; }
 
         public string DayHeaderDisplay => IsToday
-            ? DayHeader + " — Aujourd'hui"
+            ? string.Format(CultureInfo.CurrentCulture, Strings.EventDayHeaderTodayFormat, DayHeader)
             : DayHeader;
 
         public string CalendarName { get; set; } = string.Empty;
@@ -24,7 +26,7 @@ namespace Naultinus.Model
         public string ETag { get; set; } = string.Empty;
 
         public string TimeDisplay => IsAllDay
-            ? "Toute la journée"
-            : DtStart.ToString("t") + " → " + DtEnd.ToString("t");
+            ? Strings.CheckBoxAllDay
+            : string.Format(CultureInfo.CurrentCulture, Strings.EventTimeRangeFormat, DtStart.ToString("t"), DtEnd.ToString("t"));
     }
 }

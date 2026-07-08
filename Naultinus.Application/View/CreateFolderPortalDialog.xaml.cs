@@ -1,4 +1,5 @@
 using System.Windows;
+using Naultinus.Properties;
 
 namespace Naultinus.View
 {
@@ -16,7 +17,7 @@ namespace Naultinus.View
         {
             using var dialog = new System.Windows.Forms.FolderBrowserDialog
             {
-                Description = "Select the folder to show in this browse naultinus",
+                Description = Strings.BrowseNaultinusFolderPickerDescription,
                 ShowNewFolderButton = true
             };
 
@@ -33,21 +34,21 @@ namespace Naultinus.View
 
             if (string.IsNullOrEmpty(title))
             {
-                ValidationMessage.Text = "Please enter a title.";
+                ValidationMessage.Text = Strings.BrowseNaultinusTitleRequired;
                 ValidationMessage.Visibility = Visibility.Visible;
                 return;
             }
 
             if (string.IsNullOrEmpty(path))
             {
-                ValidationMessage.Text = "Please select a folder.";
+                ValidationMessage.Text = Strings.BrowseNaultinusSelectFolder;
                 ValidationMessage.Visibility = Visibility.Visible;
                 return;
             }
 
             if (!System.IO.Directory.Exists(path))
             {
-                ValidationMessage.Text = "The selected folder does not exist.";
+                ValidationMessage.Text = Strings.BrowseNaultinusFolderNotFound;
                 ValidationMessage.Visibility = Visibility.Visible;
                 return;
             }
