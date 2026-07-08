@@ -161,37 +161,37 @@
     <value>Nouveau nom</value>
   </data>
   <data name="AddTabShortcutNaultinus" xml:space="preserve">
-    <value>Palissade raccourcis</value>
+    <value>Naultinus raccourcis</value>
   </data>
   <data name="AddTabBrowseNaultinus" xml:space="preserve">
-    <value>Palissade navigation</value>
+    <value>Naultinus navigation</value>
   </data>
   <data name="AddTabTaskNaultinus" xml:space="preserve">
-    <value>Palissade tâches</value>
+    <value>Naultinus tâches</value>
   </data>
   <data name="AddTabCalendarNaultinus" xml:space="preserve">
-    <value>Palissade calendrier</value>
+    <value>Naultinus calendrier</value>
   </data>
   <data name="AddTabMailNaultinus" xml:space="preserve">
-    <value>Palissade courriel</value>
+    <value>Naultinus courriel</value>
   </data>
   <data name="DesktopShortcutNaultinus" xml:space="preserve">
-    <value>Palissade raccourcis</value>
+    <value>Naultinus raccourcis</value>
   </data>
   <data name="DesktopBrowseNaultinus" xml:space="preserve">
-    <value>Palissade navigation</value>
+    <value>Naultinus navigation</value>
   </data>
   <data name="DesktopTaskNaultinus" xml:space="preserve">
-    <value>Palissade tâches</value>
+    <value>Naultinus tâches</value>
   </data>
   <data name="DesktopCalendarNaultinus" xml:space="preserve">
-    <value>Palissade calendrier</value>
+    <value>Naultinus calendrier</value>
   </data>
   <data name="DesktopMailNaultinus" xml:space="preserve">
-    <value>Palissade courriel</value>
+    <value>Naultinus courriel</value>
   </data>
   <data name="FolderDefaultName" xml:space="preserve">
-    <value>Palissade navigation</value>
+    <value>Naultinus navigation</value>
   </data>
   <data name="NewFolderName" xml:space="preserve">
     <value>Nouveau dossier</value>
@@ -227,13 +227,13 @@
     <value>déplacement</value>
   </data>
   <data name="MailDefaultName" xml:space="preserve">
-    <value>Palissade courriel</value>
+    <value>Naultinus courriel</value>
   </data>
   <data name="CalendarDefaultName" xml:space="preserve">
-    <value>Palissade calendrier</value>
+    <value>Naultinus calendrier</value>
   </data>
   <data name="TaskDefaultName" xml:space="preserve">
-    <value>Palissade tâches</value>
+    <value>Naultinus tâches</value>
   </data>
   <data name="CalendarNoCalendarsConfigured" xml:space="preserve">
     <value>Aucun calendrier configuré. Clic droit &gt; Modifier pour configurer.</value>
@@ -314,7 +314,7 @@
     <value>Sélectionnez le dossier contenant une disposition (snapshot.xml).</value>
   </data>
   <data name="WindowTitleEditShortcutNaultinus" xml:space="preserve">
-    <value>Modifier la palissade raccourcis</value>
+    <value>Modifier la naultinus raccourcis</value>
   </data>
   <data name="WindowTitleSaveCurrentLayout" xml:space="preserve">
     <value>Enregistrer la disposition actuelle</value>
@@ -323,16 +323,16 @@
     <value>Compte Zimbra</value>
   </data>
   <data name="WindowTitleEditCalendarNaultinus" xml:space="preserve">
-    <value>Modifier la palissade calendrier</value>
+    <value>Modifier la naultinus calendrier</value>
   </data>
   <data name="WindowTitleTaskNaultinusSettings" xml:space="preserve">
-    <value>Paramètres de la palissade tâches</value>
+    <value>Paramètres de la naultinus tâches</value>
   </data>
   <data name="WindowTitleAboutNaultinus" xml:space="preserve">
     <value>À propos de Naultinus</value>
   </data>
   <data name="WindowTitleEditBrowseNaultinus" xml:space="preserve">
-    <value>Modifier la palissade navigation</value>
+    <value>Modifier la naultinus navigation</value>
   </data>
   <data name="WindowTitleAddEvent" xml:space="preserve">
     <value>Ajouter un événement</value>
@@ -341,22 +341,22 @@
     <value>Gérer les dispositions</value>
   </data>
   <data name="WindowTitleNewBrowseNaultinus" xml:space="preserve">
-    <value>Nouvelle palissade navigation</value>
+    <value>Nouvelle naultinus navigation</value>
   </data>
   <data name="WindowTitleNewCalendarNaultinus" xml:space="preserve">
-    <value>Nouvelle palissade calendrier</value>
+    <value>Nouvelle naultinus calendrier</value>
   </data>
   <data name="WindowTitleNewTaskNaultinus" xml:space="preserve">
-    <value>Nouvelle palissade tâches</value>
+    <value>Nouvelle naultinus tâches</value>
   </data>
   <data name="WindowTitleNewMailNaultinus" xml:space="preserve">
-    <value>Nouvelle palissade courriel</value>
+    <value>Nouvelle naultinus courriel</value>
   </data>
   <data name="WindowTitleRenameLayout" xml:space="preserve">
     <value>Renommer la disposition</value>
   </data>
   <data name="WindowTitleEditTaskNaultinus" xml:space="preserve">
-    <value>Modifier la palissade tâches</value>
+    <value>Modifier la naultinus tâches</value>
   </data>
   <data name="AppNameNaultinus" xml:space="preserve">
     <value>Naultinus</value>
@@ -449,10 +449,10 @@
     <value>Afficher les tâches terminées</value>
   </data>
   <data name="DefaultBrowseNaultinusTitle" xml:space="preserve">
-    <value>Ma palissade navigation</value>
+    <value>Ma naultinus navigation</value>
   </data>
   <data name="DefaultTaskNaultinusTitle" xml:space="preserve">
-    <value>Palissade tâches</value>
+    <value>Naultinus tâches</value>
   </data>
   <data name="DialogLayoutNameLabel" xml:space="preserve">
     <value>Nom de la disposition</value>
@@ -509,7 +509,7 @@
     <value>Nom</value>
   </data>
   <data name="LabelNaultinusTitle" xml:space="preserve">
-    <value>Titre de la palissade</value>
+    <value>Titre de la naultinus</value>
   </data>
   <data name="LabelPassword" xml:space="preserve">
     <value>Mot de passe</value>
@@ -545,7 +545,7 @@
     <value>Mode d'affichage</value>
   </data>
   <data name="LabelZimbraImapHostForMail" xml:space="preserve">
-    <value>Hôte IMAP (palissade courriel)</value>
+    <value>Hôte IMAP (naultinus courriel)</value>
   </data>
   <data name="LayoutNameSavedList" xml:space="preserve">
     <value>Dispositions enregistrées</value>
@@ -560,7 +560,7 @@
     <value>Nombre seulement</value>
   </data>
   <data name="ManageSnapshotsNaultinusCountFormat" xml:space="preserve">
-    <value>{0} palissades</value>
+    <value>{0} naultinus</value>
   </data>
   <data name="MenuAbout" xml:space="preserve">
     <value>À propos</value>
@@ -584,22 +584,22 @@
     <value>Gérer les comptes Zimbra</value>
   </data>
   <data name="MenuNewBrowseNaultinus" xml:space="preserve">
-    <value>Nouvelle palissade navigation</value>
+    <value>Nouvelle naultinus navigation</value>
   </data>
   <data name="MenuNewCalendarNaultinus" xml:space="preserve">
-    <value>Nouvelle palissade calendrier</value>
+    <value>Nouvelle naultinus calendrier</value>
   </data>
   <data name="MenuNewFolder" xml:space="preserve">
     <value>Nouveau dossier</value>
   </data>
   <data name="MenuNewMailNaultinus" xml:space="preserve">
-    <value>Nouvelle palissade courriel</value>
+    <value>Nouvelle naultinus courriel</value>
   </data>
   <data name="MenuNewShortcutNaultinus" xml:space="preserve">
-    <value>Nouvelle palissade raccourcis</value>
+    <value>Nouvelle naultinus raccourcis</value>
   </data>
   <data name="MenuNewTaskNaultinus" xml:space="preserve">
-    <value>Nouvelle palissade tâches</value>
+    <value>Nouvelle naultinus tâches</value>
   </data>
   <data name="MenuNewTextFile" xml:space="preserve">
     <value>Nouveau fichier texte</value>
@@ -629,7 +629,7 @@
     <value>Chargement des tâches…</value>
   </data>
   <data name="TooltipAddTabBrowseSameGroup" xml:space="preserve">
-    <value>Ajouter un onglet : palissade navigation (même groupe)</value>
+    <value>Ajouter un onglet : naultinus navigation (même groupe)</value>
   </data>
   <data name="TooltipCalDAVBaseUrlExample" xml:space="preserve">
     <value>Ex. : https://mail.example.com/dav/user@domain/</value>

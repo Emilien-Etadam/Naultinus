@@ -181,7 +181,7 @@
                     </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Border Padding="8,6" Margin="0,0,0,2" CornerRadius="4"
+                            <Border Padding="8,6" Margin="0,0,0,2" CornerRadius="3"
                                     Background="{DynamicResource NaultinusCardBrush}" x:Name="TaskCard">
                                 <Grid ColumnDefinitions="Auto,*,Auto">
                                     <CheckBox Grid.Column="0" IsChecked="{Binding Completed, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"

@@ -7,7 +7,7 @@
     <Canvas x:Name="DrawCanvas" Background="#00000000">
         <Rectangle x:Name="SelectionRect" Visibility="Collapsed"
                    Stroke="#80FFFFFF" StrokeThickness="2" StrokeDashArray="4 2"
-                   Fill="#260077FF"/>
+                   Fill="#264D9FEA"/>
         <TextBlock x:Name="DimensionsLabel" Visibility="Collapsed"
                    FontSize="12" Foreground="White" Background="#80000000" Padding="4,2"/>
     </Canvas>
