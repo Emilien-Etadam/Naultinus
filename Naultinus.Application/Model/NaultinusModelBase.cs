@@ -15,9 +15,9 @@ namespace Naultinus.Model
     [XmlRoot(Namespace = "io.stouder", ElementName = "NaultinusModel")]
     public abstract class NaultinusModelBase
     {
-        // SchemaVersion history:
-        // 1 - Initial versioned format (v0.5.x). Corresponds to all models prior to explicit versioning.
-        // When adding version 2: add migration logic in NaultinusModelMigration.
+        // Historique SchemaVersion :
+        // 1 — format versionné initial (v0.5.x). Correspond à tous les modèles avant versioning explicite.
+        // Lors de l'ajout de la version 2 : ajouter la migration dans NaultinusModelMigration.
         private int _schemaVersion = 1;
 
         private string _identifier;

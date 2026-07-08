@@ -26,7 +26,7 @@ namespace Naultinus.Model
             url = url.Replace("BASE", "");
 
             string name = Shortcut.GetName(shortcut);
-            string iconPath = Naultinus.Helpers.PDirectory.CreateIconPng(shortcut, naultinusIdentifier);
+            string iconPath = Naultinus.Helpers.AppPaths.CreateIconPng(shortcut, naultinusIdentifier);
 
             return new UrlShortcut(name, iconPath, url);
         }

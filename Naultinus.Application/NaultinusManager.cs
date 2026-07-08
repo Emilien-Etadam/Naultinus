@@ -19,8 +19,8 @@ namespace Naultinus
 
         public static void LoadNaultinus()
         {
-            string saveDirectory = PDirectory.GetNaultinusDirectory();
-            PDirectory.EnsureExists(saveDirectory);
+            string saveDirectory = AppPaths.GetNaultinusDirectory();
+            AppPaths.EnsureExists(saveDirectory);
 
             var loadedConcrete = new List<NaultinusModelBase>();
 
@@ -48,7 +48,7 @@ namespace Naultinus
                 }
                 catch (Exception ex)
                 {
-                    NaultinusDiagnostics.Log("NaultinusManager", "Failed to load " + stateFile, ex);
+                    NaultinusDiagnostics.Log("NaultinusManager", "Chargement impossible : " + stateFile, ex);
                 }
             }
 

@@ -44,7 +44,7 @@ namespace Naultinus.Tests.ViewModel
                         var testFile = Path.Combine(tempDir, "test.txt");
                         File.WriteAllText(testFile, "content");
 
-                        // Poll until file appears or 8 s deadline (debounce is 500 ms).
+                        // Attendre l'apparition du fichier ou 8 s max (debounce 500 ms).
                         var deadline = DateTime.UtcNow.AddMilliseconds(8000);
                         while (DateTime.UtcNow < deadline)
                         {

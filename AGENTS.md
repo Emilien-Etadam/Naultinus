@@ -33,6 +33,6 @@ The application is a WPF desktop app and **cannot run on Linux**. On Windows: `d
 
 ### Key gotchas
 
-- The `Naultinus.Installer` project (`.vdproj`) is an Inno Setup/VS installer project and is ignored by `dotnet build`; it only builds in Visual Studio or MSBuild on Windows.
+- L’installateur officiel est Inno Setup (`installer/naultinus.iss`), construit par le workflow Release. L’ancien projet Visual Studio Deployment (`.vdproj`) a été retiré.
 - DPAPI-based credential encryption tests are skipped on non-Windows platforms.
 - No Docker, no databases, no backend services are required. The app connects to user-configured external CalDAV/IMAP servers.

@@ -26,7 +26,6 @@ namespace Naultinus.View
 
         private void SnapshotsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Optional: enable/disable row buttons based on selection
         }
 
         private void RestoreButton_Click(object sender, RoutedEventArgs e)
@@ -46,7 +45,7 @@ namespace Naultinus.View
             if (string.IsNullOrEmpty(id)) return;
             var snap = _snapshots.FirstOrDefault(s => s.Id == id);
             if (snap == null) return;
-            var input = new RenameSnapshotInputDialog { CurrentName = snap.Name };
+            var input = new RenameSnapshotInputDialog { CurrentName = snap.Name, PromptLabel = Strings.DialogLayoutNameLabel };
             if (input.ShowDialog() != true) return;
             var newName = input.NewName?.Trim();
             if (string.IsNullOrEmpty(newName)) return;

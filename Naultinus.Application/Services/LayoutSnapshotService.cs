@@ -38,7 +38,7 @@ namespace Naultinus.Services
                 ScreenHeight = (int)SystemParameters.PrimaryScreenHeight,
                 ScreenCount = screenCount
             };
-            var savedDir = PDirectory.GetNaultinusDirectory();
+            var savedDir = AppPaths.GetNaultinusDirectory();
             if (!Directory.Exists(savedDir))
                 return snapshot;
             foreach (var dir in Directory.GetDirectories(savedDir))
@@ -71,17 +71,17 @@ namespace Naultinus.Services
                     StateXmlContent = content
                 });
             }
-            var snapDir = Path.Combine(PDirectory.GetSnapshotsDirectory(), snapshot.Id);
-            PDirectory.EnsureExists(PDirectory.GetSnapshotsDirectory());
+            var snapDir = Path.Combine(AppPaths.GetSnapshotsDirectory(), snapshot.Id);
+            AppPaths.EnsureExists(AppPaths.GetSnapshotsDirectory());
             Directory.CreateDirectory(snapDir);
-            PDirectory.WriteAtomicText(Path.Combine(snapDir, "snapshot.xml"), writer => SnapshotSerializer.Serialize(writer, snapshot));
+            AppPaths.WriteAtomicText(Path.Combine(snapDir, "snapshot.xml"), writer => SnapshotSerializer.Serialize(writer, snapshot));
             return snapshot;
         }
 
         public static List<LayoutSnapshot> ListSnapshots()
         {
             var list = new List<LayoutSnapshot>();
-            var snapDir = PDirectory.GetSnapshotsDirectory();
+            var snapDir = AppPaths.GetSnapshotsDirectory();
             if (!Directory.Exists(snapDir)) return list;
             foreach (var dir in Directory.GetDirectories(snapDir))
             {
@@ -105,7 +105,7 @@ namespace Naultinus.Services
 
         public static void RestoreSnapshot(string snapshotId)
         {
-            var path = Path.Combine(PDirectory.GetSnapshotsDirectory(), snapshotId, "snapshot.xml");
+            var path = Path.Combine(AppPaths.GetSnapshotsDirectory(), snapshotId, "snapshot.xml");
             if (!File.Exists(path)) return;
             LayoutSnapshot? snapshot = DeserializeSnapshot(path);
             if (snapshot?.Entries == null) return;
@@ -114,7 +114,7 @@ namespace Naultinus.Services
                 snapshot.SchemaVersion = 1;
 
             NaultinusManager.CloseAllNaultinus();
-            var savedDir = PDirectory.GetNaultinusDirectory();
+            var savedDir = AppPaths.GetNaultinusDirectory();
 
             // Sauvegarde de sûreté : on déplace l'état courant dans un dossier de secours plutôt que de
             // le supprimer d'emblée. Ainsi, si l'écriture du nouvel état échoue en cours de route, on
@@ -130,7 +130,7 @@ namespace Naultinus.Services
 
             try
             {
-                PDirectory.EnsureExists(savedDir);
+                AppPaths.EnsureExists(savedDir);
                 foreach (var entry in snapshot.Entries)
                 {
                     var palDir = Path.Combine(savedDir, entry.NaultinusIdentifier);
@@ -172,14 +172,14 @@ namespace Naultinus.Services
 
         public static void DeleteSnapshot(string snapshotId)
         {
-            var dir = Path.Combine(PDirectory.GetSnapshotsDirectory(), snapshotId);
+            var dir = Path.Combine(AppPaths.GetSnapshotsDirectory(), snapshotId);
             if (Directory.Exists(dir))
                 Directory.Delete(dir, true);
         }
 
         public static void RenameSnapshot(string snapshotId, string newName)
         {
-            var path = Path.Combine(PDirectory.GetSnapshotsDirectory(), snapshotId, "snapshot.xml");
+            var path = Path.Combine(AppPaths.GetSnapshotsDirectory(), snapshotId, "snapshot.xml");
             if (!File.Exists(path)) return;
             LayoutSnapshot? snapshot = DeserializeSnapshot(path);
             if (snapshot == null) return;
@@ -190,11 +190,11 @@ namespace Naultinus.Services
 
         public static bool ExportSnapshot(string snapshotId, string destinationFolder)
         {
-            var src = Path.Combine(PDirectory.GetSnapshotsDirectory(), snapshotId);
+            var src = Path.Combine(AppPaths.GetSnapshotsDirectory(), snapshotId);
             if (!Directory.Exists(src)) return false;
             var dest = Path.Combine(destinationFolder, Path.GetFileName(src));
             if (Directory.Exists(dest)) return false;
-            PDirectory.CopyDirectory(src, dest);
+            AppPaths.CopyDirectory(src, dest);
             return true;
         }
 
@@ -205,9 +205,9 @@ namespace Naultinus.Services
             LayoutSnapshot? snapshot = DeserializeSnapshot(snapshotPath);
             if (snapshot?.Id == null) return null;
             var newId = Guid.NewGuid().ToString();
-            var destDir = Path.Combine(PDirectory.GetSnapshotsDirectory(), newId);
-            PDirectory.EnsureExists(PDirectory.GetSnapshotsDirectory());
-            PDirectory.CopyDirectory(sourceFolder, destDir);
+            var destDir = Path.Combine(AppPaths.GetSnapshotsDirectory(), newId);
+            AppPaths.EnsureExists(AppPaths.GetSnapshotsDirectory());
+            AppPaths.CopyDirectory(sourceFolder, destDir);
             var destXml = Path.Combine(destDir, "snapshot.xml");
             if (File.Exists(destXml))
             {

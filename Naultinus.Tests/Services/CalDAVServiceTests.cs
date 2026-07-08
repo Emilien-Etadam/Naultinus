@@ -21,7 +21,7 @@ namespace Naultinus.Tests.Services
             }
             catch
             {
-                // Network or DNS failure acceptable
+                // Échec réseau ou DNS acceptable hors ligne
             }
         }
 

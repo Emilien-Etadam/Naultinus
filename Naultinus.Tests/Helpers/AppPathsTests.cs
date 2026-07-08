@@ -5,13 +5,13 @@ using Xunit;
 
 namespace Naultinus.Tests.Helpers
 {
-    public class PDirectoryTests : IDisposable
+    public class AppPathsTests : IDisposable
     {
         private readonly string _tempDir;
 
-        public PDirectoryTests()
+        public AppPathsTests()
         {
-            _tempDir = Path.Combine(Path.GetTempPath(), "PDirectoryTests_" + Guid.NewGuid().ToString("N"));
+            _tempDir = Path.Combine(Path.GetTempPath(), "AppPathsTests_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(_tempDir);
         }
 
@@ -26,14 +26,14 @@ namespace Naultinus.Tests.Helpers
         [Fact]
         public void IsUnderDesktop_NullOrEmpty_ReturnsFalse()
         {
-            Assert.False(PDirectory.IsUnderDesktop(null!));
-            Assert.False(PDirectory.IsUnderDesktop(""));
+            Assert.False(AppPaths.IsUnderDesktop(null!));
+            Assert.False(AppPaths.IsUnderDesktop(""));
         }
 
         [Fact]
         public void IsUnderDesktop_TempPath_ReturnsFalse()
         {
-            Assert.False(PDirectory.IsUnderDesktop(Path.GetTempPath()));
+            Assert.False(AppPaths.IsUnderDesktop(Path.GetTempPath()));
         }
 
         [Fact]
@@ -41,7 +41,7 @@ namespace Naultinus.Tests.Helpers
         {
             string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             if (string.IsNullOrEmpty(desktop)) return;
-            Assert.True(PDirectory.IsUnderDesktop(desktop));
+            Assert.True(AppPaths.IsUnderDesktop(desktop));
         }
 
         [Fact]
@@ -50,7 +50,7 @@ namespace Naultinus.Tests.Helpers
             string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             if (string.IsNullOrEmpty(desktop)) return;
             string filePath = Path.Combine(desktop, "test.txt");
-            Assert.True(PDirectory.IsUnderDesktop(filePath));
+            Assert.True(AppPaths.IsUnderDesktop(filePath));
         }
 
         [Fact]
@@ -58,7 +58,7 @@ namespace Naultinus.Tests.Helpers
         {
             string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             if (string.IsNullOrEmpty(desktop)) return;
-            Assert.True(PDirectory.IsUnderDesktop(Path.Combine(desktop, "subfolder", "file.txt")));
+            Assert.True(AppPaths.IsUnderDesktop(Path.Combine(desktop, "subfolder", "file.txt")));
         }
 
         #endregion
@@ -68,7 +68,7 @@ namespace Naultinus.Tests.Helpers
         [Fact]
         public void AllocateUniqueFilePath_NoConflict_ReturnsOriginalName()
         {
-            string dest = PDirectory.AllocateUniqueFilePath("report.pdf", _tempDir);
+            string dest = AppPaths.AllocateUniqueFilePath("report.pdf", _tempDir);
             Assert.Equal(Path.Combine(_tempDir, "report.pdf"), dest);
         }
 
@@ -78,7 +78,7 @@ namespace Naultinus.Tests.Helpers
             string existing = Path.Combine(_tempDir, "report.pdf");
             File.WriteAllText(existing, "");
 
-            string dest = PDirectory.AllocateUniqueFilePath("report.pdf", _tempDir);
+            string dest = AppPaths.AllocateUniqueFilePath("report.pdf", _tempDir);
             Assert.Equal(Path.Combine(_tempDir, "report (1).pdf"), dest);
         }
 
@@ -88,7 +88,7 @@ namespace Naultinus.Tests.Helpers
             File.WriteAllText(Path.Combine(_tempDir, "report.pdf"), "");
             File.WriteAllText(Path.Combine(_tempDir, "report (1).pdf"), "");
 
-            string dest = PDirectory.AllocateUniqueFilePath("report.pdf", _tempDir);
+            string dest = AppPaths.AllocateUniqueFilePath("report.pdf", _tempDir);
             Assert.Equal(Path.Combine(_tempDir, "report (2).pdf"), dest);
         }
 
@@ -96,7 +96,7 @@ namespace Naultinus.Tests.Helpers
         public void AllocateUniqueFilePath_CreatesDestDirectory()
         {
             string sub = Path.Combine(_tempDir, "newsubdir");
-            PDirectory.AllocateUniqueFilePath("file.txt", sub);
+            AppPaths.AllocateUniqueFilePath("file.txt", sub);
             Assert.True(Directory.Exists(sub));
         }
 
@@ -110,7 +110,7 @@ namespace Naultinus.Tests.Helpers
             string sourceDir = Path.Combine(_tempDir, "src", "myFolder");
             Directory.CreateDirectory(sourceDir);
 
-            string dest = PDirectory.AllocateUniqueDirectoryPath(sourceDir, _tempDir);
+            string dest = AppPaths.AllocateUniqueDirectoryPath(sourceDir, _tempDir);
             Assert.Equal(Path.Combine(_tempDir, "myFolder"), dest);
         }
 
@@ -127,7 +127,7 @@ namespace Naultinus.Tests.Helpers
             string sourceDir2 = Path.Combine(_tempDir, "src", "myFolder2");
             Directory.CreateDirectory(sourceDir2);
 
-            string dest = PDirectory.AllocateUniqueDirectoryPath(sourceDir2, _tempDir);
+            string dest = AppPaths.AllocateUniqueDirectoryPath(sourceDir2, _tempDir);
             Assert.Equal(Path.Combine(_tempDir, "myFolder2 (1)"), dest);
         }
 
@@ -142,7 +142,7 @@ namespace Naultinus.Tests.Helpers
             string dst = Path.Combine(_tempDir, "dest.txt");
             File.WriteAllText(src, "hello");
 
-            PDirectory.MoveRobust(src, dst, isDirectory: false);
+            AppPaths.MoveRobust(src, dst, isDirectory: false);
 
             Assert.False(File.Exists(src));
             Assert.True(File.Exists(dst));
@@ -157,7 +157,7 @@ namespace Naultinus.Tests.Helpers
             Directory.CreateDirectory(src);
             File.WriteAllText(Path.Combine(src, "file.txt"), "content");
 
-            PDirectory.MoveRobust(src, dst, isDirectory: true);
+            AppPaths.MoveRobust(src, dst, isDirectory: true);
 
             Assert.False(Directory.Exists(src));
             Assert.True(Directory.Exists(dst));
@@ -178,7 +178,7 @@ namespace Naultinus.Tests.Helpers
             File.WriteAllText(Path.Combine(sub, "b.txt"), "b");
 
             string dst = Path.Combine(_tempDir, "dstCopy");
-            PDirectory.CopyDirectory(src, dst);
+            AppPaths.CopyDirectory(src, dst);
 
             Assert.True(File.Exists(Path.Combine(dst, "a.txt")));
             Assert.True(File.Exists(Path.Combine(dst, "sub", "b.txt")));

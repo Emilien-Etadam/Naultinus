@@ -93,7 +93,7 @@ namespace Naultinus.ViewModel
 
         public void Delete()
         {
-            string saveDirectory = PDirectory.GetNaultinusDirectory(Identifier);
+            string saveDirectory = AppPaths.GetNaultinusDirectory(Identifier);
             if (Directory.Exists(saveDirectory))
             {
                 Directory.Delete(saveDirectory, true);
@@ -116,8 +116,8 @@ namespace Naultinus.ViewModel
                     if (!ShouldSave) return;
                     try
                     {
-                        string saveDirectory = PDirectory.GetNaultinusDirectory(Identifier);
-                        PDirectory.WriteAtomicText(Path.Combine(saveDirectory, "state.xml"), writer => SharedSerializer.Serialize(writer, Model));
+                        string saveDirectory = AppPaths.GetNaultinusDirectory(Identifier);
+                        AppPaths.WriteAtomicText(Path.Combine(saveDirectory, "state.xml"), writer => SharedSerializer.Serialize(writer, Model));
                         ShouldSave = false;
                     }
                     catch (Exception ex)

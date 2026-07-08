@@ -40,7 +40,7 @@ dotnet build Naultinus.Application/Naultinus.Application.csproj -c Release
 dotnet test Naultinus.Tests/Naultinus.Tests.csproj -c Release
 ```
 
-La solution contient aussi un projet d’installateur Visual Studio historique (`.vdproj`) ; les commandes ci-dessus ciblent les projets compatibles avec le CLI .NET.
+L’installateur officiel est construit avec Inno Setup (`installer/naultinus.iss`) via le workflow GitHub Actions Release.
 
 L’exécutable se trouve sous `Naultinus.Application\bin\Release\net10.0-windows10.0.17763.0\Naultinus.exe`.
 
@@ -67,3 +67,5 @@ Les erreurs non gérées, les échecs de chiffrement DPAPI et certains problème
 ## Technique
 
 .NET 10, WPF et Windows Forms. Les erreurs non gérées et plusieurs échecs (ex. chiffrement DPAPI, lecture de snapshot) sont consignés dans `%TEMP%\Naultinus_startup.log`. GongSolutions.WPF.DragDrop pour le glisser-déposer ; MailKit et Ical.Net pour IMAP / iCalendar. Inspiré par [NoFences de Twometer](https://github.com/Twometer/NoFences) et [Fences de Stardock](https://www.stardock.com/products/fences/).
+
+Documentation développeur : [docs/](docs/) (CalDAV, naultinus navigation, plan archivé).

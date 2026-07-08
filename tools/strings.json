@@ -1140,6 +1140,41 @@
     "en": "Check for updates…"
   },
   {
+    "key": "MenuQuit",
+    "fr": "Quitter",
+    "en": "Quit"
+  },
+  {
+    "key": "BrowseNaultinusFolderPickerDescription",
+    "fr": "Sélectionnez le dossier à afficher dans cette naultinus navigation.",
+    "en": "Select the folder to show in this Browse Naultinus."
+  },
+  {
+    "key": "BrowseNaultinusTitleRequired",
+    "fr": "Veuillez saisir un titre.",
+    "en": "Please enter a title."
+  },
+  {
+    "key": "BrowseNaultinusSelectFolder",
+    "fr": "Veuillez sélectionner un dossier.",
+    "en": "Please select a folder."
+  },
+  {
+    "key": "BrowseNaultinusFolderNotFound",
+    "fr": "Le dossier sélectionné n'existe pas.",
+    "en": "The selected folder does not exist."
+  },
+  {
+    "key": "EventDayHeaderTodayFormat",
+    "fr": "{0} — Aujourd'hui",
+    "en": "{0} — Today"
+  },
+  {
+    "key": "EventTimeRangeFormat",
+    "fr": "{0} → {1}",
+    "en": "{0} → {1}"
+  },
+  {
     "key": "UpdateNoneAvailable",
     "fr": "Vous utilisez déjà la dernière version.",
     "en": "You're already on the latest version."

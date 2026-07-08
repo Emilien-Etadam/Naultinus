@@ -175,7 +175,7 @@ namespace Naultinus.ViewModel
                 if (built == null)
                     return false;
                 newSc = built;
-                if (PDirectory.IsUnderDesktop(filePath))
+                if (AppPaths.IsUnderDesktop(filePath))
                     desktopLinkToDelete = filePath;
             }
             else if (ext == ".url")
@@ -184,16 +184,16 @@ namespace Naultinus.ViewModel
                 if (built == null)
                     return false;
                 newSc = built;
-                if (PDirectory.IsUnderDesktop(filePath))
+                if (AppPaths.IsUnderDesktop(filePath))
                     desktopLinkToDelete = filePath;
             }
             else
             {
                 string uriPath = filePath;
-                if (PDirectory.IsUnderDesktop(filePath))
+                if (AppPaths.IsUnderDesktop(filePath))
                 {
-                    string imported = PDirectory.GetNaultinusImportedDirectory(Identifier);
-                    uriPath = PDirectory.AllocateUniqueFilePath(filePath, imported);
+                    string imported = AppPaths.GetNaultinusImportedDirectory(Identifier);
+                    uriPath = AppPaths.AllocateUniqueFilePath(filePath, imported);
                     var probe = new LnkShortcut
                     {
                         Name = Path.GetFileNameWithoutExtension(uriPath),
@@ -202,14 +202,14 @@ namespace Naultinus.ViewModel
                     };
                     if (ContainsShortcutWithSameTarget(probe))
                         return false;
-                    PDirectory.MoveRobust(filePath, uriPath, isDirectory: false);
+                    AppPaths.MoveRobust(filePath, uriPath, isDirectory: false);
                 }
 
                 newSc = new LnkShortcut
                 {
                     Name = Path.GetFileNameWithoutExtension(uriPath),
                     UriOrFileAction = uriPath,
-                    IconPath = PDirectory.CreateIconPng(uriPath, Identifier),
+                    IconPath = AppPaths.CreateIconPng(uriPath, Identifier),
                 };
             }
 
@@ -230,10 +230,10 @@ namespace Naultinus.ViewModel
         private bool TryAddDirectoryShortcut(string dirPath)
         {
             string uriPath = dirPath;
-            if (PDirectory.IsUnderDesktop(dirPath))
+            if (AppPaths.IsUnderDesktop(dirPath))
             {
-                string imported = PDirectory.GetNaultinusImportedDirectory(Identifier);
-                uriPath = PDirectory.AllocateUniqueDirectoryPath(dirPath, imported);
+                string imported = AppPaths.GetNaultinusImportedDirectory(Identifier);
+                uriPath = AppPaths.AllocateUniqueDirectoryPath(dirPath, imported);
                 var probe = new LnkShortcut
                 {
                     Name = new DirectoryInfo(dirPath).Name,
@@ -242,14 +242,14 @@ namespace Naultinus.ViewModel
                 };
                 if (ContainsShortcutWithSameTarget(probe))
                     return false;
-                PDirectory.MoveRobust(dirPath, uriPath, isDirectory: true);
+                AppPaths.MoveRobust(dirPath, uriPath, isDirectory: true);
             }
 
             var newSc = new LnkShortcut
             {
                 Name = new DirectoryInfo(uriPath).Name,
                 UriOrFileAction = uriPath,
-                IconPath = PDirectory.CreateIconPng(uriPath, Identifier),
+                IconPath = AppPaths.CreateIconPng(uriPath, Identifier),
             };
             if (ContainsShortcutWithSameTarget(newSc))
                 return false;

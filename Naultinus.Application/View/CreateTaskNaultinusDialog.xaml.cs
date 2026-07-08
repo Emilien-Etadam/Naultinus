@@ -11,7 +11,7 @@ namespace Naultinus.View
 {
     public partial class CreateTaskNaultinusDialog : Window
     {
-        public string NaultinusTitle { get; set; } = "Task naultinus";
+        public string NaultinusTitle { get; set; } = Strings.DefaultTaskNaultinusTitle;
         public string CalDAVUrl { get; set; } = string.Empty;
         public string Username { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;

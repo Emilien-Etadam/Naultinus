@@ -1,4 +1,6 @@
-Données suffisantes. Voici le plan.
+# Plan de développement (archivé)
+
+> **Note :** document historique conservé pour référence. La plupart des phases sont terminées ; voir le README et docs/ pour l'état actuel.
 
 ---
 
