@@ -1133,5 +1133,15 @@
     "key": "ButtonCreateNaultinus",
     "fr": "Créer une naultinus…",
     "en": "Create naultinus…"
+  },
+  {
+    "key": "MenuCheckForUpdates",
+    "fr": "Vérifier les mises à jour…",
+    "en": "Check for updates…"
+  },
+  {
+    "key": "UpdateNoneAvailable",
+    "fr": "Vous utilisez déjà la dernière version.",
+    "en": "You're already on the latest version."
   }
 ]

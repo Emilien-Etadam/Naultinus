@@ -68,6 +68,7 @@
                         </MenuItem>
                         <Separator />
                         <MenuItem Header="{x:Static properties:Strings.MenuAbout}" Command="{Binding Path=Data.OpenAboutCommand, Source={StaticResource proxy}}" />
+                        <MenuItem Header="{x:Static properties:Strings.MenuCheckForUpdates}" Command="{Binding Path=Data.CheckForUpdatesCommand, Source={StaticResource proxy}}" />
                     </ContextMenu>
                 </Grid.ContextMenu>
                 <TextBlock Grid.Column="0" Text="{Binding Name, Mode=OneWay}" Margin="8,0" Style="{StaticResource NaultinusHeaderText}"/>

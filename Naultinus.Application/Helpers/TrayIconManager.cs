@@ -46,6 +46,7 @@ namespace Naultinus.Helpers
                 var about = new About { DataContext = new AboutViewModel() };
                 about.ShowDialog();
             }));
+            menu.Items.Add(CreateItem(Properties.Strings.MenuCheckForUpdates, () => _ = App.CheckForUpdatesAsync(announceIfNone: true)));
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(CreateItem("Quit", () =>
             {

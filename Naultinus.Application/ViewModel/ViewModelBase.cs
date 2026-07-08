@@ -169,6 +169,8 @@ namespace Naultinus.ViewModel
             about.ShowDialog();
         });
 
+        public ICommand CheckForUpdatesCommand { get; } = new RelayCommand(() => _ = App.CheckForUpdatesAsync(announceIfNone: true));
+
         public ICommand SaveSnapshotCommand { get; } = new RelayCommand(() =>
         {
             var dialog = new SaveSnapshotDialog();

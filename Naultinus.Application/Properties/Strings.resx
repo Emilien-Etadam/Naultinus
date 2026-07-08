@@ -685,4 +685,10 @@
   <data name="ButtonCreateNaultinus" xml:space="preserve">
     <value>Create naultinus…</value>
   </data>
+  <data name="MenuCheckForUpdates" xml:space="preserve">
+    <value>Check for updates…</value>
+  </data>
+  <data name="UpdateNoneAvailable" xml:space="preserve">
+    <value>You're already on the latest version.</value>
+  </data>
 </root>
