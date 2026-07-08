@@ -1,3 +1,4 @@
+using Palisades.Helpers;
 using Palisades.Model;
 using System;
 using System.Collections.Generic;
@@ -39,9 +40,12 @@ namespace Palisades.Services
         /// Récupère les événements (VEVENT) dans la plage [start, end] pour un calendrier.
         /// calendarHref : HREF complet de la collection calendrier.
         /// </summary>
-        public async Task<List<Model.CalendarEvent>> GetEventsAsync(string calendarHref, DateTime start, DateTime rangeEnd)
+        public async Task<List<Model.CalendarEvent>> GetEventsAsync(string calendarHref, DateTime start, DateTime rangeEnd, string colorHex)
         {
             var events = new List<Model.CalendarEvent>();
+            var eventColor = CalendarColorHelper.IsValidHexColor(colorHex)
+                ? colorHex.Trim()
+                : CalendarColorHelper.DefaultColor;
             var startUtc = start.ToUniversalTime().ToString("yyyyMMddTHHmmssZ");
             var endUtc = rangeEnd.ToUniversalTime().ToString("yyyyMMddTHHmmssZ");
             var requestBody = $@"<?xml version=""1.0"" encoding=""utf-8""?>
@@ -55,7 +59,7 @@ namespace Palisades.Services
 </c:calendar-query>";
 
             var doc = await _client.ReportAsync(calendarHref, requestBody).ConfigureAwait(false);
-            ParseEventsFromMultistatus(doc, calendarHref, "Calendar", "#708090", events);
+            ParseEventsFromMultistatus(doc, calendarHref, "Calendar", eventColor, events);
             return events;
         }
 
