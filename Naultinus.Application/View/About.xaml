@@ -34,10 +34,6 @@
             <TextBlock TextAlignment="Center" Foreground="{DynamicResource NaultinusSubtleBrush}" FontSize="14" Margin="0,4,0,0"
                        Text="{Binding FrameworkRuntime}" />
             <TextBlock TextAlignment="Justify" TextWrapping="Wrap" Foreground="{DynamicResource NaultinusTextBrush}" Margin="0,16,0,0" Padding="8,0,8,0" FontSize="15">
-                <Run Text="{x:Static properties:Strings.AboutMaintainedByPrefix}" />
-                <helpers:HyperlinkCommander Foreground="{DynamicResource NaultinusAccentBrush}" Command="{Binding NavigateCommand}" CommandParameter="https://stouder.io/">
-                    <Run Text="Xavier Stouder" />
-                </helpers:HyperlinkCommander>
                 <Run Text="{x:Static properties:Strings.AboutReleasedUnderMitSuffix}" />
                 <helpers:HyperlinkCommander Foreground="{DynamicResource NaultinusAccentBrush}" Command="{Binding NavigateCommand}" CommandParameter="https://github.com/Emilien-Etadam/Naultinus">
                     <Run Text="{x:Static properties:Strings.AboutGitHubRepository}" />

@@ -1,6 +1,6 @@
 #define MyAppName "Naultinus"
 #define MyAppExeName "Naultinus.exe"
-#define MyAppPublisher "StouderIO"
+#define MyAppPublisher "Naultinus"
 #define MyAppURL "https://github.com/Emilien-Etadam/Naultinus"
 
 [Setup]
