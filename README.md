@@ -40,7 +40,7 @@ dotnet build Naultinus.Application/Naultinus.Application.csproj -c Release
 dotnet test Naultinus.Tests/Naultinus.Tests.csproj -c Release
 ```
 
-La solution contient aussi un projet d’installateur Visual Studio historique (`.vdproj`) ; les commandes ci-dessus ciblent les projets compatibles avec le CLI .NET.
+L’installateur officiel est construit avec Inno Setup (`installer/naultinus.iss`) via le workflow GitHub Actions Release.
 
 L’exécutable se trouve sous `Naultinus.Application\bin\Release\net10.0-windows10.0.17763.0\Naultinus.exe`.
 
