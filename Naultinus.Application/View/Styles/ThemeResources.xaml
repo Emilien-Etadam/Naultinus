@@ -131,8 +131,55 @@
         <Setter Property="FontWeight" Value="Normal"/>
         <Setter Property="TextElement.FontSize" Value="11"/>
         <Setter Property="TextElement.FontWeight" Value="Normal"/>
-        <Setter Property="Padding" Value="8,2,10,2"/>
+        <Setter Property="Padding" Value="8,4,10,4"/>
         <Setter Property="MinHeight" Value="22"/>
+        <Setter Property="Foreground" Value="{DynamicResource NaultinusTextBrush}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <!-- Item de menu plat façon kit VSS (survol = hover, sans rehaut arrondi Fluent). Gère icône, raccourci, flèche et sous-menu. -->
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ContentPresenter x:Name="Icon" Grid.Column="0" ContentSource="Icon" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="2" Text="{TemplateBinding InputGestureText}" Margin="24,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource NaultinusSubtleBrush}"/>
+                            <Path x:Name="Arrow" Grid.Column="3" Margin="10,0,0,0" VerticalAlignment="Center" Data="M0,0 L4,4 L0,8 Z" Fill="{DynamicResource NaultinusSubtleBrush}" Visibility="Collapsed"/>
+                            <Popup x:Name="PART_Popup" Placement="Right" HorizontalOffset="-2" AllowsTransparency="True" Focusable="False" PopupAnimation="None"
+                                   IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}">
+                                <Border Background="{DynamicResource NaultinusCardBrush}" BorderBrush="{DynamicResource NaultinusBorderBrush}" BorderThickness="1" Padding="2" Margin="0,0,6,6">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="12" ShadowDepth="3" Opacity="0.35" Direction="270"/>
+                                    </Border.Effect>
+                                    <ItemsPresenter/>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Role" Value="SubmenuHeader">
+                            <Setter TargetName="Arrow" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="Icon" Value="{x:Null}">
+                            <Setter TargetName="Icon" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource NaultinusCardHoverBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource NaultinusSubtleBrush}"/>
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.6"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
     <Style TargetType="MenuItem" BasedOn="{StaticResource NaultinusMenuItemStyle}"/>
 
