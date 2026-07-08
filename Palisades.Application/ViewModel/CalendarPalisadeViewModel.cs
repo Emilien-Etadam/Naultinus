@@ -52,6 +52,9 @@ namespace Palisades.ViewModel
         }
 
         public ObservableCollection<Model.CalendarEvent> Events { get; }
+        public ObservableCollection<CalendarLegendItem> CalendarLegend { get; } = new ObservableCollection<CalendarLegendItem>();
+
+        public bool HasCalendarLegend => CalendarLegend.Count > 0;
 
         public CalendarViewMode[] ViewModes { get; } = Enum.GetValues<CalendarViewMode>();
 
@@ -113,7 +116,13 @@ namespace Palisades.ViewModel
             {
                 if (_model.CalendarIds == null || _model.CalendarIds.Count == 0)
                 {
-                    Dispatch(() => { Events.Clear(); ErrorMessage = Strings.CalendarNoCalendarsConfigured; });
+                    Dispatch(() =>
+                    {
+                        Events.Clear();
+                        CalendarLegend.Clear();
+                        OnPropertyChanged(nameof(HasCalendarLegend));
+                        ErrorMessage = Strings.CalendarNoCalendarsConfigured;
+                    });
                     Dispatch(() => OnPropertyChanged(nameof(HasNoEvents)));
                     return;
                 }
@@ -123,11 +132,17 @@ namespace Palisades.ViewModel
                 var start = SelectedDate.Date;
                 var end = start.AddDays(DaysToShow);
                 var allEvents = new List<Model.CalendarEvent>();
-                foreach (var calId in _model.CalendarIds)
+                var colorsChanged = EnsureCalendarColors();
+                UpdateCalendarLegend();
+                for (var i = 0; i < _model.CalendarIds.Count; i++)
                 {
-                    var list = await _calendarService.GetEventsAsync(calId, start, end);
+                    var calId = _model.CalendarIds[i];
+                    var color = _model.CalendarColors[calId];
+                    var list = await _calendarService.GetEventsAsync(calId, start, end, color);
                     allEvents.AddRange(list);
                 }
+                if (colorsChanged)
+                    Save();
                 allEvents = allEvents.Where(e => e.DtEnd > start && e.DtStart < end).ToList();
                 var ordered = allEvents.OrderBy(e => e.DtStart).ToList();
                 DateTime? prevDate = null;
@@ -169,6 +184,65 @@ namespace Palisades.ViewModel
                 Dispatch(() => { IsLoading = false; OnPropertyChanged(nameof(HasNoEvents)); });
                 Interlocked.Exchange(ref _loadEventsInProgress, 0);
             }
+        }
+
+        private bool EnsureCalendarColors()
+        {
+            var calendarIds = _model.CalendarIds ?? new List<string>();
+            var changed = false;
+
+            foreach (var calendarId in _model.CalendarColors.Keys.ToList())
+            {
+                if (!calendarIds.Contains(calendarId))
+                {
+                    _model.CalendarColors.Remove(calendarId);
+                    changed = true;
+                }
+            }
+
+            for (var i = 0; i < calendarIds.Count; i++)
+            {
+                var calendarId = calendarIds[i];
+                var resolvedColor = CalendarColorHelper.ResolveColor(
+                    i,
+                    _model.CalendarColors.TryGetValue(calendarId, out var storedColor) ? storedColor : null);
+
+                if (!_model.CalendarColors.TryGetValue(calendarId, out var currentColor)
+                    || !string.Equals(currentColor, resolvedColor, StringComparison.OrdinalIgnoreCase))
+                {
+                    _model.CalendarColors[calendarId] = resolvedColor;
+                    changed = true;
+                }
+            }
+
+            return changed;
+        }
+
+        private void UpdateCalendarLegend()
+        {
+            Dispatch(() =>
+            {
+                CalendarLegend.Clear();
+                if (_model.CalendarIds == null)
+                {
+                    OnPropertyChanged(nameof(HasCalendarLegend));
+                    return;
+                }
+
+                foreach (var calendarId in _model.CalendarIds)
+                {
+                    if (!_model.CalendarColors.TryGetValue(calendarId, out var color))
+                        continue;
+
+                    CalendarLegend.Add(new CalendarLegendItem
+                    {
+                        DisplayName = CalendarColorHelper.GetDisplayNameFromHref(calendarId),
+                        ColorHex = color,
+                    });
+                }
+
+                OnPropertyChanged(nameof(HasCalendarLegend));
+            });
         }
 
         private void StartRefreshTimer()

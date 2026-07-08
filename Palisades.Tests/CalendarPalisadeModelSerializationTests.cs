@@ -23,6 +23,11 @@ namespace Palisades.Tests
                     "/dav/user@domain/Calendar",
                     "/dav/user@domain/Work"
                 },
+                CalendarColors = new Dictionary<string, string>
+                {
+                    ["/dav/user@domain/Calendar"] = "#4A90D9",
+                    ["/dav/user@domain/Work"] = "#E74C3C",
+                },
                 DaysToShow = 14
             };
 
@@ -42,6 +47,9 @@ namespace Palisades.Tests
             Assert.Equal(model.CalendarIds[0], deserialized.CalendarIds[0]);
             Assert.Equal(model.CalendarIds[1], deserialized.CalendarIds[1]);
             Assert.Equal(model.DaysToShow, deserialized.DaysToShow);
+            Assert.Equal(model.CalendarColors.Count, deserialized.CalendarColors.Count);
+            Assert.Equal("#4A90D9", deserialized.CalendarColors["/dav/user@domain/Calendar"]);
+            Assert.Equal("#E74C3C", deserialized.CalendarColors["/dav/user@domain/Work"]);
         }
 
         [Fact]
@@ -73,6 +81,10 @@ namespace Palisades.Tests
                 Name = "Test Calendar",
                 CalDAVBaseUrl = "https://example.com/dav/",
                 CalendarIds = new List<string> { "/dav/cal1", "/dav/cal2" },
+                CalendarColors = new Dictionary<string, string>
+                {
+                    ["/dav/cal1"] = "#2ECC71",
+                },
                 DaysToShow = 7
             };
 
@@ -87,6 +99,7 @@ namespace Palisades.Tests
             Assert.Equal(model.CalendarIds.Count, deserialized.CalendarIds.Count);
             Assert.Equal(model.CalendarIds[0], deserialized.CalendarIds[0]);
             Assert.Equal(model.CalendarIds[1], deserialized.CalendarIds[1]);
+            Assert.Equal("#2ECC71", deserialized.CalendarColors["/dav/cal1"]);
         }
     }
 

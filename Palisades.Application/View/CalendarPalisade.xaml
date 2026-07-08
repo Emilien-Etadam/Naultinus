@@ -27,6 +27,7 @@
                 <ResourceDictionary Source="/View/Styles/ThemeResources.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+            <converters:ColorToBrushConverter x:Key="ColorToBrushConverter" />
             <BooleanToVisibilityConverter x:Key="BoolToVis"/>
             <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis"/>
             <helpers:BindingProxy x:Key="proxy" Data="{Binding}" />
@@ -74,7 +75,7 @@
                         Style="{StaticResource CircleButton}" Width="28" Height="28" Margin="0,0,8,0" VerticalAlignment="Center"/>
             </Grid>
             <Border DockPanel.Dock="Top" Background="{DynamicResource PalisadeControlBrush}" CornerRadius="0" Padding="12">
-                <Grid RowDefinitions="Auto,Auto,*,Auto">
+                <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
                     <!-- Row 0 : Error -->
                     <TextBlock Text="{Binding ErrorMessage, Mode=OneWay}" Foreground="{DynamicResource PalisadeErrorBrush}" Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibilityConverter}}" Grid.Row="0" Margin="0,0,0,8"/>
 
@@ -91,15 +92,35 @@
                                   BorderBrush="{DynamicResource PalisadeBorderBrush}"/>
                     </Grid>
 
-                    <!-- Row 2 : Loading -->
-                    <StackPanel Grid.Row="2" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
+                    <!-- Row 2 : Légende des calendriers sources -->
+                    <ItemsControl Grid.Row="2" ItemsSource="{Binding CalendarLegend}" Margin="0,0,0,8"
+                                  Visibility="{Binding HasCalendarLegend, Converter={StaticResource BoolToVis}}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,12,4">
+                                    <Ellipse Width="10" Height="10" VerticalAlignment="Center"
+                                             Fill="{Binding ColorHex, Converter={StaticResource ColorToBrushConverter}}"/>
+                                    <TextBlock Text="{Binding DisplayName}" FontSize="10" Margin="4,0,0,0"
+                                               Foreground="{DynamicResource PalisadeSubtleBrush}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Row 3 : Loading -->
+                    <StackPanel Grid.Row="3" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
                                 HorizontalAlignment="Center" VerticalAlignment="Center">
                         <ProgressBar Style="{StaticResource PalisadeProgressBar}"/>
                         <TextBlock Text="{x:Static properties:Strings.LoadingEllipsis}" HorizontalAlignment="Center" Margin="0,8,0,0" Foreground="{DynamicResource PalisadeTextBrush}"/>
                     </StackPanel>
 
-                    <!-- Row 2 : Event list -->
-                    <ListBox Grid.Row="2" ItemsSource="{Binding Events}"
+                    <!-- Row 3 : Event list -->
+                    <ListBox Grid.Row="3" ItemsSource="{Binding Events}"
                              VirtualizingPanel.IsVirtualizing="True"
                              VirtualizingPanel.VirtualizationMode="Recycling"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -132,8 +153,8 @@
                                         </Border.Style>
                                         <TextBlock Text="{Binding DayHeaderDisplay}" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource PalisadeAccentBrush}"/>
                                     </Border>
-                                    <!-- Event card -->
-                                    <Border BorderBrush="{DynamicResource PalisadeAccentBrush}" BorderThickness="3,0,0,0"
+                                    <!-- Carte événement : liseré gauche = couleur du calendrier source -->
+                                    <Border BorderBrush="{Binding Color, Converter={StaticResource ColorToBrushConverter}}" BorderThickness="3,0,0,0"
                                             Padding="10,8" Margin="0,0,0,2" Background="{DynamicResource PalisadeCardBrush}" CornerRadius="0,4,4,0"
                                             x:Name="EventCard">
                                         <Grid RowDefinitions="Auto,Auto,Auto">
@@ -152,13 +173,13 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
 
-                    <!-- Row 2 : Empty state (on top when no events) -->
-                    <TextBlock Grid.Row="2" Text="{x:Static properties:Strings.EmptyNoEvents}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    <!-- Row 3 : Empty state (on top when no events) -->
+                    <TextBlock Grid.Row="3" Text="{x:Static properties:Strings.EmptyNoEvents}" HorizontalAlignment="Center" VerticalAlignment="Center"
                                FontSize="13" Foreground="{DynamicResource PalisadeSubtleBrush}" FontStyle="Italic"
                                Visibility="{Binding HasNoEvents, Converter={StaticResource BoolToVis}}"/>
 
-                    <!-- Row 3 : Add event button — rectangular, not CircleButton -->
-                    <Button Grid.Row="3" Content="{x:Static properties:Strings.EventButtonAdd}" Command="{Binding AddEventCommand}"
+                    <!-- Row 4 : Add event button — rectangular, not CircleButton -->
+                    <Button Grid.Row="4" Content="{x:Static properties:Strings.EventButtonAdd}" Command="{Binding AddEventCommand}"
                             Style="{StaticResource PalisadeActionButton}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
                 </Grid>
             </Border>
