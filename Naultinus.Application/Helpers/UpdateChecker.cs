@@ -13,7 +13,7 @@ namespace Naultinus.Helpers
     public static class UpdateChecker
     {
         private const string ReleasesUrl =
-            "https://api.github.com/repos/Emilien-Etadam/Palisades-Navigation/releases/latest";
+            "https://api.github.com/repos/Emilien-Etadam/Naultinus/releases/latest";
 
         public static string GetCurrentVersion()
         {
@@ -121,7 +121,7 @@ namespace Naultinus.Helpers
                 return false;
 
             return uri.AbsolutePath.StartsWith(
-                "/Emilien-Etadam/Palisades-Navigation/releases/download/",
+                "/Emilien-Etadam/Naultinus/releases/download/",
                 StringComparison.OrdinalIgnoreCase);
         }
 

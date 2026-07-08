@@ -17,10 +17,10 @@
     <Authors>Xavier Stouder</Authors>
     <Company>StouderIO</Company>
     <Product>Naultinus</Product>
-    <PackageProjectUrl>https://github.com/Emilien-Etadam/Palisades-Navigation</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/Emilien-Etadam/Naultinus</PackageProjectUrl>
     <Copyright></Copyright>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <RepositoryUrl>https://github.com/Emilien-Etadam/Palisades-Navigation</RepositoryUrl>
+    <RepositoryUrl>https://github.com/Emilien-Etadam/Naultinus</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <AssemblyName>Naultinus</AssemblyName>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>

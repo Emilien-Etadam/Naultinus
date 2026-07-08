@@ -1,14 +1,14 @@
 # Naultinus
 
 <p align="center">
-  <a href="https://github.com/Emilien-Etadam/Palisades-Navigation/blob/main/LICENSE">
-    <img alt="Licence" src="https://img.shields.io/github/license/Emilien-Etadam/Palisades-Navigation?style=for-the-badge"/>
+  <a href="https://github.com/Emilien-Etadam/Naultinus/blob/main/LICENSE">
+    <img alt="Licence" src="https://img.shields.io/github/license/Emilien-Etadam/Naultinus?style=for-the-badge"/>
   </a>
-  <a href="https://github.com/Emilien-Etadam/Palisades-Navigation/releases">
-    <img alt="Version" src="https://img.shields.io/github/v/release/Emilien-Etadam/Palisades-Navigation?label=Version&style=for-the-badge"/>
+  <a href="https://github.com/Emilien-Etadam/Naultinus/releases">
+    <img alt="Version" src="https://img.shields.io/github/v/release/Emilien-Etadam/Naultinus?label=Version&style=for-the-badge"/>
   </a>
-  <a href="https://github.com/Emilien-Etadam/Palisades-Navigation/releases">
-    <img alt="Téléchargements" src="https://img.shields.io/github/downloads/Emilien-Etadam/Palisades-Navigation/total?style=for-the-badge"/>
+  <a href="https://github.com/Emilien-Etadam/Naultinus/releases">
+    <img alt="Téléchargements" src="https://img.shields.io/github/downloads/Emilien-Etadam/Naultinus/total?style=for-the-badge"/>
   </a>
 </p>
 
@@ -18,15 +18,15 @@ Naultinus organise le bureau avec de petites fenêtres toujours en arrière-plan
 
 ## Installation
 
-Téléchargez le dernier installateur sur la page [Releases](https://github.com/Emilien-Etadam/Palisades-Navigation/releases), installez Naultinus puis lancez l’application.
+Téléchargez le dernier installateur sur la page [Releases](https://github.com/Emilien-Etadam/Naultinus/releases), installez Naultinus puis lancez l’application.
 
 ## Compiler depuis les sources
 
 Prérequis : [SDK .NET 10](https://dotnet.microsoft.com/download) (voir `global.json` pour la version exacte du SDK). Cible : `net10.0-windows10.0.17763.0` (Windows 10 version 1809 ou ultérieure).
 
 ```bash
-git clone https://github.com/Emilien-Etadam/Palisades-Navigation.git
-cd Palisades-Navigation
+git clone https://github.com/Emilien-Etadam/Naultinus.git
+cd Naultinus
 dotnet restore Naultinus.Application/Naultinus.Application.csproj
 dotnet build Naultinus.Application/Naultinus.Application.csproj -c Release
 dotnet test Naultinus.Tests/Naultinus.Tests.csproj -c Release

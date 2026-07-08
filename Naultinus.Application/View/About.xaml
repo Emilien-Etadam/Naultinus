@@ -39,7 +39,7 @@
                     <Run Text="Xavier Stouder" />
                 </helpers:HyperlinkCommander>
                 <Run Text="{x:Static properties:Strings.AboutReleasedUnderMitSuffix}" />
-                <helpers:HyperlinkCommander Foreground="{DynamicResource NaultinusAccentBrush}" Command="{Binding NavigateCommand}" CommandParameter="https://github.com/Emilien-Etadam/Palisades-Navigation">
+                <helpers:HyperlinkCommander Foreground="{DynamicResource NaultinusAccentBrush}" Command="{Binding NavigateCommand}" CommandParameter="https://github.com/Emilien-Etadam/Naultinus">
                     <Run Text="{x:Static properties:Strings.AboutGitHubRepository}" />
                 </helpers:HyperlinkCommander>
                 <Run Text="." />

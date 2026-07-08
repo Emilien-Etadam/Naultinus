@@ -2,7 +2,7 @@ Données suffisantes. Voici le plan.
 
 ---
 
-# Plan de mise à jour Palisades-Navigation — Instructions Cursor
+# Plan de mise à jour Naultinus — Instructions Cursor
 
 ## Contexte technique Zimbra OVH
 
