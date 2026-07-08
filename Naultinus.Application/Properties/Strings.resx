@@ -383,7 +383,7 @@
     <value> (Twometer) and </value>
   </data>
   <data name="AboutReleasedUnderMitSuffix" xml:space="preserve">
-    <value>. Released under the MIT license. Report issues, check for updates, or contribute on the </value>
+    <value>Released under the MIT license. Report issues, check for updates, or contribute on the </value>
   </data>
   <data name="AboutStardockSuffix" xml:space="preserve">
     <value> (Stardock).</value>
