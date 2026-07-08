@@ -17,6 +17,7 @@
     <Authors>Xavier Stouder</Authors>
     <Company>StouderIO</Company>
     <Product>Naultinus</Product>
+    <Description>Naultinus — de petites fenêtres de bureau toujours en arrière-plan : raccourcis, mini-explorateur de fichiers, tâches et calendriers CalDAV, compteur de courriels non lus.</Description>
     <PackageProjectUrl>https://github.com/Emilien-Etadam/Naultinus</PackageProjectUrl>
     <Copyright></Copyright>
     <PackageReadmeFile>README.md</PackageReadmeFile>

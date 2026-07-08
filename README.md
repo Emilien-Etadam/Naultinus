@@ -1,4 +1,10 @@
-# Naultinus
+<p align="center">
+  <img src="docs/logo.png" alt="Naultinus" width="180"/>
+</p>
+
+<h1 align="center">Naultinus</h1>
+
+<p align="center"><em>De petites fenêtres qui s'accrochent au bureau — comme le gecko vert dont l'app tient son nom.</em></p>
 
 <p align="center">
   <a href="https://github.com/Emilien-Etadam/Naultinus/blob/main/LICENSE">
@@ -15,6 +21,8 @@
 ## Introduction
 
 Naultinus organise le bureau avec de petites fenêtres toujours en arrière-plan (« naultinus ») : raccourcis, mini-explorateur de fichiers, tâches ou calendriers CalDAV, compteur de courriels non lus. Les naultinus restent derrière les autres fenêtres ; on peut les regrouper par onglets et enregistrer ou restaurer des dispositions.
+
+> Le nom vient de *Naultinus*, le genre des geckos verts de Nouvelle-Zélande — discrets, accrochés à leur support, exactement comme ces fenêtres sur le bureau.
 
 ## Installation
 
