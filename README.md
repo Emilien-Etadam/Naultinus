@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logonault.png" alt="Naultinus" width="180"/>
+  <img src="docs/logonault.png" alt="Naultinus" width="180"/>
 </p>
 
 <h1 align="center">Naultinus</h1>
