@@ -67,7 +67,7 @@
         <!-- Validation message -->
         <TextBlock x:Name="ValidationMessage"
                    Grid.Row="4"
-                   Foreground="#FFFF6666"
+                   Foreground="{DynamicResource NaultinusErrorBrush}"
                    FontSize="13"
                    Visibility="Collapsed" />
 

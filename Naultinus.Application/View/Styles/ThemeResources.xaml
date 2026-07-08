@@ -1,14 +1,24 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <SolidColorBrush x:Key="NaultinusWindowBrush" Color="#1E1E1E"/>
-    <SolidColorBrush x:Key="NaultinusControlBrush" Color="#2D2D2D"/>
-    <SolidColorBrush x:Key="NaultinusTextBrush" Color="#E0E0E0"/>
-    <SolidColorBrush x:Key="NaultinusSubtleBrush" Color="#A0A0A0"/>
-    <SolidColorBrush x:Key="NaultinusAccentBrush" Color="#60CDFF"/>
-    <SolidColorBrush x:Key="NaultinusHighlightBrush" Color="#0078D4"/>
+    <!-- Palette « VSS » (valeurs par défaut = thème sombre ; ThemeWatcher applique la variante claire au runtime). -->
+    <SolidColorBrush x:Key="NaultinusWindowBrush" Color="#1A1918"/>
+    <SolidColorBrush x:Key="NaultinusControlBrush" Color="#212020"/>
+    <SolidColorBrush x:Key="NaultinusCardBrush" Color="#282726"/>
+    <SolidColorBrush x:Key="NaultinusCardHoverBrush" Color="#302F2D"/>
+    <SolidColorBrush x:Key="NaultinusCardPressedBrush" Color="#3A3937"/>
+    <SolidColorBrush x:Key="NaultinusHoverSubtleBrush" Color="#282726"/>
+    <SolidColorBrush x:Key="NaultinusHoverActiveBrush" Color="#3D3B38"/>
+    <SolidColorBrush x:Key="NaultinusBorderBrush" Color="#3D3B38"/>
+    <SolidColorBrush x:Key="NaultinusTextBrush" Color="#D8D5D0"/>
+    <SolidColorBrush x:Key="NaultinusSubtleBrush" Color="#9A968F"/>
+    <SolidColorBrush x:Key="NaultinusAccentBrush" Color="#4D9FEA"/>
+    <SolidColorBrush x:Key="NaultinusHighlightBrush" Color="#4D9FEA"/>
     <SolidColorBrush x:Key="NaultinusHighlightTextBrush" Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="NaultinusErrorBrush" Color="#FF6B6B"/>
-    <SolidColorBrush x:Key="NaultinusBorderBrush" Color="#404040"/>
+    <SolidColorBrush x:Key="NaultinusSelectedBrush" Color="#2E4D9FEA"/>
+    <SolidColorBrush x:Key="NaultinusErrorBrush" Color="#EF8574"/>
+    <SolidColorBrush x:Key="NaultinusGreenBrush" Color="#83CD7F"/>
+    <SolidColorBrush x:Key="NaultinusAmberBrush" Color="#D3AF2A"/>
+    <SolidColorBrush x:Key="NaultinusPurpleBrush" Color="#C793C2"/>
 
     <!-- Menus contextuels : pas de gras, police plus petite, lignes plus serrées (surcharge Fluent) -->
     <Style x:Key="NaultinusContextMenuStyle" TargetType="ContextMenu">

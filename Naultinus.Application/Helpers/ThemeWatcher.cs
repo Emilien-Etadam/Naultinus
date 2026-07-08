@@ -22,15 +22,40 @@ namespace Naultinus.Helpers
         {
             _resources = resources;
             bool dark = IsDarkMode();
-            resources["NaultinusWindowBrush"] = new SolidColorBrush(dark ? Color.FromRgb(0x1E, 0x1E, 0x1E) : Color.FromRgb(0xF3, 0xF3, 0xF3));
-            resources["NaultinusControlBrush"] = new SolidColorBrush(dark ? Color.FromRgb(0x2D, 0x2D, 0x2D) : Color.FromRgb(0xFF, 0xFF, 0xFF));
-            resources["NaultinusTextBrush"] = new SolidColorBrush(dark ? Color.FromRgb(0xE0, 0xE0, 0xE0) : Color.FromRgb(0x1A, 0x1A, 0x1A));
-            resources["NaultinusSubtleBrush"] = new SolidColorBrush(dark ? Color.FromRgb(0xA0, 0xA0, 0xA0) : Color.FromRgb(0x60, 0x60, 0x60));
-            resources["NaultinusAccentBrush"] = new SolidColorBrush(dark ? Color.FromRgb(0x60, 0xCD, 0xFF) : Color.FromRgb(0x00, 0x5F, 0xB8));
-            resources["NaultinusHighlightBrush"] = new SolidColorBrush(dark ? Color.FromRgb(0x00, 0x78, 0xD4) : Color.FromRgb(0x00, 0x78, 0xD4));
+
+            // Palette « VSS » — neutres chauds, accent bleu et couleurs sémantiques,
+            // déclinée en variantes sombre / claire (cf. Design System VSS).
+            // Surfaces
+            resources["NaultinusWindowBrush"] = Brush(dark, "#1A1918", "#F5F4F2");      // --bg
+            resources["NaultinusControlBrush"] = Brush(dark, "#212020", "#FFFFFF");     // --surface
+            resources["NaultinusCardBrush"] = Brush(dark, "#282726", "#EFEDEA");        // --raised / --soft
+            resources["NaultinusCardHoverBrush"] = Brush(dark, "#302F2D", "#E9E7E3");   // --hover
+            resources["NaultinusCardPressedBrush"] = Brush(dark, "#3A3937", "#E3E1DD");
+            resources["NaultinusHoverSubtleBrush"] = Brush(dark, "#282726", "#EFEDEA");
+            resources["NaultinusHoverActiveBrush"] = Brush(dark, "#3D3B38", "#E3E1DD");
+            resources["NaultinusBorderBrush"] = Brush(dark, "#3D3B38", "#E3E1DD");      // --border
+            // Texte
+            resources["NaultinusTextBrush"] = Brush(dark, "#D8D5D0", "#292724");        // --text
+            resources["NaultinusSubtleBrush"] = Brush(dark, "#9A968F", "#6D6963");      // --muted
+            // Accent & sélection
+            resources["NaultinusAccentBrush"] = Brush(dark, "#4D9FEA", "#0A6CC2");      // --accent
+            resources["NaultinusHighlightBrush"] = Brush(dark, "#4D9FEA", "#0A6CC2");
             resources["NaultinusHighlightTextBrush"] = new SolidColorBrush(Colors.White);
-            resources["NaultinusErrorBrush"] = new SolidColorBrush(dark ? Color.FromRgb(0xFF, 0x6B, 0x6B) : Color.FromRgb(0xC4, 0x23, 0x23));
-            resources["NaultinusBorderBrush"] = new SolidColorBrush(dark ? Color.FromRgb(0x40, 0x40, 0x40) : Color.FromRgb(0xD0, 0xD0, 0xD0));
+            resources["NaultinusSelectedBrush"] = Brush(dark, "#2E4D9FEA", "#E8F1FB");  // --accent-soft
+            // Couleurs sémantiques
+            resources["NaultinusErrorBrush"] = Brush(dark, "#EF8574", "#C53030");       // --red
+            resources["NaultinusGreenBrush"] = Brush(dark, "#83CD7F", "#357F31");       // --green
+            resources["NaultinusAmberBrush"] = Brush(dark, "#D3AF2A", "#A87908");       // --amber
+            resources["NaultinusPurpleBrush"] = Brush(dark, "#C793C2", "#6B46B8");      // --purple
+        }
+
+        /// <summary>Crée un pinceau figé à partir de la couleur sombre ou claire (format #RRGGBB ou #AARRGGBB).</summary>
+        private static SolidColorBrush Brush(bool dark, string darkHex, string lightHex)
+        {
+            var color = (Color)ColorConverter.ConvertFromString(dark ? darkHex : lightHex);
+            var brush = new SolidColorBrush(color);
+            brush.Freeze();
+            return brush;
         }
 
         private static bool IsDarkMode()

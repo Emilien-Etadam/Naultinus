@@ -150,7 +150,7 @@
                                             <i:InvokeCommandAction Command="{Binding Path=Data.NavigateIntoFolderCommand, Source={StaticResource proxy}}" CommandParameter="{Binding}" />
                                         </i:EventTrigger>
                                     </i:Interaction.Triggers>
-                                    <Border Margin="0,10" CornerRadius="4" Width="100" MouseRightButtonUp="Item_MouseRightButtonUp">
+                                    <Border Margin="0,10" CornerRadius="3" Width="100" MouseRightButtonUp="Item_MouseRightButtonUp">
                                         <Border.Style>
                                             <Style>
                                                 <Style.Triggers>
