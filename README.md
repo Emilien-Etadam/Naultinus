@@ -67,3 +67,5 @@ Les erreurs non gérées, les échecs de chiffrement DPAPI et certains problème
 ## Technique
 
 .NET 10, WPF et Windows Forms. Les erreurs non gérées et plusieurs échecs (ex. chiffrement DPAPI, lecture de snapshot) sont consignés dans `%TEMP%\Naultinus_startup.log`. GongSolutions.WPF.DragDrop pour le glisser-déposer ; MailKit et Ical.Net pour IMAP / iCalendar. Inspiré par [NoFences de Twometer](https://github.com/Twometer/NoFences) et [Fences de Stardock](https://www.stardock.com/products/fences/).
+
+Documentation développeur : [docs/](docs/) (CalDAV, naultinus navigation, plan archivé).
