@@ -1,0 +1,37 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="NaultinusWindowBrush" Color="#1E1E1E"/>
+    <SolidColorBrush x:Key="NaultinusControlBrush" Color="#2D2D2D"/>
+    <SolidColorBrush x:Key="NaultinusTextBrush" Color="#E0E0E0"/>
+    <SolidColorBrush x:Key="NaultinusSubtleBrush" Color="#A0A0A0"/>
+    <SolidColorBrush x:Key="NaultinusAccentBrush" Color="#60CDFF"/>
+    <SolidColorBrush x:Key="NaultinusHighlightBrush" Color="#0078D4"/>
+    <SolidColorBrush x:Key="NaultinusHighlightTextBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="NaultinusErrorBrush" Color="#FF6B6B"/>
+    <SolidColorBrush x:Key="NaultinusBorderBrush" Color="#404040"/>
+
+    <!-- Menus contextuels : pas de gras, police plus petite, lignes plus serrées (surcharge Fluent) -->
+    <Style x:Key="NaultinusContextMenuStyle" TargetType="ContextMenu">
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="TextElement.FontSize" Value="11"/>
+        <Setter Property="TextElement.FontWeight" Value="Normal"/>
+        <Setter Property="Padding" Value="2"/>
+    </Style>
+    <Style TargetType="ContextMenu" BasedOn="{StaticResource NaultinusContextMenuStyle}"/>
+
+    <Style x:Key="NaultinusMenuItemStyle" TargetType="MenuItem">
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="TextElement.FontSize" Value="11"/>
+        <Setter Property="TextElement.FontWeight" Value="Normal"/>
+        <Setter Property="Padding" Value="8,2,10,2"/>
+        <Setter Property="MinHeight" Value="22"/>
+    </Style>
+    <Style TargetType="MenuItem" BasedOn="{StaticResource NaultinusMenuItemStyle}"/>
+
+    <Style TargetType="Separator">
+        <Setter Property="Margin" Value="8,2"/>
+        <Setter Property="MinHeight" Value="1"/>
+    </Style>
+</ResourceDictionary>

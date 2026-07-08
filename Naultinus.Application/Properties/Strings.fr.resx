@@ -1,0 +1,688 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="RestoreLayoutConfirm" xml:space="preserve">
+    <value>Cette disposition remplacera la disposition actuelle. Continuer ?</value>
+  </data>
+  <data name="RestoreLayoutTitle" xml:space="preserve">
+    <value>Restaurer la disposition</value>
+  </data>
+  <data name="DeleteLayoutConfirm" xml:space="preserve">
+    <value>Supprimer cette disposition ?</value>
+  </data>
+  <data name="DeleteLayoutTitle" xml:space="preserve">
+    <value>Supprimer la disposition</value>
+  </data>
+  <data name="ExportSelectLayout" xml:space="preserve">
+    <value>Sélectionnez une disposition à exporter.</value>
+  </data>
+  <data name="ExportTitle" xml:space="preserve">
+    <value>Exporter</value>
+  </data>
+  <data name="ExportSuccess" xml:space="preserve">
+    <value>Disposition exportée avec succès.</value>
+  </data>
+  <data name="ExportFailed" xml:space="preserve">
+    <value>Échec de l'export (le dossier existe peut-être déjà).</value>
+  </data>
+  <data name="ImportSuccess" xml:space="preserve">
+    <value>Disposition importée avec succès.</value>
+  </data>
+  <data name="ImportNoSnapshot" xml:space="preserve">
+    <value>Aucune disposition valide dans le dossier sélectionné.</value>
+  </data>
+  <data name="ImportTitle" xml:space="preserve">
+    <value>Importer</value>
+  </data>
+  <data name="SaveLayoutDefaultNameFormat" xml:space="preserve">
+    <value>Disposition - {0}</value>
+  </data>
+  <data name="SaveLayoutNameRequired" xml:space="preserve">
+    <value>Veuillez saisir un nom.</value>
+  </data>
+  <data name="SaveLayoutTitle" xml:space="preserve">
+    <value>Enregistrer la disposition</value>
+  </data>
+  <data name="ValidationTitle" xml:space="preserve">
+    <value>Validation</value>
+  </data>
+  <data name="CalendarTitle" xml:space="preserve">
+    <value>Calendrier</value>
+  </data>
+  <data name="MailTitle" xml:space="preserve">
+    <value>Courriel</value>
+  </data>
+  <data name="MailEnterHostUser" xml:space="preserve">
+    <value>Saisissez l'hôte IMAP et le nom d'utilisateur.</value>
+  </data>
+  <data name="MailConnectionOk" xml:space="preserve">
+    <value>Connexion réussie. Sélectionnez les dossiers à surveiller.</value>
+  </data>
+  <data name="MailConnectionFailedFormat" xml:space="preserve">
+    <value>Échec de la connexion : {0}</value>
+  </data>
+  <data name="MailEnterImapHost" xml:space="preserve">
+    <value>Saisissez un hôte IMAP.</value>
+  </data>
+  <data name="MailEnterUsername" xml:space="preserve">
+    <value>Saisissez un nom d'utilisateur.</value>
+  </data>
+  <data name="CaldavEnterUrlUser" xml:space="preserve">
+    <value>Saisissez l'URL CalDAV et le nom d'utilisateur.</value>
+  </data>
+  <data name="CaldavEnterBaseUrl" xml:space="preserve">
+    <value>Saisissez une URL de base CalDAV.</value>
+  </data>
+  <data name="CaldavHttpsRequired" xml:space="preserve">
+    <value>L'URL CalDAV doit commencer par https://.</value>
+  </data>
+  <data name="CaldavNoCalendar" xml:space="preserve">
+    <value>Aucune collection de calendriers à cette URL.</value>
+  </data>
+  <data name="CaldavLoadCalendarFailedFormat" xml:space="preserve">
+    <value>Impossible de charger les calendriers : {0}</value>
+  </data>
+  <data name="CaldavEnterServerUrl" xml:space="preserve">
+    <value>Saisissez une URL de serveur CalDAV.</value>
+  </data>
+  <data name="TaskListsTitle" xml:space="preserve">
+    <value>Listes de tâches</value>
+  </data>
+  <data name="TaskNoVtodo" xml:space="preserve">
+    <value>Aucune liste de tâches (VTODO) à cette URL.</value>
+  </data>
+  <data name="TaskLoadFailedFormat" xml:space="preserve">
+    <value>Impossible de charger les listes de tâches : {0}</value>
+  </data>
+  <data name="ErrorTitle" xml:space="preserve">
+    <value>Erreur</value>
+  </data>
+  <data name="TaskSelectList" xml:space="preserve">
+    <value>Sélectionnez au moins une liste de tâches.</value>
+  </data>
+  <data name="SummaryRequired" xml:space="preserve">
+    <value>Le titre est obligatoire.</value>
+  </data>
+  <data name="AccountEmailRequired" xml:space="preserve">
+    <value>L'e-mail est obligatoire.</value>
+  </data>
+  <data name="AccountTitle" xml:space="preserve">
+    <value>Compte</value>
+  </data>
+  <data name="AccountTestingStatus" xml:space="preserve">
+    <value>Test en cours…</value>
+  </data>
+  <data name="AccountTestOk" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="AccountTestFailedFormat" xml:space="preserve">
+    <value>Échec : {0}</value>
+  </data>
+  <data name="ConfirmTitle" xml:space="preserve">
+    <value>Confirmer</value>
+  </data>
+  <data name="DeleteAccountFormat" xml:space="preserve">
+    <value>Supprimer le compte {0} ?</value>
+  </data>
+  <data name="StartupErrorFormat" xml:space="preserve">
+    <value>Erreur au démarrage : {0}{1}{1}{2}</value>
+  </data>
+  <data name="NaultinusErrorTitle" xml:space="preserve">
+    <value>Naultinus - Erreur</value>
+  </data>
+  <data name="UpdateAvailableFormat" xml:space="preserve">
+    <value>Version {0} disponible.{1}{1}{2}{1}{1}Installer et relancer ?</value>
+  </data>
+  <data name="UpdateTitle" xml:space="preserve">
+    <value>Mise à jour Naultinus</value>
+  </data>
+  <data name="UpdateFailedFormat" xml:space="preserve">
+    <value>Échec de la mise à jour : {0}</value>
+  </data>
+  <data name="ErrorGenericTitle" xml:space="preserve">
+    <value>Erreur</value>
+  </data>
+  <data name="TabRenameMenu" xml:space="preserve">
+    <value>Renommer…</value>
+  </data>
+  <data name="TabMoveLeft" xml:space="preserve">
+    <value>Déplacer à gauche</value>
+  </data>
+  <data name="TabMoveRight" xml:space="preserve">
+    <value>Déplacer à droite</value>
+  </data>
+  <data name="RenameTabTitle" xml:space="preserve">
+    <value>Renommer l'onglet</value>
+  </data>
+  <data name="NewTabNamePrompt" xml:space="preserve">
+    <value>Nouveau nom</value>
+  </data>
+  <data name="AddTabShortcutNaultinus" xml:space="preserve">
+    <value>Palissade raccourcis</value>
+  </data>
+  <data name="AddTabBrowseNaultinus" xml:space="preserve">
+    <value>Palissade navigation</value>
+  </data>
+  <data name="AddTabTaskNaultinus" xml:space="preserve">
+    <value>Palissade tâches</value>
+  </data>
+  <data name="AddTabCalendarNaultinus" xml:space="preserve">
+    <value>Palissade calendrier</value>
+  </data>
+  <data name="AddTabMailNaultinus" xml:space="preserve">
+    <value>Palissade courriel</value>
+  </data>
+  <data name="DesktopShortcutNaultinus" xml:space="preserve">
+    <value>Palissade raccourcis</value>
+  </data>
+  <data name="DesktopBrowseNaultinus" xml:space="preserve">
+    <value>Palissade navigation</value>
+  </data>
+  <data name="DesktopTaskNaultinus" xml:space="preserve">
+    <value>Palissade tâches</value>
+  </data>
+  <data name="DesktopCalendarNaultinus" xml:space="preserve">
+    <value>Palissade calendrier</value>
+  </data>
+  <data name="DesktopMailNaultinus" xml:space="preserve">
+    <value>Palissade courriel</value>
+  </data>
+  <data name="FolderDefaultName" xml:space="preserve">
+    <value>Palissade navigation</value>
+  </data>
+  <data name="NewFolderName" xml:space="preserve">
+    <value>Nouveau dossier</value>
+  </data>
+  <data name="NewFolderNameFormat" xml:space="preserve">
+    <value>Nouveau dossier ({0})</value>
+  </data>
+  <data name="NewFileName" xml:space="preserve">
+    <value>Nouveau fichier.txt</value>
+  </data>
+  <data name="NewFileNameFormat" xml:space="preserve">
+    <value>Nouveau fichier ({0}).txt</value>
+  </data>
+  <data name="CannotOpenFileFormat" xml:space="preserve">
+    <value>Impossible d'ouvrir le fichier : {0}</value>
+  </data>
+  <data name="FolderNotFoundFormat" xml:space="preserve">
+    <value>Dossier introuvable : {0}</value>
+  </data>
+  <data name="AccessDeniedFormat" xml:space="preserve">
+    <value>Accès refusé : {0}</value>
+  </data>
+  <data name="ErrorGenericFormat" xml:space="preserve">
+    <value>Erreur : {0}</value>
+  </data>
+  <data name="FileOperationFailedFormat" xml:space="preserve">
+    <value>Échec du {0} de {1} : {2}</value>
+  </data>
+  <data name="CopyVerb" xml:space="preserve">
+    <value>copie</value>
+  </data>
+  <data name="MoveVerb" xml:space="preserve">
+    <value>déplacement</value>
+  </data>
+  <data name="MailDefaultName" xml:space="preserve">
+    <value>Palissade courriel</value>
+  </data>
+  <data name="CalendarDefaultName" xml:space="preserve">
+    <value>Palissade calendrier</value>
+  </data>
+  <data name="TaskDefaultName" xml:space="preserve">
+    <value>Palissade tâches</value>
+  </data>
+  <data name="CalendarNoCalendarsConfigured" xml:space="preserve">
+    <value>Aucun calendrier configuré. Clic droit &gt; Modifier pour configurer.</value>
+  </data>
+  <data name="TaskNewTaskName" xml:space="preserve">
+    <value>Nouvelle tâche</value>
+  </data>
+  <data name="TaskNewTaskDescription" xml:space="preserve">
+    <value>Description de la tâche</value>
+  </data>
+  <data name="TaskDeleteFailedFormat" xml:space="preserve">
+    <value>Échec de la suppression de la tâche : {0}</value>
+  </data>
+  <data name="TaskUpdateFailedFormat" xml:space="preserve">
+    <value>Échec de la mise à jour de la tâche : {0}</value>
+  </data>
+  <data name="TaskSavedSuccess" xml:space="preserve">
+    <value>Tâche enregistrée</value>
+  </data>
+  <data name="TaskSaveFailedFormat" xml:space="preserve">
+    <value>Échec de l'enregistrement de la tâche : {0}</value>
+  </data>
+  <data name="TaskListDefaultName" xml:space="preserve">
+    <value>Tâches</value>
+  </data>
+  <data name="CaldavIncomplete" xml:space="preserve">
+    <value>Configuration CalDAV incomplète</value>
+  </data>
+  <data name="SyncReady" xml:space="preserve">
+    <value>Prêt</value>
+  </data>
+  <data name="SyncLoadingTasks" xml:space="preserve">
+    <value>Chargement des tâches…</value>
+  </data>
+  <data name="SyncTasksLoaded" xml:space="preserve">
+    <value>Tâches chargées avec succès</value>
+  </data>
+  <data name="SyncLoadFailedFormat" xml:space="preserve">
+    <value>Échec du chargement des tâches : {0}</value>
+  </data>
+  <data name="SyncLoadError" xml:space="preserve">
+    <value>Erreur de chargement des tâches</value>
+  </data>
+  <data name="SyncLocalChanges" xml:space="preserve">
+    <value>Modifications locales détectées, synchronisation dans un instant…</value>
+  </data>
+  <data name="SyncWithCalDav" xml:space="preserve">
+    <value>Synchronisation CalDAV…</value>
+  </data>
+  <data name="SyncCompletedFormat" xml:space="preserve">
+    <value>Synchronisation terminée : {0}</value>
+  </data>
+  <data name="SyncFailedFormat" xml:space="preserve">
+    <value>Échec de la synchronisation : {0}</value>
+  </data>
+  <data name="SyncError" xml:space="preserve">
+    <value>Erreur de synchronisation</value>
+  </data>
+  <data name="ToastNewMessagesFormat" xml:space="preserve">
+    <value>{0} nouveau(x) message(s) dans {1}</value>
+  </data>
+  <data name="ToastMailAttribution" xml:space="preserve">
+    <value>Naultinus - Courriel</value>
+  </data>
+  <data name="ToastStartsAtFormat" xml:space="preserve">
+    <value>Début à {0}</value>
+  </data>
+  <data name="ToastCalendarAttribution" xml:space="preserve">
+    <value>Naultinus - Calendrier</value>
+  </data>
+  <data name="MainWindowTitleUpdatingFormat" xml:space="preserve">
+    <value>Naultinus — Téléchargement de la mise à jour : {0}%</value>
+  </data>
+  <data name="ExportFolderDescription" xml:space="preserve">
+    <value>Choisissez le dossier de destination pour la disposition exportée.</value>
+  </data>
+  <data name="ImportFolderDescription" xml:space="preserve">
+    <value>Sélectionnez le dossier contenant une disposition (snapshot.xml).</value>
+  </data>
+  <data name="WindowTitleEditShortcutNaultinus" xml:space="preserve">
+    <value>Modifier la palissade raccourcis</value>
+  </data>
+  <data name="WindowTitleSaveCurrentLayout" xml:space="preserve">
+    <value>Enregistrer la disposition actuelle</value>
+  </data>
+  <data name="WindowTitleZimbraAccount" xml:space="preserve">
+    <value>Compte Zimbra</value>
+  </data>
+  <data name="WindowTitleEditCalendarNaultinus" xml:space="preserve">
+    <value>Modifier la palissade calendrier</value>
+  </data>
+  <data name="WindowTitleTaskNaultinusSettings" xml:space="preserve">
+    <value>Paramètres de la palissade tâches</value>
+  </data>
+  <data name="WindowTitleAboutNaultinus" xml:space="preserve">
+    <value>À propos de Naultinus</value>
+  </data>
+  <data name="WindowTitleEditBrowseNaultinus" xml:space="preserve">
+    <value>Modifier la palissade navigation</value>
+  </data>
+  <data name="WindowTitleAddEvent" xml:space="preserve">
+    <value>Ajouter un événement</value>
+  </data>
+  <data name="WindowTitleManageLayouts" xml:space="preserve">
+    <value>Gérer les dispositions</value>
+  </data>
+  <data name="WindowTitleNewBrowseNaultinus" xml:space="preserve">
+    <value>Nouvelle palissade navigation</value>
+  </data>
+  <data name="WindowTitleNewCalendarNaultinus" xml:space="preserve">
+    <value>Nouvelle palissade calendrier</value>
+  </data>
+  <data name="WindowTitleNewTaskNaultinus" xml:space="preserve">
+    <value>Nouvelle palissade tâches</value>
+  </data>
+  <data name="WindowTitleNewMailNaultinus" xml:space="preserve">
+    <value>Nouvelle palissade courriel</value>
+  </data>
+  <data name="WindowTitleRenameLayout" xml:space="preserve">
+    <value>Renommer la disposition</value>
+  </data>
+  <data name="WindowTitleEditTaskNaultinus" xml:space="preserve">
+    <value>Modifier la palissade tâches</value>
+  </data>
+  <data name="AppNameNaultinus" xml:space="preserve">
+    <value>Naultinus</value>
+  </data>
+  <data name="WindowTitleManageZimbraAccounts" xml:space="preserve">
+    <value>Gérer les comptes Zimbra</value>
+  </data>
+  <data name="AboutCreditsHeading" xml:space="preserve">
+    <value>Crédits</value>
+  </data>
+  <data name="AboutGitHubRepository" xml:space="preserve">
+    <value>dépôt GitHub</value>
+  </data>
+  <data name="AboutInspiredBy" xml:space="preserve">
+    <value>Inspiré par</value>
+  </data>
+  <data name="AboutLibrariesIntro" xml:space="preserve">
+    <value>Bibliothèques open source utilisées par cette application :</value>
+  </data>
+  <data name="AboutMaintainedByPrefix" xml:space="preserve">
+    <value>Maintenu par </value>
+  </data>
+  <data name="AboutNoFencesAndFencesConnector" xml:space="preserve">
+    <value> (Twometer) et </value>
+  </data>
+  <data name="AboutReleasedUnderMitSuffix" xml:space="preserve">
+    <value>. Publié sous licence MIT. Signalez les problèmes, vérifiez les mises à jour ou contribuez sur le </value>
+  </data>
+  <data name="AboutStardockSuffix" xml:space="preserve">
+    <value> (Stardock).</value>
+  </data>
+  <data name="ButtonAdd" xml:space="preserve">
+    <value>Ajouter</value>
+  </data>
+  <data name="ButtonBrowse" xml:space="preserve">
+    <value>Parcourir…</value>
+  </data>
+  <data name="ButtonCancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="ButtonClose" xml:space="preserve">
+    <value>Fermer</value>
+  </data>
+  <data name="ButtonCreate" xml:space="preserve">
+    <value>Créer</value>
+  </data>
+  <data name="ButtonDelete" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="ButtonEdit" xml:space="preserve">
+    <value>Modifier</value>
+  </data>
+  <data name="ButtonExport" xml:space="preserve">
+    <value>Exporter…</value>
+  </data>
+  <data name="ButtonImport" xml:space="preserve">
+    <value>Importer…</value>
+  </data>
+  <data name="ButtonLoadCalendars" xml:space="preserve">
+    <value>Charger les calendriers</value>
+  </data>
+  <data name="ButtonLoadTaskLists" xml:space="preserve">
+    <value>Charger les listes de tâches</value>
+  </data>
+  <data name="ButtonOk" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="ButtonRename" xml:space="preserve">
+    <value>Renommer</value>
+  </data>
+  <data name="ButtonRestore" xml:space="preserve">
+    <value>Restaurer</value>
+  </data>
+  <data name="ButtonSave" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="ButtonTest" xml:space="preserve">
+    <value>Tester</value>
+  </data>
+  <data name="ButtonTestConnectionLoadFolders" xml:space="preserve">
+    <value>Tester la connexion et charger les dossiers</value>
+  </data>
+  <data name="CheckBoxAllDay" xml:space="preserve">
+    <value>Toute la journée</value>
+  </data>
+  <data name="CheckBoxEnableDetailedLogging" xml:space="preserve">
+    <value>Journal détaillé</value>
+  </data>
+  <data name="CheckBoxShowCompletedTasks" xml:space="preserve">
+    <value>Afficher les tâches terminées</value>
+  </data>
+  <data name="DefaultBrowseNaultinusTitle" xml:space="preserve">
+    <value>Ma palissade navigation</value>
+  </data>
+  <data name="DefaultTaskNaultinusTitle" xml:space="preserve">
+    <value>Palissade tâches</value>
+  </data>
+  <data name="DialogLayoutNameLabel" xml:space="preserve">
+    <value>Nom de la disposition</value>
+  </data>
+  <data name="EmptyNoEvents" xml:space="preserve">
+    <value>Aucun événement</value>
+  </data>
+  <data name="EmptyNoTasks" xml:space="preserve">
+    <value>Aucune tâche</value>
+  </data>
+  <data name="EventButtonAdd" xml:space="preserve">
+    <value>+ Événement</value>
+  </data>
+  <data name="EventButtonAddTask" xml:space="preserve">
+    <value>+ Tâche</value>
+  </data>
+  <data name="LabelCaldavBaseUrl" xml:space="preserve">
+    <value>URL de base CalDAV</value>
+  </data>
+  <data name="LabelCaldavServerUrl" xml:space="preserve">
+    <value>URL du serveur CalDAV</value>
+  </data>
+  <data name="LabelCalendarsToShow" xml:space="preserve">
+    <value>Calendriers à afficher</value>
+  </data>
+  <data name="LabelDaysToShow" xml:space="preserve">
+    <value>Jours à afficher</value>
+  </data>
+  <data name="LabelDisplayColon" xml:space="preserve">
+    <value>Affichage :</value>
+  </data>
+  <data name="LabelEmail" xml:space="preserve">
+    <value>Courriel</value>
+  </data>
+  <data name="LabelEndDate" xml:space="preserve">
+    <value>Date de fin</value>
+  </data>
+  <data name="LabelEndTime" xml:space="preserve">
+    <value>Heure de fin (HH:mm)</value>
+  </data>
+  <data name="LabelEventSummaryRequired" xml:space="preserve">
+    <value>Titre *</value>
+  </data>
+  <data name="LabelFoldersToMonitor" xml:space="preserve">
+    <value>Dossiers à surveiller (sélectionner après le test)</value>
+  </data>
+  <data name="LabelImapHost" xml:space="preserve">
+    <value>Hôte IMAP</value>
+  </data>
+  <data name="LabelLocation" xml:space="preserve">
+    <value>Lieu</value>
+  </data>
+  <data name="LabelName" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="LabelNaultinusTitle" xml:space="preserve">
+    <value>Titre de la palissade</value>
+  </data>
+  <data name="LabelPassword" xml:space="preserve">
+    <value>Mot de passe</value>
+  </data>
+  <data name="LabelRootFolder" xml:space="preserve">
+    <value>Dossier racine</value>
+  </data>
+  <data name="LabelRootPath" xml:space="preserve">
+    <value>Chemin racine</value>
+  </data>
+  <data name="LabelStartDate" xml:space="preserve">
+    <value>Date de début</value>
+  </data>
+  <data name="LabelStartTime" xml:space="preserve">
+    <value>Heure de début (HH:mm)</value>
+  </data>
+  <data name="LabelSyncIntervalMinutes" xml:space="preserve">
+    <value>Intervalle de synchro (minutes)</value>
+  </data>
+  <data name="LabelTaskListId" xml:space="preserve">
+    <value>ID de la liste de tâches</value>
+  </data>
+  <data name="LabelTitle" xml:space="preserve">
+    <value>Titre</value>
+  </data>
+  <data name="LabelUsername" xml:space="preserve">
+    <value>Nom d'utilisateur</value>
+  </data>
+  <data name="LabelUsernameEmail" xml:space="preserve">
+    <value>Nom d'utilisateur (courriel)</value>
+  </data>
+  <data name="LabelViewMode" xml:space="preserve">
+    <value>Mode d'affichage</value>
+  </data>
+  <data name="LabelZimbraImapHostForMail" xml:space="preserve">
+    <value>Hôte IMAP (palissade courriel)</value>
+  </data>
+  <data name="LayoutNameSavedList" xml:space="preserve">
+    <value>Dispositions enregistrées</value>
+  </data>
+  <data name="LoadingEllipsis" xml:space="preserve">
+    <value>Chargement…</value>
+  </data>
+  <data name="MailComboCountAndSubjects" xml:space="preserve">
+    <value>Nombre et sujets</value>
+  </data>
+  <data name="MailComboCountOnly" xml:space="preserve">
+    <value>Nombre seulement</value>
+  </data>
+  <data name="ManageSnapshotsNaultinusCountFormat" xml:space="preserve">
+    <value>{0} palissades</value>
+  </data>
+  <data name="MenuAbout" xml:space="preserve">
+    <value>À propos</value>
+  </data>
+  <data name="MenuDelete" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="MenuDeleteSelection" xml:space="preserve">
+    <value>Supprimer la sélection</value>
+  </data>
+  <data name="MenuEdit" xml:space="preserve">
+    <value>Modifier</value>
+  </data>
+  <data name="MenuLayouts" xml:space="preserve">
+    <value>Dispositions</value>
+  </data>
+  <data name="MenuManageLayouts" xml:space="preserve">
+    <value>Gérer les dispositions…</value>
+  </data>
+  <data name="MenuManageZimbraAccounts" xml:space="preserve">
+    <value>Gérer les comptes Zimbra</value>
+  </data>
+  <data name="MenuNewBrowseNaultinus" xml:space="preserve">
+    <value>Nouvelle palissade navigation</value>
+  </data>
+  <data name="MenuNewCalendarNaultinus" xml:space="preserve">
+    <value>Nouvelle palissade calendrier</value>
+  </data>
+  <data name="MenuNewFolder" xml:space="preserve">
+    <value>Nouveau dossier</value>
+  </data>
+  <data name="MenuNewMailNaultinus" xml:space="preserve">
+    <value>Nouvelle palissade courriel</value>
+  </data>
+  <data name="MenuNewShortcutNaultinus" xml:space="preserve">
+    <value>Nouvelle palissade raccourcis</value>
+  </data>
+  <data name="MenuNewTaskNaultinus" xml:space="preserve">
+    <value>Nouvelle palissade tâches</value>
+  </data>
+  <data name="MenuNewTextFile" xml:space="preserve">
+    <value>Nouveau fichier texte</value>
+  </data>
+  <data name="MenuOpenInExplorer" xml:space="preserve">
+    <value>Ouvrir dans l'Explorateur</value>
+  </data>
+  <data name="MenuOpenWebmail" xml:space="preserve">
+    <value>Ouvrir le webmail</value>
+  </data>
+  <data name="MenuPaste" xml:space="preserve">
+    <value>Coller</value>
+  </data>
+  <data name="MenuRefresh" xml:space="preserve">
+    <value>Actualiser</value>
+  </data>
+  <data name="MenuSaveCurrentLayout" xml:space="preserve">
+    <value>Enregistrer la disposition actuelle…</value>
+  </data>
+  <data name="MenuSortByName" xml:space="preserve">
+    <value>Trier par nom</value>
+  </data>
+  <data name="ScreenDimensionsSeparator" xml:space="preserve">
+    <value>×</value>
+  </data>
+  <data name="TaskLoadingEllipsis" xml:space="preserve">
+    <value>Chargement des tâches…</value>
+  </data>
+  <data name="TooltipAddTabBrowseSameGroup" xml:space="preserve">
+    <value>Ajouter un onglet : palissade navigation (même groupe)</value>
+  </data>
+  <data name="TooltipCalDAVBaseUrlExample" xml:space="preserve">
+    <value>Ex. : https://mail.example.com/dav/user@domain/</value>
+  </data>
+  <data name="TooltipCalDAVUrlExampleZimbra" xml:space="preserve">
+    <value>Ex. : https://zimbra1.mail.ovh.net/dav/user@domain.com/</value>
+  </data>
+  <data name="TooltipForceSync" xml:space="preserve">
+    <value>Forcer la synchronisation</value>
+  </data>
+  <data name="TooltipGoToRoot" xml:space="preserve">
+    <value>Aller au dossier racine</value>
+  </data>
+  <data name="TooltipImapHostExample" xml:space="preserve">
+    <value>Ex. : imap.example.com</value>
+  </data>
+  <data name="TooltipMenu" xml:space="preserve">
+    <value>Menu</value>
+  </data>
+  <data name="TooltipNavigateBack" xml:space="preserve">
+    <value>Retour</value>
+  </data>
+  <data name="TooltipRefresh" xml:space="preserve">
+    <value>Actualiser</value>
+  </data>
+  <data name="TooltipSave" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="TooltipDelete" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="TooltipHideTask" xml:space="preserve">
+    <value>Masquer de la liste (la tâche reste sur le serveur)</value>
+  </data>
+  <data name="TooltipSettings" xml:space="preserve">
+    <value>Paramètres</value>
+  </data>
+  <data name="TooltipEdit" xml:space="preserve">
+    <value>Modifier</value>
+  </data>
+  <data name="TooltipToday" xml:space="preserve">
+    <value>Aujourd'hui</value>
+  </data>
+  <data name="ZimbraAccountsSectionTitle" xml:space="preserve">
+    <value>Comptes Zimbra (CalDAV / Courriel)</value>
+  </data>
+  <data name="LabelZimbraAccount" xml:space="preserve">
+    <value>Compte Zimbra</value>
+  </data>
+  <data name="ZimbraManualEntry" xml:space="preserve">
+    <value>— saisie manuelle —</value>
+  </data>
+  <data name="ButtonCreateNaultinus" xml:space="preserve">
+    <value>Créer une naultinus…</value>
+  </data>
+</root>

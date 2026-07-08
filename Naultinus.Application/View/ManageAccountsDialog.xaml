@@ -1,0 +1,38 @@
+<Window x:Class="Naultinus.View.ManageAccountsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:properties="clr-namespace:Naultinus.Properties"
+        Title="{x:Static properties:Strings.WindowTitleManageZimbraAccounts}" Height="400" Width="620"
+        Background="{DynamicResource NaultinusWindowBrush}"
+        TextElement.Foreground="{DynamicResource NaultinusTextBrush}"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/View/Styles/NaultinusStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Grid Margin="12" RowDefinitions="Auto,*,Auto">
+        <TextBlock Text="{x:Static properties:Strings.ZimbraAccountsSectionTitle}" FontWeight="SemiBold" Foreground="{DynamicResource NaultinusTextBrush}" Margin="0,0,0,8"/>
+        <ListBox x:Name="AccountsListBox" Grid.Row="1" Margin="0,0,0,10" Style="{StaticResource NaultinusDialogListBox}" SelectionChanged="AccountsListBox_SelectionChanged">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal" Margin="2">
+                        <TextBlock Text="{Binding Email}" FontWeight="SemiBold" Margin="0,0,12,0"/>
+                        <TextBlock Text="{Binding Server}" Foreground="{DynamicResource NaultinusSubtleBrush}" Margin="0,0,12,0"/>
+                        <TextBlock Text="{Binding LastTestStatus}" Foreground="{DynamicResource NaultinusAccentBrush}" FontSize="11"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="AddButton" Content="{x:Static properties:Strings.ButtonAdd}" Width="70" Margin="0,0,8,0" Style="{StaticResource NaultinusDialogButton}" Click="AddButton_Click"/>
+            <Button x:Name="EditButton" Content="{x:Static properties:Strings.ButtonEdit}" Width="70" Margin="0,0,8,0" Style="{StaticResource NaultinusDialogButton}" Click="EditButton_Click" IsEnabled="False"/>
+            <Button x:Name="TestButton" Content="{x:Static properties:Strings.ButtonTest}" Width="70" Margin="0,0,8,0" Style="{StaticResource NaultinusDialogButton}" Click="TestButton_Click" IsEnabled="False"/>
+            <Button x:Name="CreateNaultinusButton" Content="{x:Static properties:Strings.ButtonCreateNaultinus}" Margin="0,0,8,0" Style="{StaticResource NaultinusDialogButton}" Click="CreateNaultinusButton_Click" IsEnabled="False"/>
+            <Button x:Name="DeleteButton" Content="{x:Static properties:Strings.ButtonDelete}" Width="70" Margin="0,0,8,0" Style="{StaticResource NaultinusDialogButton}" Click="DeleteButton_Click" IsEnabled="False"/>
+            <Button Content="{x:Static properties:Strings.ButtonClose}" Width="70" Style="{StaticResource NaultinusDialogButton}" Click="CloseButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

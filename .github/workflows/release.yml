@@ -32,7 +32,7 @@ jobs:
 
       - name: Publish
         run: >
-          dotnet publish Palisades.Application/Palisades.Application.csproj
+          dotnet publish Naultinus.Application/Naultinus.Application.csproj
           -c Release -r win-x64 --self-contained
           -p:PublishSingleFile=true
           -p:IncludeNativeLibrariesForSelfExtract=true
@@ -41,7 +41,7 @@ jobs:
 
       - name: Zip portable
         shell: pwsh
-        run: Compress-Archive -Path ./publish/* -DestinationPath Palisades-${{ github.ref_name }}-win-x64.zip
+        run: Compress-Archive -Path ./publish/* -DestinationPath Naultinus-${{ github.ref_name }}-win-x64.zip
 
       - name: Install Inno Setup
         shell: pwsh
@@ -50,14 +50,14 @@ jobs:
       - name: Build installer
         shell: pwsh
         run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion=${{ steps.version.outputs.clean }} installer\palisades.iss
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion=${{ steps.version.outputs.clean }} installer\naultinus.iss
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: Palisades ${{ steps.version.outputs.clean }}
+          name: Naultinus ${{ steps.version.outputs.clean }}
           generate_release_notes: true
           files: |
-            Palisades-${{ github.ref_name }}-win-x64.zip
-            installer/Palisades-${{ steps.version.outputs.clean }}-setup.exe
+            Naultinus-${{ github.ref_name }}-win-x64.zip
+            installer/Naultinus-${{ steps.version.outputs.clean }}-setup.exe

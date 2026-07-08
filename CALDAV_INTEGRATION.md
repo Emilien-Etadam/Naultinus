@@ -1,8 +1,8 @@
-# Intégration CalDAV avec Palisades
+# Intégration CalDAV avec Naultinus
 
 ## Configuration requise
 
-Pour utiliser la fonctionnalité de Task Palisade avec synchronisation CalDAV, vous avez besoin :
+Pour utiliser la fonctionnalité de Task Naultinus avec synchronisation CalDAV, vous avez besoin :
 
 1. **Un serveur CalDAV compatible** (Nextcloud, Baïkal, Radicale, etc.)
 2. **Les informations de connexion** : URL du serveur, nom d'utilisateur, mot de passe
@@ -22,12 +22,12 @@ Pour utiliser la fonctionnalité de Task Palisade avec synchronisation CalDAV, v
 2. Configurez un utilisateur et un calendrier
 3. L'URL CalDAV sera : `https://votre-domaine.com/baikal/cal.php/calendars/nom-utilisateur/`
 
-## Utilisation dans Palisades
+## Utilisation dans Naultinus
 
-### Création d'une Task Palisade
-1. Cliquez droit sur le bureau et sélectionnez "Nouvelle Task Palisade"
+### Création d'une Task Naultinus
+1. Cliquez droit sur le bureau et sélectionnez "Nouvelle Task Naultinus"
 2. Entrez les informations suivantes :
-   - **Titre** : Nom de votre Palisade de tâches
+   - **Titre** : Nom de votre Naultinus de tâches
    - **URL du serveur CalDAV** : URL complète de votre serveur CalDAV
    - **Nom d'utilisateur** : Votre nom d'utilisateur CalDAV
    - **Mot de passe** : Votre mot de passe CalDAV (sera chiffré localement)
@@ -45,7 +45,7 @@ Pour utiliser la fonctionnalité de Task Palisade avec synchronisation CalDAV, v
 Vous pouvez personnaliser :
 - La couleur de l'en-tête
 - La couleur du corps
-- Le titre de la Palisade
+- Le titre de la Naultinus
 - La fréquence de synchronisation (dans les paramètres avancés)
 
 ## Sécurité
@@ -81,13 +81,13 @@ Vous pouvez personnaliser :
 - Les conflits de synchronisation peuvent parfois se produire
 
 ### Journalisation
-Les erreurs de synchronisation sont affichées dans l'interface utilisateur de la Task Palisade. Pour des informations plus détaillées, vous pouvez activer la journalisation dans les paramètres avancés.
+Les erreurs de synchronisation sont affichées dans l'interface utilisateur de la Task Naultinus. Pour des informations plus détaillées, vous pouvez activer la journalisation dans les paramètres avancés.
 
 ## Développement
 
 ### Structure du code
 - `CalDAVService.cs` : Gère la communication avec le serveur CalDAV
-- `TaskPalisadeViewModel.cs` : Gère la logique métier et la synchronisation
+- `TaskNaultinusViewModel.cs` : Gère la logique métier et la synchronisation
 - `CredentialEncryptor.cs` : Gère le chiffrement des informations d'identification
 
 ### Dépendances

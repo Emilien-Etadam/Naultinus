@@ -1,0 +1,335 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Card & hover brushes -->
+    <SolidColorBrush x:Key="NaultinusCardBrush" Color="#10FFFFFF"/>
+    <SolidColorBrush x:Key="NaultinusCardHoverBrush" Color="#20FFFFFF"/>
+    <SolidColorBrush x:Key="NaultinusCardPressedBrush" Color="#30FFFFFF"/>
+    <SolidColorBrush x:Key="NaultinusHoverSubtleBrush" Color="#40FFFFFF"/>
+    <SolidColorBrush x:Key="NaultinusHoverActiveBrush" Color="#60FFFFFF"/>
+
+    <Style x:Key="CircleButton" TargetType="Button">
+        <Setter Property="Width" Value="28"/>
+        <Setter Property="Height" Value="28"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border" CornerRadius="50" Background="{StaticResource NaultinusHoverSubtleBrush}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource NaultinusHoverActiveBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="CircleButtonLarge" TargetType="Button" BasedOn="{StaticResource CircleButton}">
+        <Setter Property="Width" Value="48"/>
+        <Setter Property="Height" Value="48"/>
+    </Style>
+
+    <Style x:Key="NaultinusListBoxItemStyle" TargetType="ListBoxItem">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="border" Background="{TemplateBinding Background}">
+                        <ContentPresenter/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource NaultinusCardHoverBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource NaultinusCardPressedBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="NaultinusActionButton" TargetType="Button">
+        <Setter Property="Height" Value="28"/>
+        <Setter Property="Padding" Value="12,0"/>
+        <Setter Property="Background" Value="{StaticResource NaultinusCardBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource NaultinusTextBrush}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource NaultinusCardHoverBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="NaultinusProgressBar" TargetType="ProgressBar">
+        <Setter Property="Width" Value="120"/>
+        <Setter Property="Height" Value="8"/>
+        <Setter Property="IsIndeterminate" Value="True"/>
+        <Setter Property="Foreground" Value="{DynamicResource NaultinusAccentBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource NaultinusBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+
+    <Style x:Key="NaultinusScrollBarStyle" TargetType="ScrollBar">
+        <Setter Property="Width" Value="8"/>
+        <Setter Property="MinWidth" Value="8"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <!-- Espace dans la zone de contenu : la barre reste dans le fond NaultinusControlBrush -->
+        <Setter Property="Margin" Value="0,4,4,4"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollBar">
+                    <Grid SnapsToDevicePixels="True">
+                        <Track x:Name="PART_Track" IsDirectionReversed="True">
+                            <Track.Thumb>
+                                <Thumb>
+                                    <Thumb.Style>
+                                        <Style TargetType="Thumb">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Thumb">
+                                                        <Border x:Name="ThumbBorder" Background="{DynamicResource NaultinusBorderBrush}" CornerRadius="3" Width="4" HorizontalAlignment="Center" MinHeight="24"/>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="ThumbBorder" Property="Background" Value="{DynamicResource NaultinusAccentBrush}"/>
+                                                                <Setter TargetName="ThumbBorder" Property="Opacity" Value="0.9"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsDragging" Value="True">
+                                                                <Setter TargetName="ThumbBorder" Property="Background" Value="{DynamicResource NaultinusAccentBrush}"/>
+                                                                <Setter TargetName="ThumbBorder" Property="Opacity" Value="1"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </Thumb.Style>
+                                </Thumb>
+                            </Track.Thumb>
+                        </Track>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="NaultinusHeaderText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource NaultinusTextBrush}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="NaultinusNavButton" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Foreground" Value="{DynamicResource NaultinusTextBrush}"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Padding" Value="6,2"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="4">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource NaultinusCardPressedBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Dialog styles -->
+    <Style x:Key="NaultinusDialogWindow" TargetType="Window">
+        <Setter Property="Background" Value="{DynamicResource NaultinusWindowBrush}"/>
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource NaultinusTextBrush}"/>
+        <Setter Property="TextElement.FontWeight" Value="Regular"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Ideal"/>
+        <Setter Property="TextOptions.TextRenderingMode" Value="Auto"/>
+        <Setter Property="WindowStartupLocation" Value="CenterOwner"/>
+    </Style>
+
+    <Style x:Key="NaultinusDialogTextBox" TargetType="TextBox">
+        <Setter Property="Background" Value="{DynamicResource NaultinusControlBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource NaultinusTextBrush}"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource NaultinusTextBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource NaultinusBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="6,4"/>
+    </Style>
+
+    <Style x:Key="NaultinusDialogPasswordBox" TargetType="PasswordBox">
+        <Setter Property="Background" Value="{DynamicResource NaultinusControlBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource NaultinusTextBrush}"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource NaultinusTextBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource NaultinusBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="6,4"/>
+    </Style>
+
+    <Style x:Key="NaultinusDialogButton" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource NaultinusCardBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource NaultinusTextBrush}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="12,6"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource NaultinusCardHoverBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsDefault" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource NaultinusHighlightBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="NaultinusDialogLabel" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource NaultinusSubtleBrush}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Margin" Value="0,0,0,4"/>
+    </Style>
+
+    <Style x:Key="NaultinusDialogListBox" TargetType="ListBox">
+        <Setter Property="Background" Value="{DynamicResource NaultinusControlBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource NaultinusTextBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource NaultinusBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+    <Style x:Key="NaultinusDialogComboBox" TargetType="ComboBox">
+        <Setter Property="Background" Value="{DynamicResource NaultinusControlBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource NaultinusTextBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource NaultinusBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+    <Style x:Key="NaultinusDialogCheckBox" TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{DynamicResource NaultinusTextBrush}"/>
+    </Style>
+
+    <!-- Tab styles (Flat / Rounded) — bandeau horizontal comme un navigateur (TabPanel) -->
+    <Style x:Key="FlatTabStyle" TargetType="TabControl">
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabControl">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Border Grid.Row="0"
+                                Background="{DynamicResource NaultinusWindowBrush}"
+                                BorderBrush="{DynamicResource NaultinusBorderBrush}"
+                                BorderThickness="0,0,0,1"
+                                Padding="6,4,6,0">
+                            <TabPanel IsItemsHost="True"/>
+                        </Border>
+                        <Border Grid.Row="1" Background="{DynamicResource NaultinusControlBrush}" ClipToBounds="True">
+                            <ContentPresenter x:Name="PART_SelectedContentHost"
+                                              Margin="0"
+                                              ContentSource="SelectedContent"
+                                              ContentTemplate="{TemplateBinding SelectedContentTemplate}"
+                                              ContentTemplateSelector="{TemplateBinding SelectedContentTemplateSelector}"/>
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="FlatTabItemStyle" TargetType="TabItem">
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="MinHeight" Value="32"/>
+        <Setter Property="VerticalAlignment" Value="Bottom"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabItem">
+                    <Border x:Name="Border"
+                            Background="Transparent"
+                            Padding="14,8,14,8"
+                            Margin="0,0,1,0"
+                            BorderBrush="{DynamicResource NaultinusBorderBrush}"
+                            BorderThickness="0,0,1,0"
+                            Cursor="Hand">
+                        <ContentPresenter ContentSource="Header" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Border" Property="Background" Value="{StaticResource NaultinusCardHoverBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Border" Property="Background" Value="{StaticResource NaultinusCardPressedBrush}"/>
+                            <Setter TargetName="Border" Property="BorderThickness" Value="0,0,0,2"/>
+                            <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource NaultinusAccentBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="RoundedTabStyle" TargetType="TabControl" BasedOn="{StaticResource FlatTabStyle}" />
+    <Style x:Key="RoundedTabItemStyle" TargetType="TabItem">
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="MinHeight" Value="32"/>
+        <Setter Property="VerticalAlignment" Value="Bottom"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabItem">
+                    <Border x:Name="Border"
+                            Background="{StaticResource NaultinusCardHoverBrush}"
+                            CornerRadius="6,6,0,0"
+                            Padding="14,8,14,8"
+                            Margin="0,0,4,0"
+                            BorderBrush="{DynamicResource NaultinusBorderBrush}"
+                            BorderThickness="1,1,1,0"
+                            Cursor="Hand">
+                        <ContentPresenter ContentSource="Header" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Border" Property="Background" Value="{StaticResource NaultinusCardPressedBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Border" Property="Background" Value="{StaticResource NaultinusHoverActiveBrush}"/>
+                            <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource NaultinusAccentBrush}"/>
+                            <Setter TargetName="Border" Property="BorderThickness" Value="1,1,1,2"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

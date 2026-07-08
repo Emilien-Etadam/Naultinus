@@ -1,0 +1,30 @@
+<Window x:Class="Naultinus.View.EditZimbraAccountDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:properties="clr-namespace:Naultinus.Properties"
+        Title="{x:Static properties:Strings.WindowTitleZimbraAccount}" MinHeight="480" Height="520" MinWidth="440" Width="440"
+        Background="{DynamicResource NaultinusWindowBrush}"
+        TextElement.Foreground="{DynamicResource NaultinusTextBrush}"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/View/Styles/NaultinusStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Grid Margin="12" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+        <TextBlock Text="{x:Static properties:Strings.LabelEmail}" Grid.Row="0" Style="{StaticResource NaultinusDialogLabel}"/>
+        <TextBox x:Name="EmailTextBox" Grid.Row="1" Margin="0,0,0,6" Style="{StaticResource NaultinusDialogTextBox}"/>
+        <TextBlock Text="{x:Static properties:Strings.LabelCaldavBaseUrl}" Grid.Row="2" Style="{StaticResource NaultinusDialogLabel}"/>
+        <TextBox x:Name="CalDAVUrlTextBox" Grid.Row="3" Margin="0,0,0,6" Style="{StaticResource NaultinusDialogTextBox}" ToolTip="{x:Static properties:Strings.TooltipCalDAVUrlExampleZimbra}"/>
+        <TextBlock Text="{x:Static properties:Strings.LabelZimbraImapHostForMail}" Grid.Row="4" Style="{StaticResource NaultinusDialogLabel}"/>
+        <TextBox x:Name="ImapHostTextBox" Grid.Row="5" Margin="0,0,0,6" Style="{StaticResource NaultinusDialogTextBox}"/>
+        <TextBlock Text="{x:Static properties:Strings.LabelPassword}" Grid.Row="6" Style="{StaticResource NaultinusDialogLabel}"/>
+        <PasswordBox x:Name="PasswordBox" Grid.Row="7" Margin="0,0,0,10" Style="{StaticResource NaultinusDialogPasswordBox}"/>
+        <StackPanel Grid.Row="8" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="{x:Static properties:Strings.ButtonCancel}" Width="80" Margin="0,0,10,0" Style="{StaticResource NaultinusDialogButton}" Click="CancelButton_Click"/>
+            <Button Content="{x:Static properties:Strings.ButtonSave}" Width="80" IsDefault="True" Style="{StaticResource NaultinusDialogButton}" Click="SaveButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

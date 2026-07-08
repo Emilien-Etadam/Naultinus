@@ -1,10 +1,10 @@
-# Folder Portal Palisade
+# Folder Portal Naultinus
 
-A new palisade type for Palisades that acts as a mini file explorer for a chosen folder, displayed directly on the desktop. Inspired by Stardock Fences' Folder Portals feature.
+A new naultinus type for Naultinus that acts as a mini file explorer for a chosen folder, displayed directly on the desktop. Inspired by Stardock Fences' Folder Portals feature.
 
 ## What It Does
 
-A Folder Portal palisade displays the contents of a target folder (files and subfolders) as items inside the palisade. You can navigate into subfolders by double-clicking, go back to the parent folder, and open files with their default application.
+A Folder Portal naultinus displays the contents of a target folder (files and subfolders) as items inside the naultinus. You can navigate into subfolders by double-clicking, go back to the parent folder, and open files with their default application.
 
 ### Features
 
@@ -16,11 +16,11 @@ A Folder Portal palisade displays the contents of a target folder (files and sub
 - **Fixed title**: A user-defined title that always stays visible regardless of navigation
 - **Persistence**: Remembers the last visited folder across application restarts
 - **Context menu**: Refresh contents, open current folder in Windows Explorer, edit portal settings
-- **Customization**: Same color customization as standard palisades (header, body, title, labels colors)
+- **Customization**: Same color customization as standard naultinus (header, body, title, labels colors)
 
 ## How to Create a Folder Portal
 
-1. **Right-click** on the header of any existing palisade (standard or folder portal)
+1. **Right-click** on the header of any existing naultinus (standard or folder portal)
 2. Select **"New Folder Portal"** from the context menu
 3. In the dialog that appears:
    - Enter a **title** for the portal (e.g., "My Projects")
@@ -53,12 +53,12 @@ A Folder Portal palisade displays the contents of a target folder (files and sub
 
 ### Architecture
 
-The Folder Portal follows the same MVVM pattern as the existing standard palisade:
+The Folder Portal follows the same MVVM pattern as the existing standard naultinus:
 
 | Layer | File | Purpose |
 |-------|------|---------|
-| Model | `Model/PalisadeModel.cs` | Extended with `Type`, `RootPath`, `CurrentPath` properties |
-| Model | `Model/PalisadeType.cs` | Enum: `Standard`, `FolderPortal` |
+| Model | `Model/NaultinusModel.cs` | Extended with `Type`, `RootPath`, `CurrentPath` properties |
+| Model | `Model/NaultinusType.cs` | Enum: `Standard`, `FolderPortal` |
 | Model | `Model/FolderPortalItem.cs` | Represents a file/folder entry in the portal |
 | ViewModel | `ViewModel/FolderPortalViewModel.cs` | Navigation logic, folder loading, commands |
 | View | `View/FolderPortal.xaml` | WPF window with header, breadcrumb, item grid |
@@ -67,16 +67,16 @@ The Folder Portal follows the same MVVM pattern as the existing standard palisad
 
 ### Persistence
 
-Folder Portals use the same XML persistence as standard palisades:
-- Stored in `%LOCALAPPDATA%\Palisades\saved\{GUID}\state.xml`
-- The `Type` property in `PalisadeModel` distinguishes between `Standard` and `FolderPortal`
+Folder Portals use the same XML persistence as standard naultinus:
+- Stored in `%LOCALAPPDATA%\Naultinus\saved\{GUID}\state.xml`
+- The `Type` property in `NaultinusModel` distinguishes between `Standard` and `FolderPortal`
 - `RootPath` and `CurrentPath` are persisted so the last browsed location is restored on restart
-- Backward compatible: existing standard palisade configs default to `Type=Standard` with empty paths
+- Backward compatible: existing standard naultinus configs default to `Type=Standard` with empty paths
 
 ## Current Limitations / TODOs
 
 - **No file system watcher**: The portal does not auto-refresh when files are added/removed externally. Use the "Refresh" context menu option to reload.
-- **No drag-and-drop**: You cannot drag files out of or into the Folder Portal (unlike standard palisades which support shortcut drag-drop).
+- **No drag-and-drop**: You cannot drag files out of or into the Folder Portal (unlike standard naultinus which support shortcut drag-drop).
 - **No rename/delete**: File management operations (rename, delete, copy) are not implemented. Use "Open in Explorer" for file management.
 - **No search/filter**: No text filter or search box to filter displayed items.
 - **No custom sorting**: Items are always sorted alphabetically (folders first, then files).

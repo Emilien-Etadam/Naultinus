@@ -210,9 +210,9 @@
     "en": "Startup error: {0}{1}{1}{2}"
   },
   {
-    "key": "PalisadesErrorTitle",
-    "fr": "Palisades - Erreur",
-    "en": "Palisades - Error"
+    "key": "NaultinusErrorTitle",
+    "fr": "Naultinus - Erreur",
+    "en": "Naultinus - Error"
   },
   {
     "key": "UpdateAvailableFormat",
@@ -221,8 +221,8 @@
   },
   {
     "key": "UpdateTitle",
-    "fr": "Mise à jour Palisades",
-    "en": "Palisades update"
+    "fr": "Mise à jour Naultinus",
+    "en": "Naultinus update"
   },
   {
     "key": "UpdateFailedFormat",
@@ -260,59 +260,59 @@
     "en": "New name"
   },
   {
-    "key": "AddTabShortcutPalisade",
+    "key": "AddTabShortcutNaultinus",
     "fr": "Palissade raccourcis",
-    "en": "Shortcut Palisade"
+    "en": "Shortcut Naultinus"
   },
   {
-    "key": "AddTabBrowsePalisade",
+    "key": "AddTabBrowseNaultinus",
     "fr": "Palissade navigation",
-    "en": "Browse Palisade"
+    "en": "Browse Naultinus"
   },
   {
-    "key": "AddTabTaskPalisade",
+    "key": "AddTabTaskNaultinus",
     "fr": "Palissade tâches",
-    "en": "Task Palisade"
+    "en": "Task Naultinus"
   },
   {
-    "key": "AddTabCalendarPalisade",
+    "key": "AddTabCalendarNaultinus",
     "fr": "Palissade calendrier",
-    "en": "Calendar Palisade"
+    "en": "Calendar Naultinus"
   },
   {
-    "key": "AddTabMailPalisade",
+    "key": "AddTabMailNaultinus",
     "fr": "Palissade courriel",
-    "en": "Mail Palisade"
+    "en": "Mail Naultinus"
   },
   {
-    "key": "DesktopShortcutPalisade",
+    "key": "DesktopShortcutNaultinus",
     "fr": "Palissade raccourcis",
-    "en": "Shortcut Palisade"
+    "en": "Shortcut Naultinus"
   },
   {
-    "key": "DesktopBrowsePalisade",
+    "key": "DesktopBrowseNaultinus",
     "fr": "Palissade navigation",
-    "en": "Browse Palisade"
+    "en": "Browse Naultinus"
   },
   {
-    "key": "DesktopTaskPalisade",
+    "key": "DesktopTaskNaultinus",
     "fr": "Palissade tâches",
-    "en": "Task Palisade"
+    "en": "Task Naultinus"
   },
   {
-    "key": "DesktopCalendarPalisade",
+    "key": "DesktopCalendarNaultinus",
     "fr": "Palissade calendrier",
-    "en": "Calendar Palisade"
+    "en": "Calendar Naultinus"
   },
   {
-    "key": "DesktopMailPalisade",
+    "key": "DesktopMailNaultinus",
     "fr": "Palissade courriel",
-    "en": "Mail Palisade"
+    "en": "Mail Naultinus"
   },
   {
     "key": "FolderDefaultName",
     "fr": "Palissade navigation",
-    "en": "Browse Palisade"
+    "en": "Browse Naultinus"
   },
   {
     "key": "NewFolderName",
@@ -372,17 +372,17 @@
   {
     "key": "MailDefaultName",
     "fr": "Palissade courriel",
-    "en": "Mail Palisade"
+    "en": "Mail Naultinus"
   },
   {
     "key": "CalendarDefaultName",
     "fr": "Palissade calendrier",
-    "en": "Calendar Palisade"
+    "en": "Calendar Naultinus"
   },
   {
     "key": "TaskDefaultName",
     "fr": "Palissade tâches",
-    "en": "Task Palisade"
+    "en": "Task Naultinus"
   },
   {
     "key": "CalendarNoCalendarsConfigured",
@@ -486,8 +486,8 @@
   },
   {
     "key": "ToastMailAttribution",
-    "fr": "Palisades - Courriel",
-    "en": "Palisades - Mail"
+    "fr": "Naultinus - Courriel",
+    "en": "Naultinus - Mail"
   },
   {
     "key": "ToastStartsAtFormat",
@@ -496,13 +496,13 @@
   },
   {
     "key": "ToastCalendarAttribution",
-    "fr": "Palisades - Calendrier",
-    "en": "Palisades - Calendar"
+    "fr": "Naultinus - Calendrier",
+    "en": "Naultinus - Calendar"
   },
   {
     "key": "MainWindowTitleUpdatingFormat",
-    "fr": "Palisades — Téléchargement de la mise à jour : {0}%",
-    "en": "Palisades — Downloading update: {0}%"
+    "fr": "Naultinus — Téléchargement de la mise à jour : {0}%",
+    "en": "Naultinus — Downloading update: {0}%"
   },
   {
     "key": "ExportFolderDescription",
@@ -515,9 +515,9 @@
     "en": "Select the folder containing a layout (snapshot.xml)."
   },
   {
-    "key": "WindowTitleEditShortcutPalisade",
+    "key": "WindowTitleEditShortcutNaultinus",
     "fr": "Modifier la palissade raccourcis",
-    "en": "Edit Shortcut Palisade"
+    "en": "Edit Shortcut Naultinus"
   },
   {
     "key": "WindowTitleSaveCurrentLayout",
@@ -530,24 +530,24 @@
     "en": "Zimbra account"
   },
   {
-    "key": "WindowTitleEditCalendarPalisade",
+    "key": "WindowTitleEditCalendarNaultinus",
     "fr": "Modifier la palissade calendrier",
-    "en": "Edit Calendar Palisade"
+    "en": "Edit Calendar Naultinus"
   },
   {
-    "key": "WindowTitleTaskPalisadeSettings",
+    "key": "WindowTitleTaskNaultinusSettings",
     "fr": "Paramètres de la palissade tâches",
-    "en": "Task Palisade settings"
+    "en": "Task Naultinus settings"
   },
   {
-    "key": "WindowTitleAboutPalisades",
-    "fr": "À propos de Palisades",
-    "en": "About Palisades"
+    "key": "WindowTitleAboutNaultinus",
+    "fr": "À propos de Naultinus",
+    "en": "About Naultinus"
   },
   {
-    "key": "WindowTitleEditBrowsePalisade",
+    "key": "WindowTitleEditBrowseNaultinus",
     "fr": "Modifier la palissade navigation",
-    "en": "Edit Browse Palisade"
+    "en": "Edit Browse Naultinus"
   },
   {
     "key": "WindowTitleAddEvent",
@@ -560,24 +560,24 @@
     "en": "Manage layouts"
   },
   {
-    "key": "WindowTitleNewBrowsePalisade",
+    "key": "WindowTitleNewBrowseNaultinus",
     "fr": "Nouvelle palissade navigation",
-    "en": "New Browse Palisade"
+    "en": "New Browse Naultinus"
   },
   {
-    "key": "WindowTitleNewCalendarPalisade",
+    "key": "WindowTitleNewCalendarNaultinus",
     "fr": "Nouvelle palissade calendrier",
-    "en": "New Calendar Palisade"
+    "en": "New Calendar Naultinus"
   },
   {
-    "key": "WindowTitleNewTaskPalisade",
+    "key": "WindowTitleNewTaskNaultinus",
     "fr": "Nouvelle palissade tâches",
-    "en": "New Task Palisade"
+    "en": "New Task Naultinus"
   },
   {
-    "key": "WindowTitleNewMailPalisade",
+    "key": "WindowTitleNewMailNaultinus",
     "fr": "Nouvelle palissade courriel",
-    "en": "New Mail Palisade"
+    "en": "New Mail Naultinus"
   },
   {
     "key": "WindowTitleRenameLayout",
@@ -585,14 +585,14 @@
     "en": "Rename layout"
   },
   {
-    "key": "WindowTitleEditTaskPalisade",
+    "key": "WindowTitleEditTaskNaultinus",
     "fr": "Modifier la palissade tâches",
-    "en": "Edit Task Palisade"
+    "en": "Edit Task Naultinus"
   },
   {
-    "key": "AppNamePalisades",
-    "fr": "Palisades",
-    "en": "Palisades"
+    "key": "AppNameNaultinus",
+    "fr": "Naultinus",
+    "en": "Naultinus"
   },
   {
     "key": "WindowTitleManageZimbraAccounts",
@@ -740,14 +740,14 @@
     "en": "Show completed tasks"
   },
   {
-    "key": "DefaultBrowsePalisadeTitle",
+    "key": "DefaultBrowseNaultinusTitle",
     "fr": "Ma palissade navigation",
-    "en": "My Browse Palisade"
+    "en": "My Browse Naultinus"
   },
   {
-    "key": "DefaultTaskPalisadeTitle",
+    "key": "DefaultTaskNaultinusTitle",
     "fr": "Palissade tâches",
-    "en": "Task Palisade"
+    "en": "Task Naultinus"
   },
   {
     "key": "DialogLayoutNameLabel",
@@ -840,9 +840,9 @@
     "en": "Name"
   },
   {
-    "key": "LabelPalisadeTitle",
+    "key": "LabelNaultinusTitle",
     "fr": "Titre de la palissade",
-    "en": "Palisade title"
+    "en": "Naultinus title"
   },
   {
     "key": "LabelPassword",
@@ -902,7 +902,7 @@
   {
     "key": "LabelZimbraImapHostForMail",
     "fr": "Hôte IMAP (palissade courriel)",
-    "en": "IMAP host (Mail Palisade)"
+    "en": "IMAP host (Mail Naultinus)"
   },
   {
     "key": "LayoutNameSavedList",
@@ -925,9 +925,9 @@
     "en": "Count only"
   },
   {
-    "key": "ManageSnapshotsPalisadeCountFormat",
+    "key": "ManageSnapshotsNaultinusCountFormat",
     "fr": "{0} palissades",
-    "en": "{0} palisades"
+    "en": "{0} naultinus"
   },
   {
     "key": "MenuAbout",
@@ -965,14 +965,14 @@
     "en": "Manage Zimbra accounts"
   },
   {
-    "key": "MenuNewBrowsePalisade",
+    "key": "MenuNewBrowseNaultinus",
     "fr": "Nouvelle palissade navigation",
-    "en": "New Browse Palisade"
+    "en": "New Browse Naultinus"
   },
   {
-    "key": "MenuNewCalendarPalisade",
+    "key": "MenuNewCalendarNaultinus",
     "fr": "Nouvelle palissade calendrier",
-    "en": "New Calendar Palisade"
+    "en": "New Calendar Naultinus"
   },
   {
     "key": "MenuNewFolder",
@@ -980,19 +980,19 @@
     "en": "New folder"
   },
   {
-    "key": "MenuNewMailPalisade",
+    "key": "MenuNewMailNaultinus",
     "fr": "Nouvelle palissade courriel",
-    "en": "New Mail Palisade"
+    "en": "New Mail Naultinus"
   },
   {
-    "key": "MenuNewShortcutPalisade",
+    "key": "MenuNewShortcutNaultinus",
     "fr": "Nouvelle palissade raccourcis",
-    "en": "New Shortcut Palisade"
+    "en": "New Shortcut Naultinus"
   },
   {
-    "key": "MenuNewTaskPalisade",
+    "key": "MenuNewTaskNaultinus",
     "fr": "Nouvelle palissade tâches",
-    "en": "New Task Palisade"
+    "en": "New Task Naultinus"
   },
   {
     "key": "MenuNewTextFile",
@@ -1042,7 +1042,7 @@
   {
     "key": "TooltipAddTabBrowseSameGroup",
     "fr": "Ajouter un onglet : palissade navigation (même groupe)",
-    "en": "Add tab: Browse Palisade (same group)"
+    "en": "Add tab: Browse Naultinus (same group)"
   },
   {
     "key": "TooltipCalDAVBaseUrlExample",
@@ -1130,8 +1130,8 @@
     "en": "— manual entry —"
   },
   {
-    "key": "ButtonCreatePalisade",
-    "fr": "Créer une palisade…",
-    "en": "Create palisade…"
+    "key": "ButtonCreateNaultinus",
+    "fr": "Créer une naultinus…",
+    "en": "Create naultinus…"
   }
 ]
