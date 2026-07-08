@@ -16,26 +16,18 @@ namespace Naultinus.View
         {
             _viewModel = viewModel;
             DataContext = viewModel;
-            
-            // Initialiser les contrôles avec les valeurs actuelles
-            SyncIntervalSlider.Value = 5; // Valeur par défaut
-            EnableLoggingCheckBox.IsChecked = false; // Désactivé par défaut
-            ShowCompletedCheckBox.IsChecked = true; // Activé par défaut
+
+            SyncIntervalSlider.Value = 5;
+            EnableLoggingCheckBox.IsChecked = false;
+            ShowCompletedCheckBox.IsChecked = true;
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
-            // Sauvegarder les paramètres
-            // Dans une implémentation complète, ces paramètres seraient sauvegardés
-            // et utilisés pour configurer le comportement de la Task Naultinus
-            
-            var syncInterval = (int)SyncIntervalSlider.Value;
-            var enableLogging = EnableLoggingCheckBox.IsChecked ?? false;
-            var showCompleted = ShowCompletedCheckBox.IsChecked ?? true;
-            
-            // Appliquer les paramètres
-            // _viewModel.ApplySettings(syncInterval, enableLogging, showCompleted);
-            
+            // Issue ouverte : persistance des réglages (intervalle, journalisation, tâches terminées)
+            // non implémentée — le modèle TaskNaultinusModel n'expose pas encore ces champs.
+            // Le dialogue affiche les valeurs par défaut et se ferme sans modifier le comportement.
+
             DialogResult = true;
             Close();
         }

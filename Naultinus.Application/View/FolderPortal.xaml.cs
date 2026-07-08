@@ -74,7 +74,7 @@ namespace Naultinus.View
             {
                 e.Handled = true;
                 ShellContextMenu.Show(item.FullPath, this);
-                // Refresh after context menu closes (file may have been renamed, deleted, etc.)
+                // Actualiser après fermeture du menu contextuel shell (renommage, suppression, etc.)
                 viewModel.RefreshCommand.Execute(null);
             }
         }

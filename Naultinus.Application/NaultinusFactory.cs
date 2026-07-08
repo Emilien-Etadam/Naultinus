@@ -19,7 +19,7 @@ namespace Naultinus
             TaskNaultinusViewModel t => new TaskNaultinus(t),
             CalendarNaultinusViewModel c => new CalendarNaultinus(c),
             MailNaultinusViewModel m => new MailNaultinus(m),
-            _ => throw new NotSupportedException("No window for " + vm.GetType().Name),
+            _ => throw new NotSupportedException("Aucune fenêtre pour " + vm.GetType().Name),
         };
 
         public static INaultinusViewModel? CreateViewModel(NaultinusModelBase concrete)

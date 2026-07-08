@@ -48,7 +48,7 @@ namespace Naultinus
                 }
                 catch (Exception ex)
                 {
-                    NaultinusDiagnostics.Log("NaultinusManager", "Failed to load " + stateFile, ex);
+                    NaultinusDiagnostics.Log("NaultinusManager", "Chargement impossible : " + stateFile, ex);
                 }
             }
 

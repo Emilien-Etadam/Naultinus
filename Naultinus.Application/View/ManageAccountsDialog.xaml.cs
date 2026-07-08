@@ -81,7 +81,7 @@ namespace Naultinus.View
                     var caldav = new Services.CalDAVService(client);
                     await caldav.GetTaskListsAsync();
                 }
-                // Test IMAP if host set
+                // Test IMAP si l'hôte est renseigné
                 if (!string.IsNullOrEmpty(acc.ImapHost) || !string.IsNullOrEmpty(acc.Server))
                 {
                     var host = !string.IsNullOrEmpty(acc.ImapHost) ? acc.ImapHost : acc.Server;

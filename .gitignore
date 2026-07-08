@@ -403,6 +403,9 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
+# Artefacts Inno Setup (workflow Release)
+installer/Naultinus-*-setup.exe
+
 ### VisualStudio Patch ###
 # Additional files built by Visual Studio
 

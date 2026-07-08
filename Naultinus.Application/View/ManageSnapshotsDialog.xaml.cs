@@ -26,7 +26,6 @@ namespace Naultinus.View
 
         private void SnapshotsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Optional: enable/disable row buttons based on selection
         }
 
         private void RestoreButton_Click(object sender, RoutedEventArgs e)
