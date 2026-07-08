@@ -4,7 +4,7 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
-using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -41,12 +41,15 @@ namespace Naultinus.Helpers
                     return null;
 
                 string? assetUrl = null;
+                string? assetDigest = null;
                 foreach (var asset in root.GetProperty("assets").EnumerateArray())
                 {
                     var name = asset.GetProperty("name").GetString() ?? "";
                     if (name.EndsWith("-setup.exe", StringComparison.OrdinalIgnoreCase))
                     {
                         assetUrl = asset.GetProperty("browser_download_url").GetString();
+                        if (asset.TryGetProperty("digest", out var digest))
+                            assetDigest = digest.GetString();
                         break;
                     }
                 }
@@ -60,7 +63,7 @@ namespace Naultinus.Helpers
                 }
 
                 var notes = root.GetProperty("body").GetString() ?? "";
-                return new UpdateInfo(remoteVersion, assetUrl, notes);
+                return new UpdateInfo(remoteVersion, assetUrl, notes, assetDigest);
             }
             catch (Exception ex)
             {
@@ -97,10 +100,10 @@ namespace Naultinus.Helpers
                 }
             }
 
-            if (!VerifyInstallerSignature(tempInstaller, out var signatureError))
+            if (!await VerifyInstallerHashAsync(tempInstaller, update.Sha256).ConfigureAwait(false))
             {
                 TryDeleteInstaller(tempInstaller);
-                throw new InvalidOperationException("Signature de l'installateur invalide : " + signatureError);
+                throw new InvalidOperationException("Empreinte SHA-256 de l'installateur invalide (fichier corrompu ou altéré).");
             }
 
             Process.Start(new ProcessStartInfo
@@ -125,33 +128,35 @@ namespace Naultinus.Helpers
                 StringComparison.OrdinalIgnoreCase);
         }
 
-        private static bool VerifyInstallerSignature(string filePath, out string error)
+        // Vérifie l'intégrité de l'installateur en comparant son empreinte SHA-256 à celle
+        // publiée par l'API GitHub (champ "digest" de l'asset, récupéré via TLS sur api.github.com).
+        // En l'absence d'empreinte, la mise à jour est refusée (échec fermé).
+        private static async Task<bool> VerifyInstallerHashAsync(string filePath, string? expectedDigest)
         {
-            error = string.Empty;
-            if (!OperatingSystem.IsWindows())
+            if (string.IsNullOrWhiteSpace(expectedDigest))
             {
-                error = "vérification Authenticode indisponible hors Windows";
+                NaultinusDiagnostics.Log("UpdateChecker", "Empreinte SHA-256 absente des métadonnées GitHub ; mise à jour refusée.");
                 return false;
             }
 
-            var fileInfo = new WinTrustFileInfo(filePath);
-            var data = new WinTrustData(fileInfo);
-            var action = WintrustActionGenericVerifyV2;
+            // Le champ digest de l'API GitHub a la forme "sha256:<hex>".
+            var expected = expectedDigest;
+            var separator = expected.IndexOf(':');
+            if (separator >= 0)
+                expected = expected[(separator + 1)..];
 
-            try
+            string actual;
+            await using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, true))
             {
-                var result = WinVerifyTrust(IntPtr.Zero, ref action, data);
-                if (result == 0)
-                    return true;
+                var hash = await SHA256.HashDataAsync(stream).ConfigureAwait(false);
+                actual = Convert.ToHexString(hash);
+            }
 
-                error = "WinVerifyTrust code 0x" + result.ToString("X8");
-                NaultinusDiagnostics.Log("UpdateChecker", "Signature Authenticode refusée pour " + filePath + " : " + error);
-                return false;
-            }
-            finally
-            {
-                data.Dispose();
-            }
+            if (string.Equals(actual, expected, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            NaultinusDiagnostics.Log("UpdateChecker", "Empreinte SHA-256 incohérente. Attendu=" + expected + " Obtenu=" + actual);
+            return false;
         }
 
         private static void TryDeleteInstaller(string tempInstaller)
@@ -175,70 +180,7 @@ namespace Naultinus.Helpers
                 new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
             return client;
         }
-
-        private static readonly Guid WintrustActionGenericVerifyV2 =
-            new("00AAC56B-CD44-11d0-8CC2-00C04FC295EE");
-
-        [DllImport("wintrust.dll", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
-        private static extern int WinVerifyTrust(
-            IntPtr hwnd,
-            ref Guid pgActionId,
-            [In] WinTrustData pWvtData);
-
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        private sealed class WinTrustFileInfo
-        {
-            public WinTrustFileInfo(string filePath)
-            {
-                CbStruct = (uint)Marshal.SizeOf<WinTrustFileInfo>();
-                PcwszFilePath = filePath;
-            }
-
-            public uint CbStruct;
-            [MarshalAs(UnmanagedType.LPWStr)]
-            public string PcwszFilePath;
-            public IntPtr HFile = IntPtr.Zero;
-            public IntPtr PgKnownSubject = IntPtr.Zero;
-        }
-
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        private sealed class WinTrustData : IDisposable
-        {
-            public WinTrustData(WinTrustFileInfo fileInfo)
-            {
-                CbStruct = (uint)Marshal.SizeOf<WinTrustData>();
-                DwUIChoice = 2; // WTD_UI_NONE
-                FdwRevocationChecks = 1; // WTD_REVOKE_WHOLECHAIN
-                DwUnionChoice = 1; // WTD_CHOICE_FILE
-                DwProvFlags = 0x100; // WTD_REVOCATION_CHECK_CHAIN
-                PFile = Marshal.AllocHGlobal(Marshal.SizeOf<WinTrustFileInfo>());
-                Marshal.StructureToPtr(fileInfo, PFile, false);
-            }
-
-            public uint CbStruct;
-            public IntPtr PPolicyCallbackData = IntPtr.Zero;
-            public IntPtr PSipClientData = IntPtr.Zero;
-            public uint DwUIChoice;
-            public uint FdwRevocationChecks;
-            public uint DwUnionChoice;
-            public IntPtr PFile;
-            public uint DwStateAction;
-            public IntPtr HWvtStateData = IntPtr.Zero;
-            public IntPtr PwszUrlReference = IntPtr.Zero;
-            public uint DwProvFlags;
-            public uint DwUIContext;
-
-            public void Dispose()
-            {
-                if (PFile != IntPtr.Zero)
-                {
-                    Marshal.DestroyStructure<WinTrustFileInfo>(PFile);
-                    Marshal.FreeHGlobal(PFile);
-                    PFile = IntPtr.Zero;
-                }
-            }
-        }
     }
 
-    public record UpdateInfo(string Version, string AssetUrl, string ReleaseNotes);
+    public record UpdateInfo(string Version, string AssetUrl, string ReleaseNotes, string? Sha256);
 }
