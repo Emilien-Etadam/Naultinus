@@ -67,6 +67,7 @@
                         </MenuItem>
                         <Separator />
                         <MenuItem Header="{x:Static properties:Strings.MenuAbout}" Command="{Binding Path=Data.OpenAboutCommand, Source={StaticResource proxy}}" />
+                        <MenuItem Header="{x:Static properties:Strings.MenuCheckForUpdates}" Command="{Binding Path=Data.CheckForUpdatesCommand, Source={StaticResource proxy}}" />
                     </ContextMenu>
                 </Grid.ContextMenu>
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="8,0" VerticalAlignment="Center">

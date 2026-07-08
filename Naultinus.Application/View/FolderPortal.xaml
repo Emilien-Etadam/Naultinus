@@ -75,6 +75,7 @@
                         </MenuItem>
                         <Separator />
                         <MenuItem Header="{x:Static properties:Strings.MenuAbout}" Command="{Binding Path=Data.OpenAboutCommand, Source={StaticResource proxy}}" />
+                        <MenuItem Header="{x:Static properties:Strings.MenuCheckForUpdates}" Command="{Binding Path=Data.CheckForUpdatesCommand, Source={StaticResource proxy}}" />
                     </ContextMenu>
                 </Grid.ContextMenu>
                 <Grid Grid.Row="0" Height="32" Background="{DynamicResource NaultinusWindowBrush}" ColumnDefinitions="Auto,Auto,*,Auto,Auto">

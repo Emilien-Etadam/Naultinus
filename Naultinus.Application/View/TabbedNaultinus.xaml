@@ -523,6 +523,7 @@
                         </MenuItem>
                         <Separator />
                         <MenuItem Header="{x:Static properties:Strings.MenuAbout}" Command="{Binding Path=Data.OpenAboutCommand, Source={StaticResource proxy}}" />
+                        <MenuItem Header="{x:Static properties:Strings.MenuCheckForUpdates}" Command="{Binding Path=Data.CheckForUpdatesCommand, Source={StaticResource proxy}}" />
                     </ContextMenu>
                 </Grid.ContextMenu>
                 <Button Grid.Column="0" x:Name="TitleBarMenuButton" Style="{StaticResource NaultinusNavButton}" Click="TitleBarMenuButton_Click" ToolTip="{x:Static properties:Strings.TooltipMenu}">

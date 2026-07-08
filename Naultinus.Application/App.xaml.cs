@@ -123,8 +123,22 @@ namespace Naultinus
         private static async Task RunAutoUpdateAsync()
         {
             await Task.Delay(TimeSpan.FromSeconds(8));
+            await CheckForUpdatesAsync(announceIfNone: false);
+        }
+
+        // Vérifie les mises à jour et propose l'installation le cas échéant.
+        // announceIfNone = true (vérification manuelle) : informe aussi lorsque tout est déjà à jour.
+        public static async Task CheckForUpdatesAsync(bool announceIfNone)
+        {
             var update = await UpdateChecker.CheckAsync();
-            if (update == null) return;
+            if (update == null)
+            {
+                if (announceIfNone)
+                    Current.Dispatcher.Invoke(() =>
+                        MessageBox.Show(Strings.UpdateNoneAvailable, Strings.UpdateTitle,
+                            MessageBoxButton.OK, MessageBoxImage.Information));
+                return;
+            }
 
             var result = Current.Dispatcher.Invoke(() =>
                 MessageBox.Show(
