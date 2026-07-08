@@ -1,0 +1,39 @@
+<Window x:Class="Naultinus.View.TaskNaultinusSettingsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:properties="clr-namespace:Naultinus.Properties"
+        Title="{x:Static properties:Strings.WindowTitleTaskNaultinusSettings}" Height="350" Width="400" MinHeight="350" MinWidth="400"
+        Background="{DynamicResource NaultinusWindowBrush}"
+        TextElement.Foreground="{DynamicResource NaultinusTextBrush}"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/View/Styles/NaultinusStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Grid Margin="10" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
+
+        <!-- Sync Interval -->
+        <TextBlock Text="{x:Static properties:Strings.LabelSyncIntervalMinutes}" Grid.Row="0" Style="{StaticResource NaultinusDialogLabel}"/>
+        <Slider x:Name="SyncIntervalSlider" Grid.Row="1" Minimum="1" Maximum="60"
+                Value="5" TickFrequency="5" TickPlacement="BottomRight"
+                AutoToolTipPlacement="BottomRight" IsSnapToTickEnabled="True"/>
+
+        <!-- Enable Logging -->
+        <CheckBox x:Name="EnableLoggingCheckBox" Grid.Row="2" Margin="0,15,0,10"
+                 Content="{x:Static properties:Strings.CheckBoxEnableDetailedLogging}" Style="{StaticResource NaultinusDialogCheckBox}"/>
+
+        <!-- Show Completed Tasks -->
+        <CheckBox x:Name="ShowCompletedCheckBox" Grid.Row="3" Margin="0,0,0,10"
+                 Content="{x:Static properties:Strings.CheckBoxShowCompletedTasks}" Style="{StaticResource NaultinusDialogCheckBox}"/>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button Content="{x:Static properties:Strings.ButtonCancel}" Width="80" Margin="0,0,10,0" Style="{StaticResource NaultinusDialogButton}" Click="CancelButton_Click"/>
+            <Button Content="{x:Static properties:Strings.ButtonSave}" Width="80" IsDefault="True" Style="{StaticResource NaultinusDialogButton}" Click="SaveButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

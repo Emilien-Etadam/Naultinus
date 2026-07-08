@@ -1,4 +1,4 @@
-name: Build Palisades (Windows)
+name: Build Naultinus (Windows)
 
 on:
   push:
@@ -20,20 +20,20 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore Palisades.Application/Palisades.Application.csproj
+        run: dotnet restore Naultinus.Application/Naultinus.Application.csproj
 
       - name: Build (Debug)
-        run: dotnet build Palisades.Application/Palisades.Application.csproj -c Debug --no-restore
+        run: dotnet build Naultinus.Application/Naultinus.Application.csproj -c Debug --no-restore
 
       - name: Run tests
-        run: dotnet test Palisades.Tests/Palisades.Tests.csproj -c Debug -v normal --logger "console;verbosity=detailed"
+        run: dotnet test Naultinus.Tests/Naultinus.Tests.csproj -c Debug -v normal --logger "console;verbosity=detailed"
 
       - name: Build (Release)
-        run: dotnet build Palisades.Application/Palisades.Application.csproj -c Release --no-restore
+        run: dotnet build Naultinus.Application/Naultinus.Application.csproj -c Release --no-restore
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Palisades-win-x64
-          path: Palisades.Application/bin/Release/
+          name: Naultinus-win-x64
+          path: Naultinus.Application/bin/Release/
           retention-days: 14

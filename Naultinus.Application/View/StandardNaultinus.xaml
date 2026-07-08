@@ -1,0 +1,170 @@
+<Window x:Class="Naultinus.View.StandardNaultinus"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+        xmlns:helpers="clr-namespace:Naultinus.Helpers"
+        xmlns:viewModel="clr-namespace:Naultinus.ViewModel"
+        xmlns:converters="clr-namespace:Naultinus.Converters"
+        xmlns:dd="clr-namespace:GongSolutions.Wpf.DragDrop;assembly=GongSolutions.Wpf.DragDrop"
+        xmlns:properties="clr-namespace:Naultinus.Properties"
+        helpers:WindowBackdrop.IsEnabled="True"
+        helpers:WindowSinker.AlwaysOnBottom="True"
+        ShowInTaskbar="False"
+        Title="{x:Static properties:Strings.AddTabShortcutNaultinus}"
+        Width="{Binding Width, Mode=TwoWay}"
+        Height="{Binding Height, Mode=TwoWay}"
+        AllowsTransparency="True"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        Background="Transparent"
+        Left="{Binding FenceX, Mode=TwoWay}"
+        Top="{Binding FenceY, Mode=TwoWay}"
+        UseLayoutRounding="True"
+        >
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0" ResizeBorderThickness="5" CornerRadius="0" GlassFrameThickness="0" NonClientFrameEdges="None" UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+    <Window.DataContext>
+        <viewModel:NaultinusViewModel />
+    </Window.DataContext>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/View/Styles/NaultinusStyles.xaml"/>
+                <ResourceDictionary Source="/View/Styles/ThemeResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <converters:PathToImageConverter x:Key="PathToImage" />
+            <converters:MultiValueEqualityConverter x:Key="MultiValueEqualityConverter" />
+            <helpers:BindingProxy x:Key="proxy" Data="{Binding}" />
+        </ResourceDictionary>
+    </Window.Resources>
+    <i:Interaction.Triggers>
+        <i:EventTrigger EventName="PreviewKeyDown">
+            <i:InvokeCommandAction Command="{Binding DelKeyPressedCommand}" PassEventArgsToCommand="True" />
+        </i:EventTrigger>
+    </i:Interaction.Triggers>
+    <Border x:Name="LayoutRoot" CornerRadius="0" ClipToBounds="True">
+        <DockPanel>
+            <Grid DockPanel.Dock="Top" x:Name="Header" Height="32" MouseLeftButtonDown="Header_MouseLeftButtonDown" IsHitTestVisible="True" Background="{DynamicResource NaultinusWindowBrush}" Tag="{Binding DataContext, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" ColumnDefinitions="Auto,*,Auto">
+                <Grid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="{x:Static properties:Strings.MenuEdit}" Command="{Binding Path=Data.EditCommand, Source={StaticResource proxy}}" />
+                        <MenuItem Header="{x:Static properties:Strings.MenuDelete}" Command="{Binding Path=Data.DeleteNaultinusCommand, Source={StaticResource proxy}}" CommandParameter="{Binding Identifier}" />
+                        <Separator />
+                        <MenuItem Header="{x:Static properties:Strings.MenuNewShortcutNaultinus}" Command="{Binding Path=Data.NewNaultinusCommand, Source={StaticResource proxy}}" />
+                        <MenuItem Header="{x:Static properties:Strings.MenuNewBrowseNaultinus}" Command="{Binding Path=Data.NewFolderPortalCommand, Source={StaticResource proxy}}" />
+                        <MenuItem Header="{x:Static properties:Strings.MenuNewTaskNaultinus}" Command="{Binding Path=Data.NewTaskNaultinusCommand, Source={StaticResource proxy}}" />
+                        <MenuItem Header="{x:Static properties:Strings.MenuNewCalendarNaultinus}" Command="{Binding Path=Data.NewCalendarNaultinusCommand, Source={StaticResource proxy}}" />
+                        <MenuItem Header="{x:Static properties:Strings.MenuNewMailNaultinus}" Command="{Binding Path=Data.NewMailNaultinusCommand, Source={StaticResource proxy}}" />
+                        <Separator />
+                        <MenuItem Header="{x:Static properties:Strings.MenuManageZimbraAccounts}" Command="{Binding Path=Data.ManageZimbraAccountsCommand, Source={StaticResource proxy}}" />
+                        <Separator />
+                        <MenuItem Header="{x:Static properties:Strings.MenuLayouts}" SubmenuOpened="LayoutsSubmenu_SubmenuOpened">
+                            <MenuItem Header="{x:Static properties:Strings.MenuSaveCurrentLayout}" Command="{Binding Path=Data.SaveSnapshotCommand, Source={StaticResource proxy}}" />
+                            <Separator />
+                            <MenuItem ItemsSource="{Binding Path=Data.RecentSnapshots, Source={StaticResource proxy}}">
+                                <MenuItem.ItemContainerStyle>
+                                    <Style TargetType="MenuItem" BasedOn="{StaticResource NaultinusMenuItemStyle}">
+                                        <Setter Property="Header" Value="{Binding Name}" />
+                                        <Setter Property="Command" Value="{Binding Path=Data.RestoreSnapshotCommand, Source={StaticResource proxy}}" />
+                                        <Setter Property="CommandParameter" Value="{Binding Id}" />
+                                    </Style>
+                                </MenuItem.ItemContainerStyle>
+                            </MenuItem>
+                            <Separator />
+                            <MenuItem Header="{x:Static properties:Strings.MenuManageLayouts}" Command="{Binding Path=Data.ManageSnapshotsCommand, Source={StaticResource proxy}}" />
+                        </MenuItem>
+                        <Separator />
+                        <MenuItem Header="{x:Static properties:Strings.MenuAbout}" Command="{Binding Path=Data.OpenAboutCommand, Source={StaticResource proxy}}" />
+                    </ContextMenu>
+                </Grid.ContextMenu>
+                <Button Grid.Column="0" Style="{StaticResource NaultinusNavButton}" Click="TitleBarMenuButton_Click" ToolTip="{x:Static properties:Strings.TooltipMenu}">
+                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE700;" FontSize="14" VerticalAlignment="Center"/>
+                </Button>
+                <TextBlock Grid.Column="1" Text="{Binding Name, Mode=OneWay}" Margin="8,0" Style="{StaticResource NaultinusHeaderText}" HorizontalAlignment="Center"/>
+                <Button Grid.Column="2" Style="{StaticResource NaultinusNavButton}" Click="AddFolderPortalTab_Click" ToolTip="{x:Static properties:Strings.TooltipAddTabBrowseSameGroup}">
+                    <TextBlock Text="+" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource NaultinusTextBrush}" VerticalAlignment="Center"/>
+                </Button>
+            </Grid>
+            <Border x:Name="drag" CornerRadius="0" Background="{DynamicResource NaultinusControlBrush}" AllowDrop="True" Drop="OnExternalFileDrop" DragOver="OnExternalFileDragOver">
+                <Border.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="{x:Static properties:Strings.MenuPaste}" Command="{Binding PasteShortcutCommand}"/>
+                        <MenuItem Header="{x:Static properties:Strings.MenuSortByName}" Command="{Binding SortByNameCommand}"/>
+                        <Separator/>
+                        <MenuItem Header="{x:Static properties:Strings.MenuNewShortcutNaultinus}" Command="{Binding NewNaultinusCommand}"/>
+                        <MenuItem Header="{x:Static properties:Strings.MenuNewBrowseNaultinus}" Command="{Binding NewFolderPortalCommand}"/>
+                        <MenuItem Header="{x:Static properties:Strings.MenuNewTaskNaultinus}" Command="{Binding NewTaskNaultinusCommand}"/>
+                        <MenuItem Header="{x:Static properties:Strings.MenuNewCalendarNaultinus}" Command="{Binding NewCalendarNaultinusCommand}"/>
+                        <MenuItem Header="{x:Static properties:Strings.MenuNewMailNaultinus}" Command="{Binding NewMailNaultinusCommand}"/>
+                    </ContextMenu>
+                </Border.ContextMenu>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding Shortcuts}" Margin="20"
+              VirtualizingPanel.IsVirtualizing="True"
+              VirtualizingPanel.VirtualizationMode="Recycling"
+              dd:DragDrop.IsDragSource="True"
+              dd:DragDrop.IsDropTarget="True"
+              dd:DragDrop.DropHandler="{Binding}"
+              dd:DragDrop.DragHandler="{Binding}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <ContentControl>
+                                    <i:Interaction.Triggers>
+                                        <i:EventTrigger EventName="MouseDoubleClick" >
+                                            <i:LaunchUriOrFileAction Path="{Binding UriOrFileAction}" />
+                                        </i:EventTrigger>
+                                        <i:EventTrigger EventName="MouseDown" >
+                                            <i:InvokeCommandAction Command="{Binding Path=Data.ClickShortcutCommand, Source={StaticResource proxy}}" CommandParameter="{Binding}" />
+                                        </i:EventTrigger>
+                                    </i:Interaction.Triggers>
+                                    <Border Margin="0,10" CornerRadius="4" Width="100">
+                                        <Border.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="{x:Static properties:Strings.MenuDelete}"
+                                                          Command="{Binding Path=Data.RemoveSelectedShortcutCommand, Source={StaticResource proxy}}"
+                                                          CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                            </ContextMenu>
+                                        </Border.ContextMenu>
+                                        <Border.Style>
+                                            <Style>
+                                                <Style.Triggers>
+                                                    <Trigger Property="Border.IsMouseOver" Value="True" >
+                                                        <Setter Property="Border.Background" Value="{DynamicResource NaultinusCardHoverBrush}" />
+                                                    </Trigger>
+                                                    <DataTrigger Value="True">
+                                                        <DataTrigger.Binding>
+                                                            <MultiBinding Converter="{StaticResource MultiValueEqualityConverter}">
+                                                                <Binding Mode="OneWay" />
+                                                                <Binding Path="Data.SelectedShortcut" Source="{StaticResource proxy}" Mode="OneWay" />
+                                                            </MultiBinding>
+                                                        </DataTrigger.Binding>
+                                                        <Setter Property="Border.Background" Value="{DynamicResource NaultinusCardHoverBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel VerticalAlignment="Top" HorizontalAlignment="Center" Cursor="Hand">
+                                            <Image
+                                                Source="{Binding IconPath, Converter={StaticResource PathToImage}}"
+                                                Width="48"
+                                                Height="48"
+                                                Stretch="UniformToFill" Margin="5"
+                                            />
+                                            <TextBlock TextWrapping="NoWrap" TextAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding Name, Mode=OneWay}" Foreground="{DynamicResource NaultinusTextBrush}" HorizontalAlignment="Center" Margin="5,0,5,5" />
+                                        </StackPanel>
+                                    </Border>
+                                </ContentControl>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+        </DockPanel>
+    </Border>
+</Window>
