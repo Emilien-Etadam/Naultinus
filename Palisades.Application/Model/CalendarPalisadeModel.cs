@@ -25,13 +25,17 @@ namespace Palisades.Model
         [XmlIgnore]
         public Dictionary<string, string> CalendarColors { get; set; } = new Dictionary<string, string>();
 
+        // Type tableau (et non List) : sur une propriété collection dont le getter renvoie une
+        // collection recalculée, XmlSerializer remplit la List du getter en place au lieu d'appeler
+        // le setter — le dictionnaire n'était alors jamais reconstruit à la désérialisation. Avec un
+        // tableau, XmlSerializer crée un nouvel objet et appelle bien le setter.
         [XmlArray("CalendarColors")]
         [XmlArrayItem("Entry")]
-        public List<CalendarColorEntry> CalendarColorsList
+        public CalendarColorEntry[] CalendarColorsList
         {
             get => CalendarColors
                 .Select(pair => new CalendarColorEntry { CalendarId = pair.Key, Color = pair.Value })
-                .ToList();
+                .ToArray();
             set
             {
                 CalendarColors = new Dictionary<string, string>();
