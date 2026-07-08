@@ -1,3 +1,4 @@
+using Palisades.Helpers;
 using Palisades.Model;
 using Palisades.Properties;
 using Palisades.Services;
@@ -20,22 +21,40 @@ namespace Palisades.View
         public int PollIntervalMinutes { get; set; } = 3;
         public List<string> SelectedFolders { get; private set; } = new List<string>();
         public string? WebmailUrl { get; set; }
+        public Guid? SelectedZimbraAccountId => ZimbraAccountPickerHelper.GetSelectedAccountId(ZimbraAccountCombo);
 
-        public CreateMailPalisadeDialog()
+        public CreateMailPalisadeDialog() : this(null) { }
+
+        public CreateMailPalisadeDialog(Guid? preselectedZimbraAccountId)
         {
             InitializeComponent();
             DataContext = this;
+            ZimbraAccountPickerHelper.InitializeComboBox(ZimbraAccountCombo, preselectedZimbraAccountId);
+            ApplyZimbraAccountSelection();
+        }
+
+        private void ZimbraAccountCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) =>
+            ApplyZimbraAccountSelection();
+
+        private void ApplyZimbraAccountSelection()
+        {
+            ZimbraAccountPickerHelper.ApplyMailSelection(ZimbraAccountCombo, ImapHostTextBox, UsernameTextBox, PasswordBox);
+            ImapHost = ImapHostTextBox.Text;
+            Username = UsernameTextBox.Text;
+            Password = string.Empty;
         }
 
         private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
         {
-            if (sender is PasswordBox pb)
+            if (sender is PasswordBox pb && ZimbraAccountPickerHelper.GetSelectedAccount(ZimbraAccountCombo) == null)
                 Password = pb.Password;
         }
 
         private async void TestButton_Click(object sender, RoutedEventArgs e)
         {
-            Password = PasswordBox.Password;
+            ImapHost = ImapHostTextBox.Text?.Trim() ?? "";
+            Username = UsernameTextBox.Text?.Trim() ?? "";
+            Password = ZimbraAccountPickerHelper.GetDiscoveryPassword(ZimbraAccountCombo, PasswordBox);
             if (string.IsNullOrWhiteSpace(ImapHost) || string.IsNullOrWhiteSpace(Username))
             {
                 MessageBox.Show(Strings.MailEnterHostUser, Strings.MailTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -62,9 +81,11 @@ namespace Palisades.View
 
         private void CreateButton_Click(object sender, RoutedEventArgs e)
         {
-            Password = PasswordBox.Password;
+            if (ZimbraAccountPickerHelper.GetSelectedAccount(ZimbraAccountCombo) == null)
+                Password = PasswordBox.Password;
+            else
+                Password = string.Empty;
 
-            // Lire manuellement tous les champs pour garantir les valeurs même si les bindings WPF ont échoué
             PalisadeTitle = PalisadeTitleTextBox.Text;
             ImapHost = ImapHostTextBox.Text;
             Username = UsernameTextBox.Text;

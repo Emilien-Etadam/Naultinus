@@ -676,4 +676,13 @@
   <data name="ZimbraAccountsSectionTitle" xml:space="preserve">
     <value>Zimbra accounts (CalDAV / Mail)</value>
   </data>
+  <data name="LabelZimbraAccount" xml:space="preserve">
+    <value>Zimbra account</value>
+  </data>
+  <data name="ZimbraManualEntry" xml:space="preserve">
+    <value>— manual entry —</value>
+  </data>
+  <data name="ButtonCreatePalisade" xml:space="preserve">
+    <value>Create palisade…</value>
+  </data>
 </root>

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Palisades.Helpers;
 using Palisades.Model;
 using Palisades.Properties;
 using Palisades.Services;
@@ -18,24 +19,42 @@ namespace Palisades.View
         public List<string> SelectedCalendarIds { get; private set; } = new List<string>();
         public CalendarViewMode ViewMode { get; set; } = CalendarViewMode.Agenda;
         public int DaysToShow { get; set; } = 7;
+        public Guid? SelectedZimbraAccountId => ZimbraAccountPickerHelper.GetSelectedAccountId(ZimbraAccountCombo);
 
         private List<CalDAVCalendarInfo>? _calendarList;
 
-        public CreateCalendarPalisadeDialog()
+        public CreateCalendarPalisadeDialog() : this(null) { }
+
+        public CreateCalendarPalisadeDialog(Guid? preselectedZimbraAccountId)
         {
             InitializeComponent();
             DataContext = this;
+            ZimbraAccountPickerHelper.InitializeComboBox(ZimbraAccountCombo, preselectedZimbraAccountId);
+            ApplyZimbraAccountSelection();
+        }
+
+        private void ZimbraAccountCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) =>
+            ApplyZimbraAccountSelection();
+
+        private void ApplyZimbraAccountSelection()
+        {
+            ZimbraAccountPickerHelper.ApplyCalDavSelection(ZimbraAccountCombo, CalDAVUrlTextBox, UsernameTextBox, PasswordBox);
+            CalDAVUrl = CalDAVUrlTextBox.Text;
+            Username = UsernameTextBox.Text;
+            Password = string.Empty;
         }
 
         private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
         {
-            if (sender is PasswordBox pb)
+            if (sender is PasswordBox pb && ZimbraAccountPickerHelper.GetSelectedAccount(ZimbraAccountCombo) == null)
                 Password = pb.Password;
         }
 
         private async void LoadCalendarsButton_Click(object sender, RoutedEventArgs e)
         {
-            Password = PasswordBox.Password;
+            CalDAVUrl = CalDAVUrlTextBox.Text?.Trim() ?? "";
+            Username = UsernameTextBox.Text?.Trim() ?? "";
+            Password = ZimbraAccountPickerHelper.GetDiscoveryPassword(ZimbraAccountCombo, PasswordBox);
             if (string.IsNullOrWhiteSpace(CalDAVUrl) || string.IsNullOrWhiteSpace(Username))
             {
                 MessageBox.Show(Strings.CaldavEnterUrlUser, Strings.CalendarTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -64,11 +83,17 @@ namespace Palisades.View
 
         private void CreateButton_Click(object sender, RoutedEventArgs e)
         {
-            Password = PasswordBox.Password;
+            if (ZimbraAccountPickerHelper.GetSelectedAccount(ZimbraAccountCombo) == null)
+                Password = PasswordBox.Password;
+            else
+                Password = string.Empty;
+
             if (CalendarsListBox.SelectedItems.Count > 0)
                 SelectedCalendarIds = CalendarsListBox.SelectedItems.Cast<CalDAVCalendarInfo>().Select(c => c.Href).ToList();
             var url = CalDAVUrlTextBox.Text?.Trim() ?? "";
             var user = UsernameTextBox.Text?.Trim() ?? "";
+            CalDAVUrl = url;
+            Username = user;
             if (string.IsNullOrWhiteSpace(url))
             {
                 MessageBox.Show(Strings.CaldavEnterBaseUrl, Strings.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);

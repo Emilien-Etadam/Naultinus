@@ -1118,5 +1118,20 @@
     "key": "ZimbraAccountsSectionTitle",
     "fr": "Comptes Zimbra (CalDAV / Courriel)",
     "en": "Zimbra accounts (CalDAV / Mail)"
+  },
+  {
+    "key": "LabelZimbraAccount",
+    "fr": "Compte Zimbra",
+    "en": "Zimbra account"
+  },
+  {
+    "key": "ZimbraManualEntry",
+    "fr": "— saisie manuelle —",
+    "en": "— manual entry —"
+  },
+  {
+    "key": "ButtonCreatePalisade",
+    "fr": "Créer une palisade…",
+    "en": "Create palisade…"
   }
 ]

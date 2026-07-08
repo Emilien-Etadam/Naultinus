@@ -14,27 +14,29 @@
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Window.Resources>
-    <Grid Margin="12" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,*,Auto">
-        <TextBlock Text="{x:Static properties:Strings.LabelTitle}" Grid.Row="0" Style="{StaticResource PalisadeDialogLabel}"/>
-        <TextBox x:Name="PalisadeTitleTextBox" Grid.Row="1" Margin="0,0,0,10" Style="{StaticResource PalisadeDialogTextBox}" Text="{x:Static properties:Strings.DefaultTaskPalisadeTitle}"/>
+    <Grid Margin="12" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,*,Auto">
+        <TextBlock Text="{x:Static properties:Strings.LabelZimbraAccount}" Grid.Row="0" Style="{StaticResource PalisadeDialogLabel}"/>
+        <ComboBox x:Name="ZimbraAccountCombo" Grid.Row="1" Margin="0,0,0,10" Style="{StaticResource PalisadeDialogComboBox}" SelectionChanged="ZimbraAccountCombo_SelectionChanged"/>
+        <TextBlock Text="{x:Static properties:Strings.LabelTitle}" Grid.Row="2" Style="{StaticResource PalisadeDialogLabel}"/>
+        <TextBox x:Name="PalisadeTitleTextBox" Grid.Row="3" Margin="0,0,0,10" Style="{StaticResource PalisadeDialogTextBox}" Text="{x:Static properties:Strings.DefaultTaskPalisadeTitle}"/>
 
-        <TextBlock Text="{x:Static properties:Strings.LabelCaldavServerUrl}" Grid.Row="2" Style="{StaticResource PalisadeDialogLabel}"/>
-        <TextBox x:Name="CalDAVUrlTextBox" Grid.Row="3" Margin="0,0,0,10" Style="{StaticResource PalisadeDialogTextBox}"
+        <TextBlock Text="{x:Static properties:Strings.LabelCaldavServerUrl}" Grid.Row="4" Style="{StaticResource PalisadeDialogLabel}"/>
+        <TextBox x:Name="CalDAVUrlTextBox" Grid.Row="5" Margin="0,0,0,10" Style="{StaticResource PalisadeDialogTextBox}"
                  ToolTip="{x:Static properties:Strings.TooltipCalDAVUrlExampleZimbra}"/>
 
-        <TextBlock Text="{x:Static properties:Strings.LabelUsername}" Grid.Row="4" Style="{StaticResource PalisadeDialogLabel}"/>
-        <TextBox x:Name="UsernameTextBox" Grid.Row="5" Margin="0,0,0,10" Style="{StaticResource PalisadeDialogTextBox}"/>
+        <TextBlock Text="{x:Static properties:Strings.LabelUsername}" Grid.Row="6" Style="{StaticResource PalisadeDialogLabel}"/>
+        <TextBox x:Name="UsernameTextBox" Grid.Row="7" Margin="0,0,0,10" Style="{StaticResource PalisadeDialogTextBox}"/>
 
-        <TextBlock Text="{x:Static properties:Strings.LabelPassword}" Grid.Row="6" Style="{StaticResource PalisadeDialogLabel}"/>
-        <PasswordBox x:Name="PasswordBox" Grid.Row="7" Margin="0,0,0,10" Style="{StaticResource PalisadeDialogPasswordBox}"/>
+        <TextBlock Text="{x:Static properties:Strings.LabelPassword}" Grid.Row="8" Style="{StaticResource PalisadeDialogLabel}"/>
+        <PasswordBox x:Name="PasswordBox" Grid.Row="9" Margin="0,0,0,10" Style="{StaticResource PalisadeDialogPasswordBox}"/>
 
-        <Button x:Name="LoadListsButton" Content="{x:Static properties:Strings.ButtonLoadTaskLists}" Grid.Row="8"
+        <Button x:Name="LoadListsButton" Content="{x:Static properties:Strings.ButtonLoadTaskLists}" Grid.Row="10"
                 VerticalAlignment="Top" HorizontalAlignment="Left"
                 Margin="0,0,0,8" Style="{StaticResource PalisadeDialogButton}" Click="LoadListsButton_Click"/>
-        <ListBox x:Name="TaskListsListBox" Grid.Row="8" Margin="0,36,0,0" Style="{StaticResource PalisadeDialogListBox}"
+        <ListBox x:Name="TaskListsListBox" Grid.Row="10" Margin="0,36,0,0" Style="{StaticResource PalisadeDialogListBox}"
                  SelectionMode="Multiple" DisplayMemberPath="DisplayName"/>
 
-        <StackPanel Grid.Row="9" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+        <StackPanel Grid.Row="11" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
             <Button Content="{x:Static properties:Strings.ButtonCancel}" Width="80" Margin="0,0,10,0" Style="{StaticResource PalisadeDialogButton}" Click="CancelButton_Click"/>
             <Button Content="{x:Static properties:Strings.ButtonCreate}" Width="80" IsDefault="True" Style="{StaticResource PalisadeDialogButton}" Click="CreateButton_Click"/>
         </StackPanel>

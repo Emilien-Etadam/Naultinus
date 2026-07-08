@@ -69,19 +69,19 @@ namespace Palisades.View
             {
                 var d = new CreateTaskPalisadeDialog();
                 if (d.ShowDialog() == true)
-                    PalisadesManager.CreateTaskPalisade(d.CalDAVUrl, d.Username, d.Password, d.SelectedTaskListIds, d.PalisadeTitle, x, y, w, h);
+                    PalisadesManager.CreateTaskPalisade(d.CalDAVUrl, d.Username, d.Password, d.SelectedTaskListIds, d.PalisadeTitle, x, y, w, h, zimbraAccountId: d.SelectedZimbraAccountId);
             });
             AddItem(Strings.DesktopCalendarPalisade, (x, y, w, h) =>
             {
                 var d = new CreateCalendarPalisadeDialog();
                 if (d.ShowDialog() == true)
-                    PalisadesManager.CreateCalendarPalisade(d.CalDAVUrl, d.Username, d.Password, d.SelectedCalendarIds, d.PalisadeTitle, d.ViewMode, d.DaysToShow, x, y, w, h);
+                    PalisadesManager.CreateCalendarPalisade(d.CalDAVUrl, d.Username, d.Password, d.SelectedCalendarIds, d.PalisadeTitle, d.ViewMode, d.DaysToShow, x, y, w, h, zimbraAccountId: d.SelectedZimbraAccountId);
             });
             AddItem(Strings.DesktopMailPalisade, (x, y, w, h) =>
             {
                 var d = new CreateMailPalisadeDialog();
                 if (d.ShowDialog() == true)
-                    PalisadesManager.CreateMailPalisade(d.ImapHost, d.ImapPort, d.Username, d.Password, d.SelectedFolders, d.PalisadeTitle, d.DisplayMode, d.PollIntervalMinutes, d.WebmailUrl, x, y, w, h);
+                    PalisadesManager.CreateMailPalisade(d.ImapHost, d.ImapPort, d.Username, d.Password, d.SelectedFolders, d.PalisadeTitle, d.DisplayMode, d.PollIntervalMinutes, d.WebmailUrl, x, y, w, h, zimbraAccountId: d.SelectedZimbraAccountId);
             });
         }
 

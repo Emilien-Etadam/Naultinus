@@ -2,6 +2,7 @@ using Palisades.Properties;
 using Palisades.Helpers;
 using Palisades.Model;
 using Palisades.Services;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -37,6 +38,7 @@ namespace Palisades.View
             var hasSelection = AccountsListBox.SelectedItem != null;
             EditButton.IsEnabled = hasSelection;
             TestButton.IsEnabled = hasSelection;
+            CreatePalisadeButton.IsEnabled = hasSelection;
             DeleteButton.IsEnabled = hasSelection;
         }
 
@@ -97,6 +99,30 @@ namespace Palisades.View
             SaveAccounts();
             AccountsListBox.ItemsSource = null;
             AccountsListBox.ItemsSource = _accounts;
+        }
+
+        private void CreatePalisadeButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (AccountsListBox.SelectedItem is not ZimbraAccount acc) return;
+
+            var menu = new ContextMenu();
+            menu.Items.Add(CreatePalisadeMenuItem(Strings.MenuNewCalendarPalisade, () =>
+                PalisadesManager.ShowCreateCalendarPalisadeDialog(preselectedZimbraAccountId: acc.Id)));
+            menu.Items.Add(CreatePalisadeMenuItem(Strings.MenuNewMailPalisade, () =>
+                PalisadesManager.ShowCreateMailPalisadeDialog(preselectedZimbraAccountId: acc.Id)));
+            menu.Items.Add(CreatePalisadeMenuItem(Strings.MenuNewTaskPalisade, () =>
+                PalisadesManager.ShowCreateTaskPalisadeDialog(preselectedZimbraAccountId: acc.Id)));
+
+            if (sender is Button btn)
+                menu.PlacementTarget = btn;
+            menu.IsOpen = true;
+        }
+
+        private static MenuItem CreatePalisadeMenuItem(string header, Action action)
+        {
+            var item = new MenuItem { Header = header };
+            item.Click += (_, _) => action();
+            return item;
         }
 
         private void DeleteButton_Click(object sender, RoutedEventArgs e)

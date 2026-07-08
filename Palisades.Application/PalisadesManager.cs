@@ -232,7 +232,8 @@ namespace Palisades
                 (dialog, existing) => PalisadeFactory.CreateTaskViewModel(
                     dialog.CalDAVUrl, dialog.Username, dialog.Password,
                     dialog.SelectedTaskListIds ?? new List<string>(), dialog.PalisadeTitle,
-                    existing.FenceX, existing.FenceY, existing.Width, existing.Height));
+                    existing.FenceX, existing.FenceY, existing.Width, existing.Height,
+                    dialog.SelectedZimbraAccountId));
 
         private static void AddTabCalendarPalisade(Window hostWindow) =>
             AddTabWithDialog<CreateCalendarPalisadeDialog>(hostWindow,
@@ -240,7 +241,8 @@ namespace Palisades
                 (dialog, existing) => PalisadeFactory.CreateCalendarViewModel(
                     dialog.CalDAVUrl, dialog.Username, dialog.Password, dialog.SelectedCalendarIds,
                     dialog.PalisadeTitle, dialog.ViewMode, dialog.DaysToShow,
-                    existing.FenceX, existing.FenceY, existing.Width, existing.Height));
+                    existing.FenceX, existing.FenceY, existing.Width, existing.Height,
+                    dialog.SelectedZimbraAccountId));
 
         private static void AddTabMailPalisade(Window hostWindow) =>
             AddTabWithDialog<CreateMailPalisadeDialog>(hostWindow,
@@ -248,7 +250,8 @@ namespace Palisades
                 (dialog, existing) => PalisadeFactory.CreateMailViewModel(
                     dialog.ImapHost, dialog.ImapPort, dialog.Username, dialog.Password, dialog.SelectedFolders,
                     dialog.PalisadeTitle, dialog.DisplayMode, dialog.PollIntervalMinutes, dialog.WebmailUrl,
-                    existing.FenceX, existing.FenceY, existing.Width, existing.Height));
+                    existing.FenceX, existing.FenceY, existing.Width, existing.Height,
+                    dialog.SelectedZimbraAccountId));
 
         private static void MergeStandaloneIntoTabbedWithNewMember(Window hostWindow, IPalisadeViewModel existing, IPalisadeViewModel vmNew)
         {
@@ -293,9 +296,9 @@ namespace Palisades
             }
         }
 
-        public static void CreateTaskPalisade(string caldavUrl, string username, string password, List<string> taskListIds, string title, int? x = null, int? y = null, int? width = null, int? height = null, string? groupId = null, TabbedPalisade? tabbedWindow = null)
+        public static void CreateTaskPalisade(string caldavUrl, string username, string password, List<string> taskListIds, string title, int? x = null, int? y = null, int? width = null, int? height = null, string? groupId = null, TabbedPalisade? tabbedWindow = null, Guid? zimbraAccountId = null)
         {
-            RegisterViewModelInGroup(PalisadeFactory.CreateTaskViewModel(caldavUrl, username, password, taskListIds, title, x, y, width, height), groupId, tabbedWindow);
+            RegisterViewModelInGroup(PalisadeFactory.CreateTaskViewModel(caldavUrl, username, password, taskListIds, title, x, y, width, height, zimbraAccountId), groupId, tabbedWindow);
         }
 
         public static void ShowCreateFolderPortalDialog()
@@ -307,48 +310,48 @@ namespace Palisades
             }
         }
 
-        public static void ShowCreateTaskPalisadeDialog(PalisadeGroup? intoGroup = null, TabbedPalisade? tabbedWindow = null)
+        public static void ShowCreateTaskPalisadeDialog(PalisadeGroup? intoGroup = null, TabbedPalisade? tabbedWindow = null, Guid? preselectedZimbraAccountId = null)
         {
-            var dialog = new CreateTaskPalisadeDialog();
+            var dialog = new CreateTaskPalisadeDialog(preselectedZimbraAccountId);
             SetOwnerSafe(dialog, tabbedWindow ?? Application.Current.MainWindow);
             if (dialog.ShowDialog() != true) return;
             var listIds = dialog.SelectedTaskListIds ?? new List<string>();
             if (intoGroup != null && tabbedWindow != null)
-                CreateTaskPalisade(dialog.CalDAVUrl, dialog.Username, dialog.Password, listIds, dialog.PalisadeTitle, intoGroup.X, intoGroup.Y, intoGroup.Width, intoGroup.Height, intoGroup.GroupId, tabbedWindow);
+                CreateTaskPalisade(dialog.CalDAVUrl, dialog.Username, dialog.Password, listIds, dialog.PalisadeTitle, intoGroup.X, intoGroup.Y, intoGroup.Width, intoGroup.Height, intoGroup.GroupId, tabbedWindow, dialog.SelectedZimbraAccountId);
             else
-                CreateTaskPalisade(dialog.CalDAVUrl, dialog.Username, dialog.Password, listIds, dialog.PalisadeTitle);
+                CreateTaskPalisade(dialog.CalDAVUrl, dialog.Username, dialog.Password, listIds, dialog.PalisadeTitle, zimbraAccountId: dialog.SelectedZimbraAccountId);
         }
 
-        public static void CreateCalendarPalisade(string caldavUrl, string username, string password, List<string> calendarIds, string title, CalendarViewMode viewMode, int daysToShow, int? x = null, int? y = null, int? width = null, int? height = null, string? groupId = null, TabbedPalisade? tabbedWindow = null)
+        public static void CreateCalendarPalisade(string caldavUrl, string username, string password, List<string> calendarIds, string title, CalendarViewMode viewMode, int daysToShow, int? x = null, int? y = null, int? width = null, int? height = null, string? groupId = null, TabbedPalisade? tabbedWindow = null, Guid? zimbraAccountId = null)
         {
-            RegisterViewModelInGroup(PalisadeFactory.CreateCalendarViewModel(caldavUrl, username, password, calendarIds, title, viewMode, daysToShow, x, y, width, height), groupId, tabbedWindow);
+            RegisterViewModelInGroup(PalisadeFactory.CreateCalendarViewModel(caldavUrl, username, password, calendarIds, title, viewMode, daysToShow, x, y, width, height, zimbraAccountId), groupId, tabbedWindow);
         }
 
-        public static void ShowCreateCalendarPalisadeDialog(PalisadeGroup? intoGroup = null, TabbedPalisade? tabbedWindow = null)
+        public static void ShowCreateCalendarPalisadeDialog(PalisadeGroup? intoGroup = null, TabbedPalisade? tabbedWindow = null, Guid? preselectedZimbraAccountId = null)
         {
-            var dialog = new CreateCalendarPalisadeDialog();
+            var dialog = new CreateCalendarPalisadeDialog(preselectedZimbraAccountId);
             SetOwnerSafe(dialog, tabbedWindow ?? Application.Current.MainWindow);
             if (dialog.ShowDialog() != true) return;
             if (intoGroup != null && tabbedWindow != null)
-                CreateCalendarPalisade(dialog.CalDAVUrl, dialog.Username, dialog.Password, dialog.SelectedCalendarIds, dialog.PalisadeTitle, dialog.ViewMode, dialog.DaysToShow, intoGroup.X, intoGroup.Y, intoGroup.Width, intoGroup.Height, intoGroup.GroupId, tabbedWindow);
+                CreateCalendarPalisade(dialog.CalDAVUrl, dialog.Username, dialog.Password, dialog.SelectedCalendarIds, dialog.PalisadeTitle, dialog.ViewMode, dialog.DaysToShow, intoGroup.X, intoGroup.Y, intoGroup.Width, intoGroup.Height, intoGroup.GroupId, tabbedWindow, dialog.SelectedZimbraAccountId);
             else
-                CreateCalendarPalisade(dialog.CalDAVUrl, dialog.Username, dialog.Password, dialog.SelectedCalendarIds, dialog.PalisadeTitle, dialog.ViewMode, dialog.DaysToShow);
+                CreateCalendarPalisade(dialog.CalDAVUrl, dialog.Username, dialog.Password, dialog.SelectedCalendarIds, dialog.PalisadeTitle, dialog.ViewMode, dialog.DaysToShow, zimbraAccountId: dialog.SelectedZimbraAccountId);
         }
 
-        public static void CreateMailPalisade(string imapHost, int imapPort, string username, string password, List<string> monitoredFolders, string title, MailDisplayMode displayMode, int pollIntervalMinutes, string? webmailUrl = null, int? x = null, int? y = null, int? width = null, int? height = null, string? groupId = null, TabbedPalisade? tabbedWindow = null)
+        public static void CreateMailPalisade(string imapHost, int imapPort, string username, string password, List<string> monitoredFolders, string title, MailDisplayMode displayMode, int pollIntervalMinutes, string? webmailUrl = null, int? x = null, int? y = null, int? width = null, int? height = null, string? groupId = null, TabbedPalisade? tabbedWindow = null, Guid? zimbraAccountId = null)
         {
-            RegisterViewModelInGroup(PalisadeFactory.CreateMailViewModel(imapHost, imapPort, username, password, monitoredFolders, title, displayMode, pollIntervalMinutes, webmailUrl, x, y, width, height), groupId, tabbedWindow);
+            RegisterViewModelInGroup(PalisadeFactory.CreateMailViewModel(imapHost, imapPort, username, password, monitoredFolders, title, displayMode, pollIntervalMinutes, webmailUrl, x, y, width, height, zimbraAccountId), groupId, tabbedWindow);
         }
 
-        public static void ShowCreateMailPalisadeDialog(PalisadeGroup? intoGroup = null, TabbedPalisade? tabbedWindow = null)
+        public static void ShowCreateMailPalisadeDialog(PalisadeGroup? intoGroup = null, TabbedPalisade? tabbedWindow = null, Guid? preselectedZimbraAccountId = null)
         {
-            var dialog = new CreateMailPalisadeDialog();
+            var dialog = new CreateMailPalisadeDialog(preselectedZimbraAccountId);
             SetOwnerSafe(dialog, tabbedWindow ?? Application.Current.MainWindow);
             if (dialog.ShowDialog() != true) return;
             if (intoGroup != null && tabbedWindow != null)
-                CreateMailPalisade(dialog.ImapHost, dialog.ImapPort, dialog.Username, dialog.Password, dialog.SelectedFolders, dialog.PalisadeTitle, dialog.DisplayMode, dialog.PollIntervalMinutes, dialog.WebmailUrl, intoGroup.X, intoGroup.Y, intoGroup.Width, intoGroup.Height, intoGroup.GroupId, tabbedWindow);
+                CreateMailPalisade(dialog.ImapHost, dialog.ImapPort, dialog.Username, dialog.Password, dialog.SelectedFolders, dialog.PalisadeTitle, dialog.DisplayMode, dialog.PollIntervalMinutes, dialog.WebmailUrl, intoGroup.X, intoGroup.Y, intoGroup.Width, intoGroup.Height, intoGroup.GroupId, tabbedWindow, dialog.SelectedZimbraAccountId);
             else
-                CreateMailPalisade(dialog.ImapHost, dialog.ImapPort, dialog.Username, dialog.Password, dialog.SelectedFolders, dialog.PalisadeTitle, dialog.DisplayMode, dialog.PollIntervalMinutes, dialog.WebmailUrl);
+                CreateMailPalisade(dialog.ImapHost, dialog.ImapPort, dialog.Username, dialog.Password, dialog.SelectedFolders, dialog.PalisadeTitle, dialog.DisplayMode, dialog.PollIntervalMinutes, dialog.WebmailUrl, zimbraAccountId: dialog.SelectedZimbraAccountId);
         }
 
         public static void DeletePalisade(string identifier)

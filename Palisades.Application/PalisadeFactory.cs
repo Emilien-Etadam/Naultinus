@@ -65,7 +65,7 @@ namespace Palisades
             model.Height = height ?? defH;
         }
 
-        public static TaskPalisadeViewModel CreateTaskViewModel(string caldavUrl, string username, string password, List<string> taskListIds, string title, int? x, int? y, int? width, int? height)
+        public static TaskPalisadeViewModel CreateTaskViewModel(string caldavUrl, string username, string password, List<string> taskListIds, string title, int? x, int? y, int? width, int? height, Guid? zimbraAccountId = null)
         {
             taskListIds = taskListIds ?? new List<string>();
             var model = new TaskPalisadeModel
@@ -73,35 +73,39 @@ namespace Palisades
                 Name = title,
                 CalDAVUrl = caldavUrl,
                 CalDAVUsername = username,
-                CalDAVPassword = CredentialEncryptor.Encrypt(password),
+                CalDAVPassword = zimbraAccountId.HasValue ? string.Empty : CredentialEncryptor.Encrypt(password),
+                ZimbraAccountId = zimbraAccountId,
                 TaskListIds = taskListIds,
                 TaskListId = taskListIds.Count > 0 ? taskListIds[0] : string.Empty,
             };
             ApplySize(model, x, y, width, height, 600, 400);
-            var client = new CalDAVClient(caldavUrl, username, password);
+            var (url, user, pass) = ResolveCalDAVCredentials(zimbraAccountId, caldavUrl, username, model.CalDAVPassword);
+            var client = new CalDAVClient(url, user, pass);
             var caldavService = new CalDAVService(client);
             return new TaskPalisadeViewModel(model, caldavService);
         }
 
-        public static CalendarPalisadeViewModel CreateCalendarViewModel(string caldavUrl, string username, string password, List<string> calendarIds, string title, CalendarViewMode viewMode, int daysToShow, int? x, int? y, int? width, int? height)
+        public static CalendarPalisadeViewModel CreateCalendarViewModel(string caldavUrl, string username, string password, List<string> calendarIds, string title, CalendarViewMode viewMode, int daysToShow, int? x, int? y, int? width, int? height, Guid? zimbraAccountId = null)
         {
             var model = new CalendarPalisadeModel
             {
                 Name = title,
                 CalDAVBaseUrl = caldavUrl,
                 CalDAVUsername = username,
-                CalDAVPassword = CredentialEncryptor.Encrypt(password),
+                CalDAVPassword = zimbraAccountId.HasValue ? string.Empty : CredentialEncryptor.Encrypt(password),
+                ZimbraAccountId = zimbraAccountId,
                 CalendarIds = calendarIds ?? new List<string>(),
                 ViewMode = viewMode,
                 DaysToShow = daysToShow,
             };
             ApplySize(model, x, y, width, height, 500, 400);
-            var client = new CalDAVClient(caldavUrl, username, password);
+            var (url, user, pass) = ResolveCalDAVCredentials(zimbraAccountId, caldavUrl, username, model.CalDAVPassword);
+            var client = new CalDAVClient(url, user, pass);
             var calendarService = new CalendarCalDAVService(client);
             return new CalendarPalisadeViewModel(model, calendarService);
         }
 
-        public static MailPalisadeViewModel CreateMailViewModel(string imapHost, int imapPort, string username, string password, List<string> monitoredFolders, string title, MailDisplayMode displayMode, int pollIntervalMinutes, string? webmailUrl, int? x, int? y, int? width, int? height)
+        public static MailPalisadeViewModel CreateMailViewModel(string imapHost, int imapPort, string username, string password, List<string> monitoredFolders, string title, MailDisplayMode displayMode, int pollIntervalMinutes, string? webmailUrl, int? x, int? y, int? width, int? height, Guid? zimbraAccountId = null)
         {
             var model = new MailPalisadeModel
             {
@@ -109,7 +113,8 @@ namespace Palisades
                 ImapHost = imapHost,
                 ImapPort = imapPort,
                 ImapUsername = username,
-                ImapPassword = CredentialEncryptor.Encrypt(password),
+                ImapPassword = zimbraAccountId.HasValue ? string.Empty : CredentialEncryptor.Encrypt(password),
+                ZimbraAccountId = zimbraAccountId,
                 MonitoredFolders = monitoredFolders ?? new List<string> { "INBOX" },
                 DisplayMode = displayMode,
                 PollIntervalMinutes = pollIntervalMinutes,

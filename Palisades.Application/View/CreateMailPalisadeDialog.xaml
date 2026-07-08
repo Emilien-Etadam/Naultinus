@@ -13,19 +13,21 @@
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Window.Resources>
-    <Grid Margin="12" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,*,Auto">
-        <TextBlock Text="{x:Static properties:Strings.LabelTitle}" Grid.Row="0" Style="{StaticResource PalisadeDialogLabel}"/>
-        <TextBox x:Name="PalisadeTitleTextBox" Grid.Row="1" Margin="0,0,0,8" Style="{StaticResource PalisadeDialogTextBox}" Text="{Binding PalisadeTitle, UpdateSourceTrigger=PropertyChanged}"/>
-        <TextBlock Text="{x:Static properties:Strings.LabelImapHost}" Grid.Row="2" Style="{StaticResource PalisadeDialogLabel}"/>
-        <TextBox x:Name="ImapHostTextBox" Grid.Row="3" Margin="0,0,0,8" Style="{StaticResource PalisadeDialogTextBox}" Text="{Binding ImapHost, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static properties:Strings.TooltipImapHostExample}"/>
-        <TextBlock Text="{x:Static properties:Strings.LabelUsernameEmail}" Grid.Row="4" Style="{StaticResource PalisadeDialogLabel}"/>
-        <TextBox x:Name="UsernameTextBox" Grid.Row="5" Margin="0,0,0,8" Style="{StaticResource PalisadeDialogTextBox}" Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"/>
-        <TextBlock Text="{x:Static properties:Strings.LabelPassword}" Grid.Row="6" Style="{StaticResource PalisadeDialogLabel}"/>
-        <PasswordBox x:Name="PasswordBox" Grid.Row="7" Margin="0,0,0,8" Style="{StaticResource PalisadeDialogPasswordBox}" PasswordChanged="PasswordBox_PasswordChanged"/>
-        <Button x:Name="TestButton" Grid.Row="8" Content="{x:Static properties:Strings.ButtonTestConnectionLoadFolders}" Margin="0,0,0,8" Style="{StaticResource PalisadeDialogButton}" Click="TestButton_Click" HorizontalAlignment="Left"/>
-        <TextBlock Text="{x:Static properties:Strings.LabelFoldersToMonitor}" Grid.Row="9" Style="{StaticResource PalisadeDialogLabel}"/>
-        <ListBox x:Name="FoldersListBox" Grid.Row="10" Margin="0,0,0,8" Style="{StaticResource PalisadeDialogListBox}" SelectionMode="Multiple"/>
-        <StackPanel Grid.Row="11" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+    <Grid Margin="12" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,*,Auto">
+        <TextBlock Text="{x:Static properties:Strings.LabelZimbraAccount}" Grid.Row="0" Style="{StaticResource PalisadeDialogLabel}"/>
+        <ComboBox x:Name="ZimbraAccountCombo" Grid.Row="1" Margin="0,0,0,8" Style="{StaticResource PalisadeDialogComboBox}" SelectionChanged="ZimbraAccountCombo_SelectionChanged"/>
+        <TextBlock Text="{x:Static properties:Strings.LabelTitle}" Grid.Row="2" Style="{StaticResource PalisadeDialogLabel}"/>
+        <TextBox x:Name="PalisadeTitleTextBox" Grid.Row="3" Margin="0,0,0,8" Style="{StaticResource PalisadeDialogTextBox}" Text="{Binding PalisadeTitle, UpdateSourceTrigger=PropertyChanged}"/>
+        <TextBlock Text="{x:Static properties:Strings.LabelImapHost}" Grid.Row="4" Style="{StaticResource PalisadeDialogLabel}"/>
+        <TextBox x:Name="ImapHostTextBox" Grid.Row="5" Margin="0,0,0,8" Style="{StaticResource PalisadeDialogTextBox}" Text="{Binding ImapHost, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static properties:Strings.TooltipImapHostExample}"/>
+        <TextBlock Text="{x:Static properties:Strings.LabelUsernameEmail}" Grid.Row="6" Style="{StaticResource PalisadeDialogLabel}"/>
+        <TextBox x:Name="UsernameTextBox" Grid.Row="7" Margin="0,0,0,8" Style="{StaticResource PalisadeDialogTextBox}" Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"/>
+        <TextBlock Text="{x:Static properties:Strings.LabelPassword}" Grid.Row="8" Style="{StaticResource PalisadeDialogLabel}"/>
+        <PasswordBox x:Name="PasswordBox" Grid.Row="9" Margin="0,0,0,8" Style="{StaticResource PalisadeDialogPasswordBox}" PasswordChanged="PasswordBox_PasswordChanged"/>
+        <Button x:Name="TestButton" Grid.Row="10" Content="{x:Static properties:Strings.ButtonTestConnectionLoadFolders}" Margin="0,0,0,8" Style="{StaticResource PalisadeDialogButton}" Click="TestButton_Click" HorizontalAlignment="Left"/>
+        <TextBlock Text="{x:Static properties:Strings.LabelFoldersToMonitor}" Grid.Row="11" Style="{StaticResource PalisadeDialogLabel}"/>
+        <ListBox x:Name="FoldersListBox" Grid.Row="12" Margin="0,0,0,8" Style="{StaticResource PalisadeDialogListBox}" SelectionMode="Multiple"/>
+        <StackPanel Grid.Row="13" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
             <TextBlock Text="{x:Static properties:Strings.LabelDisplayColon}" VerticalAlignment="Center" Foreground="{DynamicResource PalisadeSubtleBrush}" Margin="0,0,8,0"/>
             <ComboBox x:Name="DisplayModeCombo" Width="140" Margin="0,0,10,0" Style="{StaticResource PalisadeDialogComboBox}" SelectedIndex="0">
                 <ComboBoxItem Content="{x:Static properties:Strings.MailComboCountOnly}"/>

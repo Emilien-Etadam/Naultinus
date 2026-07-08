@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using Palisades.Helpers;
 using Palisades.Properties;
 using Palisades.Services;
 
@@ -15,20 +16,36 @@ namespace Palisades.View
         public string Username { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public List<string> SelectedTaskListIds { get; private set; } = new();
+        public Guid? SelectedZimbraAccountId => ZimbraAccountPickerHelper.GetSelectedAccountId(ZimbraAccountCombo);
 
         private List<CalDAVCalendarInfo>? _taskLists;
 
-        public CreateTaskPalisadeDialog()
+        public CreateTaskPalisadeDialog() : this(null) { }
+
+        public CreateTaskPalisadeDialog(Guid? preselectedZimbraAccountId)
         {
             InitializeComponent();
             DataContext = this;
+            ZimbraAccountPickerHelper.InitializeComboBox(ZimbraAccountCombo, preselectedZimbraAccountId);
+            ApplyZimbraAccountSelection();
+        }
+
+        private void ZimbraAccountCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) =>
+            ApplyZimbraAccountSelection();
+
+        private void ApplyZimbraAccountSelection()
+        {
+            ZimbraAccountPickerHelper.ApplyCalDavSelection(ZimbraAccountCombo, CalDAVUrlTextBox, UsernameTextBox, PasswordBox);
+            CalDAVUrl = CalDAVUrlTextBox.Text;
+            Username = UsernameTextBox.Text;
+            Password = string.Empty;
         }
 
         private async void LoadListsButton_Click(object sender, RoutedEventArgs e)
         {
-            Password = PasswordBox.Password;
             var url = CalDAVUrlTextBox.Text?.Trim() ?? "";
             var user = UsernameTextBox.Text?.Trim() ?? "";
+            Password = ZimbraAccountPickerHelper.GetDiscoveryPassword(ZimbraAccountCombo, PasswordBox);
 
             if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(user))
             {
@@ -67,7 +84,11 @@ namespace Palisades.View
 
         private void CreateButton_Click(object sender, RoutedEventArgs e)
         {
-            Password = PasswordBox.Password;
+            if (ZimbraAccountPickerHelper.GetSelectedAccount(ZimbraAccountCombo) == null)
+                Password = PasswordBox.Password;
+            else
+                Password = string.Empty;
+
             PalisadeTitle = PalisadeTitleTextBox.Text;
             CalDAVUrl = CalDAVUrlTextBox.Text?.Trim() ?? "";
             Username = UsernameTextBox.Text?.Trim() ?? "";
