@@ -119,11 +119,11 @@ namespace Naultinus.Helpers
         }
 
         /// <summary>Dégradé vertical (180°) figé, comme les recettes « usinées » du kit.</summary>
-        private static LinearGradientBrush VGrad(params (Color color, double offset)[] stops)
+        private static LinearGradientBrush VGrad(params (Color Value, double Offset)[] stops)
         {
             var g = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(0, 1) };
             foreach (var s in stops)
-                g.GradientStops.Add(new GradientStop(s.color, s.offset));
+                g.GradientStops.Add(new GradientStop(s.Value, s.Offset));
             g.Freeze();
             return g;
         }
