@@ -230,5 +230,8 @@ namespace Palisades.Properties
         public static string TooltipEdit => ResourceManager.GetString(nameof(TooltipEdit)) ?? string.Empty;
         public static string TooltipToday => ResourceManager.GetString(nameof(TooltipToday)) ?? string.Empty;
         public static string ZimbraAccountsSectionTitle => ResourceManager.GetString(nameof(ZimbraAccountsSectionTitle)) ?? string.Empty;
+        public static string LabelZimbraAccount => ResourceManager.GetString(nameof(LabelZimbraAccount)) ?? string.Empty;
+        public static string ZimbraManualEntry => ResourceManager.GetString(nameof(ZimbraManualEntry)) ?? string.Empty;
+        public static string ButtonCreatePalisade => ResourceManager.GetString(nameof(ButtonCreatePalisade)) ?? string.Empty;
     }
 }

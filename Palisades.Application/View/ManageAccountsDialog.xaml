@@ -30,6 +30,7 @@
             <Button x:Name="AddButton" Content="{x:Static properties:Strings.ButtonAdd}" Width="70" Margin="0,0,8,0" Style="{StaticResource PalisadeDialogButton}" Click="AddButton_Click"/>
             <Button x:Name="EditButton" Content="{x:Static properties:Strings.ButtonEdit}" Width="70" Margin="0,0,8,0" Style="{StaticResource PalisadeDialogButton}" Click="EditButton_Click" IsEnabled="False"/>
             <Button x:Name="TestButton" Content="{x:Static properties:Strings.ButtonTest}" Width="70" Margin="0,0,8,0" Style="{StaticResource PalisadeDialogButton}" Click="TestButton_Click" IsEnabled="False"/>
+            <Button x:Name="CreatePalisadeButton" Content="{x:Static properties:Strings.ButtonCreatePalisade}" Margin="0,0,8,0" Style="{StaticResource PalisadeDialogButton}" Click="CreatePalisadeButton_Click" IsEnabled="False"/>
             <Button x:Name="DeleteButton" Content="{x:Static properties:Strings.ButtonDelete}" Width="70" Margin="0,0,8,0" Style="{StaticResource PalisadeDialogButton}" Click="DeleteButton_Click" IsEnabled="False"/>
             <Button Content="{x:Static properties:Strings.ButtonClose}" Width="70" Style="{StaticResource PalisadeDialogButton}" Click="CloseButton_Click"/>
         </StackPanel>
