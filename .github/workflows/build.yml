@@ -26,7 +26,7 @@ jobs:
         run: dotnet build Naultinus.Application/Naultinus.Application.csproj -c Debug --no-restore
 
       - name: Run tests
-        run: dotnet test Naultinus.Tests/Naultinus.Tests.csproj -c Debug -v normal --logger "console;verbosity=detailed"
+        run: dotnet test Naultinus.Tests/Naultinus.Tests.csproj -c Debug
 
       - name: Build (Release)
         run: dotnet build Naultinus.Application/Naultinus.Application.csproj -c Release --no-restore
