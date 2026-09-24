@@ -85,6 +85,25 @@ namespace Naultinus.ViewModel
             set { _model.ShowCompletedTasks = value; OnPropertyChanged(); Save(); }
         }
 
+        /// <summary>
+        /// Applique les réglages du dialogue. Un intervalle hors plage est refusé : rien n'est écrit.
+        /// Si l'intervalle change, le minuteur de synchro est réarmé avec la nouvelle période.
+        /// </summary>
+        public bool TryApplySettings(int syncIntervalMinutes, bool enableLogging, bool showCompletedTasks)
+        {
+            int previousInterval = _model.SyncIntervalMinutes;
+            if (!TaskNaultinusSettings.TryApply(_model, syncIntervalMinutes, enableLogging, showCompletedTasks))
+                return false;
+
+            OnPropertyChanged(nameof(SyncIntervalMinutes));
+            OnPropertyChanged(nameof(EnableLogging));
+            OnPropertyChanged(nameof(ShowCompletedTasks));
+            Save();
+            if (previousInterval != _model.SyncIntervalMinutes)
+                StartSyncTimer();
+            return true;
+        }
+
         public ObservableCollection<CalDAVTask> Tasks { get; set; } = new ObservableCollection<CalDAVTask>();
 
         public ObservableCollection<CalDAVTask> ActiveTasks =>
@@ -409,6 +428,7 @@ namespace Naultinus.ViewModel
 
         private void StartSyncTimer()
         {
+            _syncTimer?.Dispose();
             var syncInterval = TimeSpan.FromMinutes(SyncIntervalMinutes);
             _syncTimer = new Timer(async _ =>
             {
@@ -481,7 +501,7 @@ namespace Naultinus.ViewModel
 
         public ICommand ShowSettingsCommand { get; } = new RelayCommand<TaskNaultinusViewModel>(viewModel =>
         {
-            var settings = new TaskNaultinusSettingsDialog { DataContext = viewModel };
+            var settings = new TaskNaultinusSettingsDialog(viewModel);
             try { settings.Owner = NaultinusManager.GetWindow(viewModel.Identifier); }
             catch (KeyNotFoundException) { /* fenêtre non enregistrée : dialogue sans owner */ }
             settings.ShowDialog();
