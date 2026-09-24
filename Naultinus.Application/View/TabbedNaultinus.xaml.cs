@@ -14,6 +14,8 @@ namespace Naultinus.View
     public partial class TabbedNaultinus : Window
     {
         private readonly NaultinusGroup _group;
+        private Point _tabDragOrigin;
+        private bool _tabDragPending;
 
         public TabbedNaultinus(NaultinusGroup group)
         {
@@ -58,6 +60,49 @@ namespace Naultinus.View
         {
             try { DragMove(); }
             catch (System.InvalidOperationException) { /* le bouton gauche n'est plus enfoncé : sans effet */ }
+        }
+
+        // Le Button d'un onglet marque MouseLeftButtonDown comme géré : le Grid ne reçoit plus l'événement
+        // et DragMove ne démarre pas. Dès le deuxième onglet, les libellés (surtout Parcourir) couvrent
+        // la barre ; la poignée de 12 px ne suffit plus. Un écart au-delà du seuil système lance le
+        // déplacement, un clic court laisse la commande de sélection s'exécuter.
+        private void Header_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _tabDragPending = false;
+            if (e.ChangedButton != MouseButton.Left)
+                return;
+            if (FindAncestor<Button>(e.OriginalSource as DependencyObject) is not Button button)
+                return;
+            if (button.DataContext is not INaultinusViewModel)
+                return;
+
+            _tabDragOrigin = e.GetPosition(this);
+            _tabDragPending = true;
+        }
+
+        private void Header_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (!_tabDragPending || e.LeftButton != MouseButtonState.Pressed)
+                return;
+
+            Point position = e.GetPosition(this);
+            double dx = position.X - _tabDragOrigin.X;
+            double dy = position.Y - _tabDragOrigin.Y;
+            if (System.Math.Abs(dx) < SystemParameters.MinimumHorizontalDragDistance
+                && System.Math.Abs(dy) < SystemParameters.MinimumVerticalDragDistance)
+                return;
+
+            _tabDragPending = false;
+            // Sans ce relâchement, le MouseUp synthétique de DragMove déclenche la sélection d'onglet.
+            Mouse.Captured?.ReleaseMouseCapture();
+            try { DragMove(); }
+            catch (System.InvalidOperationException) { /* bouton gauche relâché pendant le seuil : sans effet */ }
+            e.Handled = true;
+        }
+
+        private void Header_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            _tabDragPending = false;
         }
 
         private void TitleBarMenuButton_Click(object sender, RoutedEventArgs e)
