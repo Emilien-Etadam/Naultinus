@@ -113,16 +113,39 @@
         </Setter>
     </Style>
 
-    <!-- Menus contextuels : surface flottante VSS (raised + border), police plus petite, lignes serrées. -->
+    <!-- Menus contextuels : surface flottante VSS (raised + border), police plus petite, lignes serrées.
+         Le template est remplacé : celui d’Aero2 dessine une gouttière #F1F1F1 (colonne d’icônes) que les
+         setters de pinceau ne couvrent pas, d’où le texte clair illisible sur cette bande. -->
     <Style x:Key="NaultinusContextMenuStyle" TargetType="ContextMenu">
+        <Setter Property="OverridesDefaultStyle" Value="True"/>
         <Setter Property="Background" Value="{DynamicResource NaultinusCardBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource NaultinusBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Foreground" Value="{DynamicResource NaultinusTextBrush}"/>
         <Setter Property="FontSize" Value="11"/>
         <Setter Property="FontWeight" Value="Normal"/>
         <Setter Property="TextElement.FontSize" Value="11"/>
         <Setter Property="TextElement.FontWeight" Value="Normal"/>
         <Setter Property="Padding" Value="2"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                        <ScrollViewer CanContentScroll="True"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      VerticalScrollBarVisibility="Auto">
+                            <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle"
+                                            SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                        </ScrollViewer>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
     <Style TargetType="ContextMenu" BasedOn="{StaticResource NaultinusContextMenuStyle}"/>
 
