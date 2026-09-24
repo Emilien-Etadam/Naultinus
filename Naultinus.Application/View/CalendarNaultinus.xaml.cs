@@ -10,6 +10,7 @@ namespace Naultinus.View
         {
             InitializeComponent();
             DataContext = viewModel;
+            Activated += (_, _) => viewModel.OnWindowActivated();
             Show();
         }
 
