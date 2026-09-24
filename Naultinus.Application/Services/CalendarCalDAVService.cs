@@ -15,6 +15,24 @@ namespace Naultinus.Services
     /// </summary>
     public class CalendarCalDAVService : ICalendarCalDAVService, IDisposable
     {
+        /// <summary>
+        /// Découvre les calendriers du compte partagé.
+        /// Le mot de passe lu est le secret déjà stocké : rien n'est réécrit.
+        /// Retourne null s'il n'y a pas de compte CalDAV utilisable.
+        /// </summary>
+        public static async Task<List<CalDAVCalendarInfo>?> DiscoverSharedCalendarsAsync()
+        {
+            var settings = AppSettingsStore.Load();
+            if (!SharedCalDavAccount.IsUsable(settings))
+                return null;
+
+            using var client = new CalDAVClient(
+                settings.CalDavBaseUrl,
+                settings.CalDavUsername,
+                SharedCalDavAccount.ReadPassword(settings));
+            return await client.DiscoverCalendarsAsync().ConfigureAwait(false);
+        }
+
         private readonly ICalDAVClient _client;
 
         public CalendarCalDAVService(ICalDAVClient client)

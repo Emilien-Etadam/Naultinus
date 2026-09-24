@@ -28,6 +28,25 @@ namespace Naultinus.Tests
         }
 
         [Fact]
+        public void IsUsable_RequiresStoredPassword()
+        {
+            var withoutSecret = new AppSettings
+            {
+                CalDavBaseUrl = "https://example.test/dav/",
+                CalDavUsername = "user",
+            };
+            Assert.False(SharedCalDavAccount.IsUsable(withoutSecret));
+            Assert.True(SharedCalDavAccount.IsConfigured(withoutSecret));
+
+            Assert.True(SharedCalDavAccount.IsUsable(new AppSettings
+            {
+                CalDavBaseUrl = "https://example.test/dav/",
+                CalDavUsername = "user",
+                CalDavEncryptedPassword = "cipher-deja-present",
+            }));
+        }
+
+        [Fact]
         public void TryApply_RejectsMissingPasswordOnFirstSave_AndKeepsExistingCipher()
         {
             var settings = new AppSettings();
