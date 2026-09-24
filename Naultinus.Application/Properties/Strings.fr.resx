@@ -289,6 +289,12 @@
   <data name="SyncFailedFormat" xml:space="preserve">
     <value>Échec de la synchronisation : {0}</value>
   </data>
+  <data name="CaldavHttpFailedFormat" xml:space="preserve">
+    <value>{0} a échoué: {1}. {2}</value>
+  </data>
+  <data name="CaldavServerUnavailableFormat" xml:space="preserve">
+    <value>{0} a échoué: {1}. Le serveur est indisponible.</value>
+  </data>
   <data name="SyncError" xml:space="preserve">
     <value>Erreur de synchronisation</value>
   </data>
