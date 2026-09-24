@@ -44,6 +44,12 @@ namespace Naultinus.Helpers
                 && user.Length > 0;
         }
 
+        /// <summary>URL, identifiant et un mot de passe déjà chiffré : on peut interroger CalDAV.</summary>
+        public static bool IsUsable(AppSettings? settings)
+        {
+            return IsConfigured(settings) && !string.IsNullOrEmpty(settings!.CalDavEncryptedPassword);
+        }
+
         public static string DescribeStatus(AppSettings? settings)
         {
             if (!IsConfigured(settings))

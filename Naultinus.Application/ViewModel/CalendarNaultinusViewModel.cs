@@ -28,6 +28,7 @@ namespace Naultinus.ViewModel
         private bool _isLoading;
         private Timer? _refreshTimer;
         private int _loadEventsInProgress;
+        private int _reloadRequested;
         private bool _disposed;
         private readonly HashSet<string> _notifiedEventUids = new HashSet<string>();
         private static readonly CalendarSerializer _calendarSerializer = new CalendarSerializer();
@@ -59,6 +60,8 @@ namespace Naultinus.ViewModel
 
         /// <summary>Synchro seulement si un compte partagé existe et que des calendriers ont été choisis.</summary>
         public bool IsRemote => LocalPlannerStore.UsesRemoteCalendars(_model, _sharedAccountConfigured);
+
+        public IReadOnlyList<string> CalendarIds => _model.CalendarIds ?? new List<string>();
 
         public bool IsLocalMode => !IsRemote;
 
@@ -119,8 +122,13 @@ namespace Naultinus.ViewModel
 
         public async Task LoadEventsAsync()
         {
-            if (_disposed || Interlocked.Exchange(ref _loadEventsInProgress, 1) == 1)
+            if (_disposed)
                 return;
+            if (Interlocked.Exchange(ref _loadEventsInProgress, 1) == 1)
+            {
+                Interlocked.Exchange(ref _reloadRequested, 1);
+                return;
+            }
 
             Dispatch(() => { IsLoading = true; ErrorMessage = ""; });
             try
@@ -164,7 +172,42 @@ namespace Naultinus.ViewModel
             {
                 Dispatch(() => { IsLoading = false; OnPropertyChanged(nameof(HasNoEvents)); });
                 Interlocked.Exchange(ref _loadEventsInProgress, 0);
+                if (!_disposed && Interlocked.Exchange(ref _reloadRequested, 0) == 1)
+                    _ = LoadEventsAsync();
             }
+        }
+
+        /// <summary>Remplace les calendriers affichés et recharge le panneau.</summary>
+        public void ApplyCalendarSelection(IReadOnlyList<string> calendarIds)
+        {
+            var next = new List<string>();
+            if (calendarIds != null)
+            {
+                foreach (var calendarId in calendarIds)
+                {
+                    if (string.IsNullOrWhiteSpace(calendarId) || next.Contains(calendarId))
+                        continue;
+                    next.Add(calendarId);
+                }
+            }
+
+            _model.CalendarIds = next;
+            OnPropertyChanged(nameof(CalendarIds));
+            OnPropertyChanged(nameof(IsRemote));
+            OnPropertyChanged(nameof(IsLocalMode));
+            if (IsRemote)
+            {
+                if (_refreshTimer == null)
+                    StartRefreshTimer();
+            }
+            else
+            {
+                _refreshTimer?.Dispose();
+                _refreshTimer = null;
+            }
+
+            Save();
+            _ = LoadEventsAsync();
         }
 
         private void PublishLocalEvents()
