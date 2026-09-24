@@ -5,12 +5,14 @@
     <Style x:Key="CircleButton" TargetType="Button">
         <Setter Property="Width" Value="28"/>
         <Setter Property="Height" Value="28"/>
+        <Setter Property="Foreground" Value="{DynamicResource NaultinusTextBrush}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <!-- Bouton-icône « fantôme » (recette VSS bouton-icône fantôme) -->
                     <Border x:Name="border" CornerRadius="999" Background="Transparent">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          TextElement.Foreground="{TemplateBinding Foreground}"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -165,7 +167,8 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="border" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="3">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          TextElement.Foreground="{TemplateBinding Foreground}"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
