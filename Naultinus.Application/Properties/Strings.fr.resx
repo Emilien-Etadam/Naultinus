@@ -712,4 +712,100 @@
   <data name="UpdateNoneAvailable" xml:space="preserve">
     <value>Vous utilisez déjà la dernière version.</value>
   </data>
+  <data name="TitleTooLong" xml:space="preserve">
+    <value>Le titre est trop long (200 caractères maximum).</value>
+  </data>
+  <data name="TextTooLong" xml:space="preserve">
+    <value>Le texte est trop long.</value>
+  </data>
+  <data name="InvalidTextCharacters" xml:space="preserve">
+    <value>Le texte contient des caractères qui ne peuvent pas être enregistrés.</value>
+  </data>
+  <data name="DateMissing" xml:space="preserve">
+    <value>Indiquez une date de début et une date de fin.</value>
+  </data>
+  <data name="DateOutOfRange" xml:space="preserve">
+    <value>Les dates doivent être comprises entre 1970 et 2100.</value>
+  </data>
+  <data name="EndNotAfterStart" xml:space="preserve">
+    <value>La fin doit être postérieure au début.</value>
+  </data>
+  <data name="TimeInvalid" xml:space="preserve">
+    <value>Saisissez l'heure au format HH:mm, par exemple 09:30.</value>
+  </data>
+  <data name="EntryNotFound" xml:space="preserve">
+    <value>Cet élément n'est plus dans la liste locale.</value>
+  </data>
+  <data name="WindowTitleEditEvent" xml:space="preserve">
+    <value>Modifier l'événement</value>
+  </data>
+  <data name="WindowTitleAddTask" xml:space="preserve">
+    <value>Nouvelle tâche</value>
+  </data>
+  <data name="WindowTitleEditTask" xml:space="preserve">
+    <value>Modifier la tâche</value>
+  </data>
+  <data name="LabelDescription" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="LabelDueDateOptional" xml:space="preserve">
+    <value>Échéance (facultative)</value>
+  </data>
+  <data name="CheckBoxLocalOnly" xml:space="preserve">
+    <value>Sur cet ordinateur uniquement (sans synchro)</value>
+  </data>
+  <data name="SharedCalDavSectionTitle" xml:space="preserve">
+    <value>Compte CalDAV (tous les calendriers et toutes les tâches)</value>
+  </data>
+  <data name="SharedCalDavHint" xml:space="preserve">
+    <value>Un seul compte pour tous les calendriers et toutes les tâches. Le courriel conserve ses réglages IMAP.</value>
+  </data>
+  <data name="SharedCalDavNone" xml:space="preserve">
+    <value>Aucun compte CalDAV : les calendriers et les tâches restent sur cet ordinateur.</value>
+  </data>
+  <data name="SharedCalDavActiveFormat" xml:space="preserve">
+    <value>Compte utilisé : {0}</value>
+  </data>
+  <data name="SharedCalDavMissing" xml:space="preserve">
+    <value>Aucun compte CalDAV n'est configuré. Les données restent sur cet ordinateur. Réglez le compte dans Gérer les comptes.</value>
+  </data>
+  <data name="SharedCalDavPasswordRequired" xml:space="preserve">
+    <value>Saisissez le mot de passe.</value>
+  </data>
+  <data name="SharedCalDavPasswordProtectFailed" xml:space="preserve">
+    <value>Le mot de passe n'a pas pu être protégé sur cet ordinateur. Il n'a pas été enregistré.</value>
+  </data>
+  <data name="SharedCalDavPasswordKeep" xml:space="preserve">
+    <value>Laissez le mot de passe vide pour conserver l'actuel.</value>
+  </data>
+  <data name="SharedCalDavSaved" xml:space="preserve">
+    <value>Compte CalDAV enregistré. Tous les calendriers et toutes les tâches l'utiliseront.</value>
+  </data>
+  <data name="SharedCalDavCleared" xml:space="preserve">
+    <value>Compte CalDAV retiré. Les calendriers et les tâches restent sur cet ordinateur.</value>
+  </data>
+  <data name="SharedCalDavAlreadyConfigured" xml:space="preserve">
+    <value>Un compte CalDAV est déjà défini.</value>
+  </data>
+  <data name="SharedCalDavEditHint" xml:space="preserve">
+    <value>Modifiez-le dans Gérer les comptes, pas dans cette fenêtre.</value>
+  </data>
+  <data name="SharedCalDavListHint" xml:space="preserve">
+    <value>Adresse de la liste pour la synchro. Laissez vide pour garder les tâches sur cet ordinateur.</value>
+  </data>
+  <data name="ConfirmClearCalDav" xml:space="preserve">
+    <value>Retirer le compte CalDAV partagé ? Les calendriers et les tâches ne seront plus synchronisés.</value>
+  </data>
+  <data name="SelectCalendarOrLocal" xml:space="preserve">
+    <value>Sélectionnez au moins un calendrier, ou cochez « Sur cet ordinateur uniquement ».</value>
+  </data>
+  <data name="SelectTaskListOrLocal" xml:space="preserve">
+    <value>Sélectionnez au moins une liste de tâches, ou cochez « Sur cet ordinateur uniquement ».</value>
+  </data>
+  <data name="ButtonUseForCalDav" xml:space="preserve">
+    <value>Utiliser pour les calendriers et les tâches</value>
+  </data>
+  <data name="ButtonClearAccount" xml:space="preserve">
+    <value>Retirer le compte</value>
+  </data>
 </root>

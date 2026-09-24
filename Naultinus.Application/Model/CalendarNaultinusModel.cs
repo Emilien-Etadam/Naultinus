@@ -56,6 +56,9 @@ namespace Naultinus.Model
 
         public CalendarViewMode ViewMode { get; set; } = CalendarViewMode.Agenda;
         public int DaysToShow { get; set; } = 7;
+
+        /// <summary>Événements locaux, enregistrés dans state.xml quand la fenêtre n'est pas synchronisée.</summary>
+        public List<StoredCalendarEvent> LocalEvents { get; set; } = new List<StoredCalendarEvent>();
     }
 
     public enum CalendarViewMode

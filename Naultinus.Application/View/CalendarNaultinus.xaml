@@ -158,10 +158,19 @@
                                     <Border BorderBrush="{Binding Color, Converter={StaticResource ColorToBrushConverter}}" BorderThickness="3,0,0,0"
                                             Padding="10,8" Margin="0,0,0,2" Background="{DynamicResource NaultinusCardBrush}" CornerRadius="0,4,4,0"
                                             x:Name="EventCard">
-                                        <Grid RowDefinitions="Auto,Auto,Auto">
-                                            <TextBlock Grid.Row="0" Text="{Binding Summary, Mode=OneWay}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource NaultinusTextBrush}" TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Grid.Row="1" Text="{Binding TimeDisplay, Mode=OneWay}" Margin="0,2,0,0" Foreground="{DynamicResource NaultinusSubtleBrush}" FontSize="11"/>
-                                            <TextBlock Grid.Row="2" Text="{Binding Location}" Visibility="{Binding Location, Converter={StaticResource StringToVisibilityConverter}}" FontSize="11" Foreground="{DynamicResource NaultinusSubtleBrush}" FontStyle="Italic" Margin="0,2,0,0"/>
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <Grid Grid.Column="0" RowDefinitions="Auto,Auto,Auto">
+                                                <TextBlock Grid.Row="0" Text="{Binding Summary, Mode=OneWay}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource NaultinusTextBrush}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Grid.Row="1" Text="{Binding TimeDisplay, Mode=OneWay}" Margin="0,2,0,0" Foreground="{DynamicResource NaultinusSubtleBrush}" FontSize="11"/>
+                                                <TextBlock Grid.Row="2" Text="{Binding Location}" Visibility="{Binding Location, Converter={StaticResource StringToVisibilityConverter}}" FontSize="11" Foreground="{DynamicResource NaultinusSubtleBrush}" FontStyle="Italic" Margin="0,2,0,0"/>
+                                            </Grid>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
+                                                        Visibility="{Binding Path=Data.IsLocalMode, Source={StaticResource proxy}, Converter={StaticResource BoolToVis}}">
+                                                <Button Content="✎" ToolTip="{x:Static properties:Strings.TooltipEdit}" Style="{StaticResource CircleButton}" Width="22" Height="22" Margin="4,0,2,0"
+                                                        Command="{Binding Path=Data.EditEventCommand, Source={StaticResource proxy}}" CommandParameter="{Binding}"/>
+                                                <Button Content="🗑" ToolTip="{x:Static properties:Strings.TooltipDelete}" Style="{StaticResource CircleButton}" Width="22" Height="22"
+                                                        Command="{Binding Path=Data.DeleteEventCommand, Source={StaticResource proxy}}" CommandParameter="{Binding}"/>
+                                            </StackPanel>
                                         </Grid>
                                     </Border>
                                 </StackPanel>

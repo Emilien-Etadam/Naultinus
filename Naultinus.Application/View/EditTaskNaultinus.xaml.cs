@@ -1,3 +1,5 @@
+using Naultinus.Helpers;
+using Naultinus.Services;
 using Naultinus.ViewModel;
 using System.Windows;
 
@@ -20,17 +22,14 @@ namespace Naultinus.View
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            if (DataContext is TaskNaultinusViewModel vm)
-                PasswordBox.Password = vm.CalDAVPassword;
+            AccountHintText.Text = SharedCalDavAccount.DescribeStatus(AppSettingsStore.Load())
+                + " "
+                + Naultinus.Properties.Strings.SharedCalDavEditHint;
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
             var vm = _viewModel ?? (TaskNaultinusViewModel)DataContext;
-            // Mettre à jour le mot de passe depuis le PasswordBox
-            // Le setter de CalDAVPassword gère automatiquement le chiffrement
-            vm.CalDAVPassword = PasswordBox.Password;
-            
             vm.Save();
             DialogResult = true;
             Close();

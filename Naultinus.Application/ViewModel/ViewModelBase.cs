@@ -117,7 +117,7 @@ namespace Naultinus.ViewModel
                     try
                     {
                         string saveDirectory = AppPaths.GetNaultinusDirectory(Identifier);
-                        AppPaths.WriteAtomicText(Path.Combine(saveDirectory, "state.xml"), writer => SharedSerializer.Serialize(writer, Model));
+                        NaultinusStateFile.Write(saveDirectory, Model);
                         ShouldSave = false;
                     }
                     catch (Exception ex)

@@ -712,4 +712,100 @@
   <data name="UpdateNoneAvailable" xml:space="preserve">
     <value>You're already on the latest version.</value>
   </data>
+  <data name="TitleTooLong" xml:space="preserve">
+    <value>The title is too long (200 characters maximum).</value>
+  </data>
+  <data name="TextTooLong" xml:space="preserve">
+    <value>The text is too long.</value>
+  </data>
+  <data name="InvalidTextCharacters" xml:space="preserve">
+    <value>The text contains characters that cannot be saved.</value>
+  </data>
+  <data name="DateMissing" xml:space="preserve">
+    <value>Enter a start date and an end date.</value>
+  </data>
+  <data name="DateOutOfRange" xml:space="preserve">
+    <value>Dates must be between 1970 and 2100.</value>
+  </data>
+  <data name="EndNotAfterStart" xml:space="preserve">
+    <value>The end must be after the start.</value>
+  </data>
+  <data name="TimeInvalid" xml:space="preserve">
+    <value>Enter the time as HH:mm, for example 09:30.</value>
+  </data>
+  <data name="EntryNotFound" xml:space="preserve">
+    <value>This item is no longer in the local list.</value>
+  </data>
+  <data name="WindowTitleEditEvent" xml:space="preserve">
+    <value>Edit event</value>
+  </data>
+  <data name="WindowTitleAddTask" xml:space="preserve">
+    <value>New task</value>
+  </data>
+  <data name="WindowTitleEditTask" xml:space="preserve">
+    <value>Edit task</value>
+  </data>
+  <data name="LabelDescription" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="LabelDueDateOptional" xml:space="preserve">
+    <value>Due date (optional)</value>
+  </data>
+  <data name="CheckBoxLocalOnly" xml:space="preserve">
+    <value>On this PC only (no sync)</value>
+  </data>
+  <data name="SharedCalDavSectionTitle" xml:space="preserve">
+    <value>CalDAV account (all calendars and tasks)</value>
+  </data>
+  <data name="SharedCalDavHint" xml:space="preserve">
+    <value>One account for every calendar and every task. Mail keeps its own IMAP settings.</value>
+  </data>
+  <data name="SharedCalDavNone" xml:space="preserve">
+    <value>No CalDAV account: calendars and tasks stay on this PC.</value>
+  </data>
+  <data name="SharedCalDavActiveFormat" xml:space="preserve">
+    <value>Account in use: {0}</value>
+  </data>
+  <data name="SharedCalDavMissing" xml:space="preserve">
+    <value>No CalDAV account is configured. Data stays on this PC. Set the account in Manage accounts.</value>
+  </data>
+  <data name="SharedCalDavPasswordRequired" xml:space="preserve">
+    <value>Enter the password.</value>
+  </data>
+  <data name="SharedCalDavPasswordProtectFailed" xml:space="preserve">
+    <value>The password could not be protected on this computer. It was not saved.</value>
+  </data>
+  <data name="SharedCalDavPasswordKeep" xml:space="preserve">
+    <value>Leave the password blank to keep the current one.</value>
+  </data>
+  <data name="SharedCalDavSaved" xml:space="preserve">
+    <value>CalDAV account saved. Every calendar and task will use it.</value>
+  </data>
+  <data name="SharedCalDavCleared" xml:space="preserve">
+    <value>CalDAV account removed. Calendars and tasks stay on this PC.</value>
+  </data>
+  <data name="SharedCalDavAlreadyConfigured" xml:space="preserve">
+    <value>A CalDAV account is already set.</value>
+  </data>
+  <data name="SharedCalDavEditHint" xml:space="preserve">
+    <value>Change it in Manage accounts, not in this window.</value>
+  </data>
+  <data name="SharedCalDavListHint" xml:space="preserve">
+    <value>Task list address for sync. Leave empty to keep tasks on this PC.</value>
+  </data>
+  <data name="ConfirmClearCalDav" xml:space="preserve">
+    <value>Remove the shared CalDAV account? Calendars and tasks will stop syncing.</value>
+  </data>
+  <data name="SelectCalendarOrLocal" xml:space="preserve">
+    <value>Select at least one calendar, or check “On this PC only”.</value>
+  </data>
+  <data name="SelectTaskListOrLocal" xml:space="preserve">
+    <value>Select at least one task list, or check “On this PC only”.</value>
+  </data>
+  <data name="ButtonUseForCalDav" xml:space="preserve">
+    <value>Use for calendars and tasks</value>
+  </data>
+  <data name="ButtonClearAccount" xml:space="preserve">
+    <value>Remove account</value>
+  </data>
 </root>
