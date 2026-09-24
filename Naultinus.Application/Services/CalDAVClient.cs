@@ -77,7 +77,7 @@ namespace Naultinus.Services
             var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
             var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
-                throw new InvalidOperationException($"PROPFIND a échoué: {(int)response.StatusCode} {response.ReasonPhrase}. {body}");
+                throw HttpFailure("PROPFIND", response, body);
 
             return XDocument.Parse(body);
         }
@@ -94,7 +94,7 @@ namespace Naultinus.Services
             var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
             var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
-                throw new InvalidOperationException($"REPORT a échoué: {(int)response.StatusCode} {response.ReasonPhrase}. {body}");
+                throw HttpFailure("REPORT", response, body);
 
             return XDocument.Parse(body);
         }
@@ -112,7 +112,7 @@ namespace Naultinus.Services
             var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
             var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
-                throw new InvalidOperationException($"PUT a échoué: {(int)response.StatusCode} {response.ReasonPhrase}. {body}");
+                throw HttpFailure("PUT", response, body);
 
             return response.Headers.ETag?.Tag?.Trim('"');
         }
@@ -130,8 +130,14 @@ namespace Naultinus.Services
             if (!response.IsSuccessStatusCode)
             {
                 var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                throw new InvalidOperationException($"DELETE a échoué: {(int)response.StatusCode} {response.ReasonPhrase}. {body}");
+                throw HttpFailure("DELETE", response, body);
             }
+        }
+
+        private static InvalidOperationException HttpFailure(string method, HttpResponseMessage response, string body)
+        {
+            var mediaType = response.Content?.Headers.ContentType?.MediaType;
+            return new InvalidOperationException(CalDavHttpFailure.Format(method, (int)response.StatusCode, response.ReasonPhrase, body, mediaType));
         }
 
         /// <summary>

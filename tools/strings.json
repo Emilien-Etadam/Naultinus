@@ -475,6 +475,16 @@
     "en": "Sync failed: {0}"
   },
   {
+    "key": "CaldavHttpFailedFormat",
+    "fr": "{0} a échoué: {1}. {2}",
+    "en": "{0} failed: {1}. {2}"
+  },
+  {
+    "key": "CaldavServerUnavailableFormat",
+    "fr": "{0} a échoué: {1}. Le serveur est indisponible.",
+    "en": "{0} failed: {1}. The server is unavailable."
+  },
+  {
     "key": "SyncError",
     "fr": "Erreur de synchronisation",
     "en": "Sync error"
