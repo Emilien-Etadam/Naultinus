@@ -758,7 +758,7 @@
     <value>Compte CalDAV (tous les calendriers et toutes les tâches)</value>
   </data>
   <data name="SharedCalDavHint" xml:space="preserve">
-    <value>Un seul compte pour tous les calendriers et toutes les tâches. Le courriel conserve ses réglages IMAP.</value>
+    <value>Le compte des calendriers et des tâches est la ligne marquée dans la liste. Le courriel IMAP reste sur l'hôte du même compte.</value>
   </data>
   <data name="SharedCalDavNone" xml:space="preserve">
     <value>Aucun compte CalDAV : les calendriers et les tâches restent sur cet ordinateur.</value>
@@ -792,6 +792,9 @@
   </data>
   <data name="SharedCalDavListHint" xml:space="preserve">
     <value>Adresse de la liste pour la synchro. Laissez vide pour garder les tâches sur cet ordinateur.</value>
+  </data>
+  <data name="SharedCalDavListMark" xml:space="preserve">
+    <value>Calendriers et tâches</value>
   </data>
   <data name="ConfirmClearCalDav" xml:space="preserve">
     <value>Retirer le compte CalDAV partagé ? Les calendriers et les tâches ne seront plus synchronisés.</value>
