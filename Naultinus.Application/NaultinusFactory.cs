@@ -47,31 +47,31 @@ namespace Naultinus
         }
 
         /// <summary>
-        /// Si settings.xml n'a pas encore de compte CalDAV, reprend celui d'une fenêtre existante (une seule fois).
-        /// Les fenêtres suivantes lisent ensuite ce compte, pas le leur.
+        /// Si aucun compte de la liste n'est marqué, reprend celui d'une fenêtre existante (une seule fois).
+        /// Les fenêtres suivantes lisent ensuite cette ligne, pas leurs anciens champs.
         /// </summary>
         private static void AdoptLegacyCalDav(Guid? zimbraAccountId, string? url, string? username, string? encryptedPassword)
         {
-            var settings = AppSettingsStore.Load();
-            if (SharedCalDavAccount.IsConfigured(settings))
+            var accounts = ZimbraAccountStore.Load();
+            if (SharedCalDavAccount.FindMarked(accounts) != null)
                 return;
 
             var changed = false;
             if (zimbraAccountId is Guid id)
-                changed = SharedCalDavAccount.TryCopyFromZimbra(settings, ZimbraAccountStore.GetById(id), overwrite: false, out _);
+                changed = SharedCalDavAccount.TryMarkExisting(accounts, id);
             if (!changed)
-                changed = SharedCalDavAccount.TryAdoptLegacy(settings, url, username, encryptedPassword);
+                changed = SharedCalDavAccount.TryAdoptWindowCredentials(accounts, url, username, encryptedPassword);
             if (changed)
-                AppSettingsStore.Save(settings);
+                ZimbraAccountStore.Save(accounts);
         }
 
         private static CalDAVClient CreateSharedCalDavClient()
         {
-            var settings = AppSettingsStore.Load();
+            var account = SharedCalDavAccount.GetMarked();
             return new CalDAVClient(
-                settings.CalDavBaseUrl ?? string.Empty,
-                settings.CalDavUsername ?? string.Empty,
-                SharedCalDavAccount.ReadPassword(settings));
+                account?.CalDAVBaseUrl ?? string.Empty,
+                account?.Email ?? string.Empty,
+                SharedCalDavAccount.ReadPassword(account));
         }
 
         private static void ApplySize(NaultinusModelBase model, int? x, int? y, int? width, int? height, int defW, int defH)

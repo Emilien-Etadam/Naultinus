@@ -758,7 +758,7 @@
     <value>CalDAV account (all calendars and tasks)</value>
   </data>
   <data name="SharedCalDavHint" xml:space="preserve">
-    <value>One account for every calendar and every task. Mail keeps its own IMAP settings.</value>
+    <value>The calendar and task account is the marked row in the list. IMAP mail stays on that same account's host.</value>
   </data>
   <data name="SharedCalDavNone" xml:space="preserve">
     <value>No CalDAV account: calendars and tasks stay on this PC.</value>
@@ -792,6 +792,9 @@
   </data>
   <data name="SharedCalDavListHint" xml:space="preserve">
     <value>Task list address for sync. Leave empty to keep tasks on this PC.</value>
+  </data>
+  <data name="SharedCalDavListMark" xml:space="preserve">
+    <value>Calendars and tasks</value>
   </data>
   <data name="ConfirmClearCalDav" xml:space="preserve">
     <value>Remove the shared CalDAV account? Calendars and tasks will stop syncing.</value>

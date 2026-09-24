@@ -37,7 +37,7 @@ namespace Naultinus.View
             InitializeComponent();
             DataContext = this;
             _sharedAccountConfigured = SharedCalDavAccount.IsConfigured();
-            AccountStatusText.Text = SharedCalDavAccount.DescribeStatus(AppSettingsStore.Load());
+            AccountStatusText.Text = SharedCalDavAccount.DescribeStatus();
             if (!_sharedAccountConfigured)
             {
                 LocalOnlyCheckBox.IsChecked = true;
@@ -58,8 +58,8 @@ namespace Naultinus.View
 
         private async void LoadCalendarsButton_Click(object sender, RoutedEventArgs e)
         {
-            var settings = AppSettingsStore.Load();
-            if (!SharedCalDavAccount.IsConfigured(settings))
+            var account = SharedCalDavAccount.GetMarked();
+            if (account == null)
             {
                 MessageBox.Show(Strings.SharedCalDavMissing, Strings.CalendarTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
@@ -67,7 +67,7 @@ namespace Naultinus.View
 
             try
             {
-                using var client = new CalDAVClient(settings.CalDavBaseUrl, settings.CalDavUsername, SharedCalDavAccount.ReadPassword(settings));
+                using var client = new CalDAVClient(account.CalDAVBaseUrl, account.Email ?? string.Empty, SharedCalDavAccount.ReadPassword(account));
                 var service = new CalendarCalDAVService(client);
                 _calendarList = await service.GetCalendarListAsync();
                 CalendarsListBox.ItemsSource = _calendarList;

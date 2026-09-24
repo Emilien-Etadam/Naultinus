@@ -269,6 +269,7 @@ namespace Naultinus.Properties
         public static string SharedCalDavAlreadyConfigured => ResourceManager.GetString(nameof(SharedCalDavAlreadyConfigured)) ?? string.Empty;
         public static string SharedCalDavEditHint => ResourceManager.GetString(nameof(SharedCalDavEditHint)) ?? string.Empty;
         public static string SharedCalDavListHint => ResourceManager.GetString(nameof(SharedCalDavListHint)) ?? string.Empty;
+        public static string SharedCalDavListMark => ResourceManager.GetString(nameof(SharedCalDavListMark)) ?? string.Empty;
         public static string ConfirmClearCalDav => ResourceManager.GetString(nameof(ConfirmClearCalDav)) ?? string.Empty;
         public static string SelectCalendarOrLocal => ResourceManager.GetString(nameof(SelectCalendarOrLocal)) ?? string.Empty;
         public static string SelectTaskListOrLocal => ResourceManager.GetString(nameof(SelectTaskListOrLocal)) ?? string.Empty;
