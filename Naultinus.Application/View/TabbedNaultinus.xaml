@@ -251,7 +251,60 @@
 
         <!-- Task -->
         <DataTemplate DataType="{x:Type viewModel:TaskNaultinusViewModel}">
-            <Border Background="{DynamicResource NaultinusControlBrush}" Padding="10">
+            <DockPanel Background="{DynamicResource NaultinusControlBrush}">
+                <!-- Plusieurs listes : même sélecteur que TaskNaultinus. L’ancêtre est cet ItemsControl : le DataContext de la fenêtre est le groupe d’onglets. -->
+                <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding TaskTabs}"
+                              Visibility="{Binding HasMultipleLists, Converter={StaticResource BoolToVis}}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Content="{Binding DisplayName}" Margin="0,0,1,0" Padding="10,0" Height="32"
+                                    FontSize="12" Cursor="Hand"
+                                    Foreground="{DynamicResource NaultinusTextBrush}"
+                                    Command="{Binding DataContext.SelectTabCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                    CommandParameter="{Binding}">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="BorderThickness" Value="0,0,0,2"/>
+                                        <Setter Property="BorderBrush" Value="Transparent"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="{DynamicResource NaultinusHoverSubtleBrush}"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                        <Style.Triggers>
+                                            <DataTrigger Value="True">
+                                                <DataTrigger.Binding>
+                                                    <MultiBinding Converter="{StaticResource MultiValueEqualityConverter}">
+                                                        <Binding/>
+                                                        <Binding Path="DataContext.SelectedTaskTab" RelativeSource="{RelativeSource AncestorType=ItemsControl}"/>
+                                                    </MultiBinding>
+                                                </DataTrigger.Binding>
+                                                <Setter Property="BorderBrush" Value="{DynamicResource NaultinusAccentBrush}"/>
+                                                <Setter Property="Background" Value="{DynamicResource NaultinusCardBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Border Padding="10">
                 <Grid RowDefinitions="Auto,*,Auto">
                     <TextBlock Text="{Binding ErrorMessage, Mode=OneWay}" Foreground="{DynamicResource NaultinusErrorBrush}"
                                Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibilityConverter}}"
@@ -300,10 +353,23 @@
                                                        Visibility="{Binding DueDateDisplay, Converter={StaticResource StringToVisibilityConverter}}"/>
                                         </StackPanel>
                                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Button Content="💾" ToolTip="{x:Static properties:Strings.TooltipSave}" Style="{StaticResource CircleButton}" Width="22" Height="22" Margin="0,0,2,0"
-                                                    Visibility="{Binding CalDAVId, Converter={StaticResource InverseEmptyStringToVisibilityConverter}}"
-                                                    Command="{Binding DataContext.SaveTaskCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}"/>
-                                            <Button Content="🗑" ToolTip="{x:Static properties:Strings.TooltipHideTask}" Style="{StaticResource CircleButton}" Width="22" Height="22"
+                                            <Button Content="✎" ToolTip="{x:Static properties:Strings.TooltipEdit}" Style="{StaticResource CircleButton}" Width="22" Height="22" Margin="0,0,2,0"
+                                                    Visibility="{Binding DataContext.IsLocalMode, RelativeSource={RelativeSource AncestorType=ListBox}, Converter={StaticResource BoolToVis}}"
+                                                    Command="{Binding DataContext.EditTaskCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}"/>
+                                            <Button Content="💾" ToolTip="{x:Static properties:Strings.TooltipSave}" Width="22" Height="22" Margin="0,0,2,0"
+                                                    Command="{Binding DataContext.SaveTaskCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource CircleButton}">
+                                                        <Setter Property="Visibility" Value="{Binding CalDAVId, Converter={StaticResource InverseEmptyStringToVisibilityConverter}}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding DataContext.IsLocalMode, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="True">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                            <Button Content="🗑" ToolTip="{Binding DataContext.RemoveTaskToolTip, RelativeSource={RelativeSource AncestorType=ListBox}}" Style="{StaticResource CircleButton}" Width="22" Height="22"
                                                     Command="{Binding DataContext.HideTaskCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}"/>
                                         </StackPanel>
                                     </Grid>
@@ -322,7 +388,8 @@
                     <Button Grid.Row="2" Content="{x:Static properties:Strings.EventButtonAddTask}" Command="{Binding AddTaskCommand}"
                             Style="{StaticResource NaultinusActionButton}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
                 </Grid>
-            </Border>
+                </Border>
+            </DockPanel>
         </DataTemplate>
 
         <!-- Calendar -->
