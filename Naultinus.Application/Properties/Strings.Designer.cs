@@ -242,5 +242,37 @@ namespace Naultinus.Properties
         public static string EventDayHeaderTodayFormat => ResourceManager.GetString(nameof(EventDayHeaderTodayFormat)) ?? string.Empty;
         public static string EventTimeRangeFormat => ResourceManager.GetString(nameof(EventTimeRangeFormat)) ?? string.Empty;
         public static string UpdateNoneAvailable => ResourceManager.GetString(nameof(UpdateNoneAvailable)) ?? string.Empty;
+        public static string TitleTooLong => ResourceManager.GetString(nameof(TitleTooLong)) ?? string.Empty;
+        public static string TextTooLong => ResourceManager.GetString(nameof(TextTooLong)) ?? string.Empty;
+        public static string InvalidTextCharacters => ResourceManager.GetString(nameof(InvalidTextCharacters)) ?? string.Empty;
+        public static string DateMissing => ResourceManager.GetString(nameof(DateMissing)) ?? string.Empty;
+        public static string DateOutOfRange => ResourceManager.GetString(nameof(DateOutOfRange)) ?? string.Empty;
+        public static string EndNotAfterStart => ResourceManager.GetString(nameof(EndNotAfterStart)) ?? string.Empty;
+        public static string TimeInvalid => ResourceManager.GetString(nameof(TimeInvalid)) ?? string.Empty;
+        public static string EntryNotFound => ResourceManager.GetString(nameof(EntryNotFound)) ?? string.Empty;
+        public static string WindowTitleEditEvent => ResourceManager.GetString(nameof(WindowTitleEditEvent)) ?? string.Empty;
+        public static string WindowTitleAddTask => ResourceManager.GetString(nameof(WindowTitleAddTask)) ?? string.Empty;
+        public static string WindowTitleEditTask => ResourceManager.GetString(nameof(WindowTitleEditTask)) ?? string.Empty;
+        public static string LabelDescription => ResourceManager.GetString(nameof(LabelDescription)) ?? string.Empty;
+        public static string LabelDueDateOptional => ResourceManager.GetString(nameof(LabelDueDateOptional)) ?? string.Empty;
+        public static string CheckBoxLocalOnly => ResourceManager.GetString(nameof(CheckBoxLocalOnly)) ?? string.Empty;
+        public static string SharedCalDavSectionTitle => ResourceManager.GetString(nameof(SharedCalDavSectionTitle)) ?? string.Empty;
+        public static string SharedCalDavHint => ResourceManager.GetString(nameof(SharedCalDavHint)) ?? string.Empty;
+        public static string SharedCalDavNone => ResourceManager.GetString(nameof(SharedCalDavNone)) ?? string.Empty;
+        public static string SharedCalDavActiveFormat => ResourceManager.GetString(nameof(SharedCalDavActiveFormat)) ?? string.Empty;
+        public static string SharedCalDavMissing => ResourceManager.GetString(nameof(SharedCalDavMissing)) ?? string.Empty;
+        public static string SharedCalDavPasswordRequired => ResourceManager.GetString(nameof(SharedCalDavPasswordRequired)) ?? string.Empty;
+        public static string SharedCalDavPasswordProtectFailed => ResourceManager.GetString(nameof(SharedCalDavPasswordProtectFailed)) ?? string.Empty;
+        public static string SharedCalDavPasswordKeep => ResourceManager.GetString(nameof(SharedCalDavPasswordKeep)) ?? string.Empty;
+        public static string SharedCalDavSaved => ResourceManager.GetString(nameof(SharedCalDavSaved)) ?? string.Empty;
+        public static string SharedCalDavCleared => ResourceManager.GetString(nameof(SharedCalDavCleared)) ?? string.Empty;
+        public static string SharedCalDavAlreadyConfigured => ResourceManager.GetString(nameof(SharedCalDavAlreadyConfigured)) ?? string.Empty;
+        public static string SharedCalDavEditHint => ResourceManager.GetString(nameof(SharedCalDavEditHint)) ?? string.Empty;
+        public static string SharedCalDavListHint => ResourceManager.GetString(nameof(SharedCalDavListHint)) ?? string.Empty;
+        public static string ConfirmClearCalDav => ResourceManager.GetString(nameof(ConfirmClearCalDav)) ?? string.Empty;
+        public static string SelectCalendarOrLocal => ResourceManager.GetString(nameof(SelectCalendarOrLocal)) ?? string.Empty;
+        public static string SelectTaskListOrLocal => ResourceManager.GetString(nameof(SelectTaskListOrLocal)) ?? string.Empty;
+        public static string ButtonUseForCalDav => ResourceManager.GetString(nameof(ButtonUseForCalDav)) ?? string.Empty;
+        public static string ButtonClearAccount => ResourceManager.GetString(nameof(ButtonClearAccount)) ?? string.Empty;
     }
 }

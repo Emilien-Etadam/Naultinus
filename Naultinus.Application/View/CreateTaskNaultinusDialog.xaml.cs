@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
 using Naultinus.Helpers;
 using Naultinus.Properties;
 using Naultinus.Services;
@@ -16,51 +15,54 @@ namespace Naultinus.View
         public string Username { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public List<string> SelectedTaskListIds { get; private set; } = new();
-        public Guid? SelectedZimbraAccountId => ZimbraAccountPickerHelper.GetSelectedAccountId(ZimbraAccountCombo);
 
+        /// <summary>Le compte n'est plus choisi par fenêtre. Les appelants reçoivent null.</summary>
+        public Guid? SelectedZimbraAccountId => null;
+
+        public bool IsLocalOnly { get; private set; }
+
+        private readonly bool _sharedAccountConfigured;
         private List<CalDAVCalendarInfo>? _taskLists;
 
         public CreateTaskNaultinusDialog() : this(null) { }
 
         public CreateTaskNaultinusDialog(Guid? preselectedZimbraAccountId)
         {
+            _ = preselectedZimbraAccountId;
             InitializeComponent();
             DataContext = this;
-            ZimbraAccountPickerHelper.InitializeComboBox(ZimbraAccountCombo, preselectedZimbraAccountId);
-            ApplyZimbraAccountSelection();
+            _sharedAccountConfigured = SharedCalDavAccount.IsConfigured();
+            AccountStatusText.Text = SharedCalDavAccount.DescribeStatus(AppSettingsStore.Load());
+            if (!_sharedAccountConfigured)
+            {
+                LocalOnlyCheckBox.IsChecked = true;
+                LocalOnlyCheckBox.IsEnabled = false;
+            }
+
+            ApplyLocalOnlyState();
         }
 
-        private void ZimbraAccountCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) =>
-            ApplyZimbraAccountSelection();
+        private void LocalOnlyCheckBox_Changed(object sender, RoutedEventArgs e) => ApplyLocalOnlyState();
 
-        private void ApplyZimbraAccountSelection()
+        private void ApplyLocalOnlyState()
         {
-            ZimbraAccountPickerHelper.ApplyCalDavSelection(ZimbraAccountCombo, CalDAVUrlTextBox, UsernameTextBox, PasswordBox);
-            CalDAVUrl = CalDAVUrlTextBox.Text;
-            Username = UsernameTextBox.Text;
-            Password = string.Empty;
+            var localOnly = LocalOnlyCheckBox.IsChecked == true || !_sharedAccountConfigured;
+            LoadListsButton.IsEnabled = !localOnly;
+            TaskListsListBox.IsEnabled = !localOnly;
         }
 
         private async void LoadListsButton_Click(object sender, RoutedEventArgs e)
         {
-            var url = CalDAVUrlTextBox.Text?.Trim() ?? "";
-            var user = UsernameTextBox.Text?.Trim() ?? "";
-            Password = ZimbraAccountPickerHelper.GetDiscoveryPassword(ZimbraAccountCombo, PasswordBox);
-
-            if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(user))
+            var settings = AppSettingsStore.Load();
+            if (!SharedCalDavAccount.IsConfigured(settings))
             {
-                MessageBox.Show(Strings.CaldavEnterUrlUser, Strings.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-            if (!url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-            {
-                MessageBox.Show(Strings.CaldavHttpsRequired, Strings.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(Strings.SharedCalDavMissing, Strings.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
             try
             {
-                using var client = new CalDAVClient(url, user, Password);
+                using var client = new CalDAVClient(settings.CalDavBaseUrl, settings.CalDavUsername, SharedCalDavAccount.ReadPassword(settings));
                 var allCalendars = await client.DiscoverCalendarsAsync();
                 _taskLists = allCalendars
                     .Where(c => c.SupportedComponents.Contains("VTODO", StringComparer.OrdinalIgnoreCase))
@@ -84,28 +86,18 @@ namespace Naultinus.View
 
         private void CreateButton_Click(object sender, RoutedEventArgs e)
         {
-            if (ZimbraAccountPickerHelper.GetSelectedAccount(ZimbraAccountCombo) == null)
-                Password = PasswordBox.Password;
-            else
-                Password = string.Empty;
-
-            NaultinusTitle = NaultinusTitleTextBox.Text;
-            CalDAVUrl = CalDAVUrlTextBox.Text?.Trim() ?? "";
-            Username = UsernameTextBox.Text?.Trim() ?? "";
-
-            if (string.IsNullOrWhiteSpace(CalDAVUrl))
+            NaultinusTitle = string.IsNullOrWhiteSpace(NaultinusTitleTextBox.Text)
+                ? Strings.DefaultTaskNaultinusTitle
+                : NaultinusTitleTextBox.Text.Trim();
+            CalDAVUrl = string.Empty;
+            Username = string.Empty;
+            Password = string.Empty;
+            IsLocalOnly = LocalOnlyCheckBox.IsChecked == true || !_sharedAccountConfigured;
+            if (IsLocalOnly)
             {
-                MessageBox.Show(Strings.CaldavEnterServerUrl, Strings.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-            if (!CalDAVUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-            {
-                MessageBox.Show(Strings.CaldavHttpsRequired, Strings.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-            if (string.IsNullOrWhiteSpace(Username))
-            {
-                MessageBox.Show(Strings.MailEnterUsername, Strings.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+                SelectedTaskListIds = new List<string>();
+                DialogResult = true;
+                Close();
                 return;
             }
 
@@ -114,9 +106,9 @@ namespace Naultinus.View
                 .Select(c => c.Href)
                 .ToList();
 
-            if (SelectedTaskListIds.Count == 0 && _taskLists != null && _taskLists.Count > 0)
+            if (SelectedTaskListIds.Count == 0)
             {
-                MessageBox.Show(Strings.TaskSelectList, Strings.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(Strings.SelectTaskListOrLocal, Strings.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 

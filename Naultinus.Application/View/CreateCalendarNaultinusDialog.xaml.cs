@@ -19,50 +19,55 @@ namespace Naultinus.View
         public List<string> SelectedCalendarIds { get; private set; } = new List<string>();
         public CalendarViewMode ViewMode { get; set; } = CalendarViewMode.Agenda;
         public int DaysToShow { get; set; } = 7;
-        public Guid? SelectedZimbraAccountId => ZimbraAccountPickerHelper.GetSelectedAccountId(ZimbraAccountCombo);
 
+        /// <summary>Le compte n'est plus choisi par fenêtre. Les appelants reçoivent null.</summary>
+        public Guid? SelectedZimbraAccountId => null;
+
+        public bool IsLocalOnly { get; private set; }
+
+        private readonly bool _sharedAccountConfigured;
         private List<CalDAVCalendarInfo>? _calendarList;
 
         public CreateCalendarNaultinusDialog() : this(null) { }
 
         public CreateCalendarNaultinusDialog(Guid? preselectedZimbraAccountId)
         {
+            // Le compte CalDAV est celui des paramètres, pas celui présélectionné pour cette fenêtre.
+            _ = preselectedZimbraAccountId;
             InitializeComponent();
             DataContext = this;
-            ZimbraAccountPickerHelper.InitializeComboBox(ZimbraAccountCombo, preselectedZimbraAccountId);
-            ApplyZimbraAccountSelection();
+            _sharedAccountConfigured = SharedCalDavAccount.IsConfigured();
+            AccountStatusText.Text = SharedCalDavAccount.DescribeStatus(AppSettingsStore.Load());
+            if (!_sharedAccountConfigured)
+            {
+                LocalOnlyCheckBox.IsChecked = true;
+                LocalOnlyCheckBox.IsEnabled = false;
+            }
+
+            ApplyLocalOnlyState();
         }
 
-        private void ZimbraAccountCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) =>
-            ApplyZimbraAccountSelection();
+        private void LocalOnlyCheckBox_Changed(object sender, RoutedEventArgs e) => ApplyLocalOnlyState();
 
-        private void ApplyZimbraAccountSelection()
+        private void ApplyLocalOnlyState()
         {
-            ZimbraAccountPickerHelper.ApplyCalDavSelection(ZimbraAccountCombo, CalDAVUrlTextBox, UsernameTextBox, PasswordBox);
-            CalDAVUrl = CalDAVUrlTextBox.Text;
-            Username = UsernameTextBox.Text;
-            Password = string.Empty;
-        }
-
-        private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
-        {
-            if (sender is PasswordBox pb && ZimbraAccountPickerHelper.GetSelectedAccount(ZimbraAccountCombo) == null)
-                Password = pb.Password;
+            var localOnly = LocalOnlyCheckBox.IsChecked == true || !_sharedAccountConfigured;
+            LoadCalendarsButton.IsEnabled = !localOnly;
+            CalendarsListBox.IsEnabled = !localOnly;
         }
 
         private async void LoadCalendarsButton_Click(object sender, RoutedEventArgs e)
         {
-            CalDAVUrl = CalDAVUrlTextBox.Text?.Trim() ?? "";
-            Username = UsernameTextBox.Text?.Trim() ?? "";
-            Password = ZimbraAccountPickerHelper.GetDiscoveryPassword(ZimbraAccountCombo, PasswordBox);
-            if (string.IsNullOrWhiteSpace(CalDAVUrl) || string.IsNullOrWhiteSpace(Username))
+            var settings = AppSettingsStore.Load();
+            if (!SharedCalDavAccount.IsConfigured(settings))
             {
-                MessageBox.Show(Strings.CaldavEnterUrlUser, Strings.CalendarTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(Strings.SharedCalDavMissing, Strings.CalendarTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
+
             try
             {
-                using var client = new CalDAVClient(CalDAVUrl, Username, Password);
+                using var client = new CalDAVClient(settings.CalDavBaseUrl, settings.CalDavUsername, SharedCalDavAccount.ReadPassword(settings));
                 var service = new CalendarCalDAVService(client);
                 _calendarList = await service.GetCalendarListAsync();
                 CalendarsListBox.ItemsSource = _calendarList;
@@ -70,7 +75,7 @@ namespace Naultinus.View
                 if (_calendarList.Count == 0)
                     MessageBox.Show(Strings.CaldavNoCalendar, Strings.CalendarTitle, MessageBoxButton.OK, MessageBoxImage.Information);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 MessageBox.Show(string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.CaldavLoadCalendarFailedFormat, ex.Message), Strings.CalendarTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
             }
@@ -83,32 +88,32 @@ namespace Naultinus.View
 
         private void CreateButton_Click(object sender, RoutedEventArgs e)
         {
-            if (ZimbraAccountPickerHelper.GetSelectedAccount(ZimbraAccountCombo) == null)
-                Password = PasswordBox.Password;
-            else
-                Password = string.Empty;
+            NaultinusTitle = string.IsNullOrWhiteSpace(NaultinusTitleTextBox.Text)
+                ? Strings.CalendarDefaultName
+                : NaultinusTitleTextBox.Text.Trim();
+            CalDAVUrl = string.Empty;
+            Username = string.Empty;
+            Password = string.Empty;
+            IsLocalOnly = LocalOnlyCheckBox.IsChecked == true || !_sharedAccountConfigured;
+            if (IsLocalOnly)
+            {
+                SelectedCalendarIds = new List<string>();
+                DialogResult = true;
+                Close();
+                return;
+            }
 
             if (CalendarsListBox.SelectedItems.Count > 0)
                 SelectedCalendarIds = CalendarsListBox.SelectedItems.Cast<CalDAVCalendarInfo>().Select(c => c.Href).ToList();
-            var url = CalDAVUrlTextBox.Text?.Trim() ?? "";
-            var user = UsernameTextBox.Text?.Trim() ?? "";
-            CalDAVUrl = url;
-            Username = user;
-            if (string.IsNullOrWhiteSpace(url))
+            else
+                SelectedCalendarIds = new List<string>();
+
+            if (SelectedCalendarIds.Count == 0)
             {
-                MessageBox.Show(Strings.CaldavEnterBaseUrl, Strings.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(Strings.SelectCalendarOrLocal, Strings.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-            if (!url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-            {
-                MessageBox.Show(Strings.CaldavHttpsRequired, Strings.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-            if (string.IsNullOrWhiteSpace(user))
-            {
-                MessageBox.Show(Strings.MailEnterUsername, Strings.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
+
             DialogResult = true;
             Close();
         }

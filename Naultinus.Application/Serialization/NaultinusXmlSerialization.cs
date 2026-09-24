@@ -19,6 +19,8 @@ namespace Naultinus.Serialization
             typeof(TaskNaultinusModel),
             typeof(CalendarNaultinusModel),
             typeof(MailNaultinusModel),
+            typeof(StoredCalendarEvent),
+            typeof(StoredLocalTask),
             typeof(Shortcut),
             typeof(LnkShortcut),
             typeof(UrlShortcut),

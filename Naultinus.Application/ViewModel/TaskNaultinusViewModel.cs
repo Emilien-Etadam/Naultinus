@@ -31,6 +31,8 @@ namespace Naultinus.ViewModel
         private int _syncInProgress;
         private bool _disposed;
         private readonly CollectionViewSource _visibleTasksView = new();
+        private readonly bool _sharedAccountConfigured = SharedCalDavAccount.IsConfigured();
+        private bool _suppressTaskPersistence;
 
         public string CalDAVUrl
         {
@@ -103,6 +105,13 @@ namespace Naultinus.ViewModel
                 StartSyncTimer();
             return true;
         }
+
+        /// <summary>Synchro seulement si le compte partagé existe et qu'une liste distante est choisie.</summary>
+        public bool IsRemote => LocalPlannerStore.UsesRemoteTasks(_model, _sharedAccountConfigured);
+
+        public bool IsLocalMode => !IsRemote;
+
+        public string RemoveTaskToolTip => IsLocalMode ? Strings.TooltipDelete : Strings.TooltipHideTask;
 
         public ObservableCollection<CalDAVTask> Tasks { get; set; } = new ObservableCollection<CalDAVTask>();
 
@@ -193,6 +202,12 @@ namespace Naultinus.ViewModel
             ForceSyncCommand = new AsyncRelayCommand(() => SyncWithCalDAVAsync());
             AddTaskCommand = new RelayCommand(() =>
             {
+                if (IsLocalMode)
+                {
+                    AddLocalTask();
+                    return;
+                }
+
                 var newTask = new CalDAVTask(Strings.TaskNewTaskName)
                 {
                     Description = Strings.TaskNewTaskDescription,
@@ -208,10 +223,17 @@ namespace Naultinus.ViewModel
                 }
                 SelectedTask = newTask;
             });
+            EditTaskCommand = new RelayCommand<CalDAVTask>(task => EditLocalTask(task ?? SelectedTask));
             HideTaskCommand = new RelayCommand<CalDAVTask>(task =>
             {
                 var t = task ?? SelectedTask;
                 if (t == null) return;
+                if (IsLocalMode)
+                {
+                    DeleteLocalTask(t);
+                    return;
+                }
+
                 RegisterTaskHiddenKeys(t);
                 if (SelectedTask == t) SelectedTask = null;
                 RefreshVisibleTasksFilter();
@@ -221,6 +243,18 @@ namespace Naultinus.ViewModel
             {
                 var t = task ?? SelectedTask;
                 if (t == null) return;
+                if (IsLocalMode)
+                {
+                    t.Completed = !t.Completed;
+                    t.CompletedDate = t.Completed ? DateTime.Now : null;
+                    t.LastModified = DateTime.Now;
+                    if (!LocalPlannerStore.TryUpdateTask(_model, LocalPlannerStore.ToStoredTask(t), out var localError))
+                        ErrorMessage = LocalPlannerStore.Describe(localError);
+                    else
+                        Save();
+                    return;
+                }
+
                 var listId = GetListIdForTask(t);
                 t.Completed = !t.Completed;
                 t.CompletedDate = t.Completed ? DateTime.Now : null;
@@ -241,6 +275,8 @@ namespace Naultinus.ViewModel
             {
                 var t = task ?? SelectedTask;
                 if (t == null) return;
+                if (IsLocalMode)
+                    return;
                 if (!string.IsNullOrEmpty(t.CalDAVId))
                     return;
                 var listId = GetListIdForTask(t);
@@ -263,14 +299,100 @@ namespace Naultinus.ViewModel
             _visibleTasksView.Source = Tasks;
             RefreshVisibleTasksFilter();
 
-            var hasListIds = _model.TaskListIds != null && _model.TaskListIds.Count > 0;
-            var hasLegacyId = !string.IsNullOrEmpty(_model.TaskListId);
-            if (!string.IsNullOrEmpty(_model.CalDAVUrl) && (hasListIds || hasLegacyId))
+            if (IsRemote)
             {
                 _ = LoadTasksAsync();
+                StartSyncTimer();
+            }
+            else
+            {
+                ReloadLocalTasks();
+                if (HasRemoteListConfigured)
+                    ErrorMessage = Strings.SharedCalDavMissing;
+            }
+        }
+
+        private bool HasRemoteListConfigured =>
+            (_model.TaskListIds != null && _model.TaskListIds.Any(id => !string.IsNullOrWhiteSpace(id)))
+            || !string.IsNullOrWhiteSpace(_model.TaskListId);
+
+        private void ReloadLocalTasks()
+        {
+            _suppressTaskPersistence = true;
+            try
+            {
+                Tasks.Clear();
+                if (_model.LocalTasks == null)
+                    return;
+                foreach (var stored in _model.LocalTasks)
+                    Tasks.Add(LocalPlannerStore.ToUiTask(stored));
+            }
+            finally
+            {
+                _suppressTaskPersistence = false;
             }
 
-            StartSyncTimer();
+            RefreshVisibleTasksFilter();
+            OnPropertyChanged(nameof(HasNoTasks));
+        }
+
+        private void AddLocalTask()
+        {
+            var dialog = new EditLocalTaskDialog(null);
+            try { dialog.Owner = NaultinusManager.GetWindow(Identifier); }
+            catch (KeyNotFoundException) { /* fenêtre non enregistrée : dialogue sans owner */ }
+            if (dialog.ShowDialog() != true || dialog.Result == null)
+                return;
+            if (!LocalPlannerStore.TryAddTask(_model, dialog.Result, out var error))
+            {
+                ErrorMessage = LocalPlannerStore.Describe(error);
+                return;
+            }
+
+            Save();
+            ReloadLocalTasks();
+            SelectedTask = Tasks.FirstOrDefault(t => t.Id == dialog.Result.Id);
+        }
+
+        private void EditLocalTask(CalDAVTask? task)
+        {
+            if (task == null || !IsLocalMode)
+                return;
+            var dialog = new EditLocalTaskDialog(task);
+            try { dialog.Owner = NaultinusManager.GetWindow(Identifier); }
+            catch (KeyNotFoundException) { /* fenêtre non enregistrée : dialogue sans owner */ }
+            if (dialog.ShowDialog() != true || dialog.Result == null)
+                return;
+            if (!LocalPlannerStore.TryUpdateTask(_model, dialog.Result, out var error))
+            {
+                ErrorMessage = LocalPlannerStore.Describe(error);
+                return;
+            }
+
+            var updated = LocalPlannerStore.ToUiTask(dialog.Result);
+            var index = Tasks.IndexOf(task);
+            if (index >= 0)
+                Tasks[index] = updated;
+            if (SelectedTask == task)
+                SelectedTask = updated;
+            Save();
+            RefreshVisibleTasksFilter();
+        }
+
+        private void DeleteLocalTask(CalDAVTask task)
+        {
+            if (!LocalPlannerStore.TryRemoveTask(_model, task.Id, out var error))
+            {
+                ErrorMessage = LocalPlannerStore.Describe(error);
+                return;
+            }
+
+            if (SelectedTask == task)
+                SelectedTask = null;
+            Save();
+            Tasks.Remove(task);
+            RefreshVisibleTasksFilter();
+            OnPropertyChanged(nameof(HasNoTasks));
         }
 
         private static IEnumerable<string> GetTaskHideKeys(CalDAVTask t)
@@ -344,9 +466,9 @@ namespace Naultinus.ViewModel
         public async Task LoadTasksAsync()
         {
             var listIds = GetListIds().ToList();
-            if (listIds.Count == 0 || string.IsNullOrEmpty(CalDAVUrl))
+            if (!IsRemote || listIds.Count == 0)
             {
-                Dispatch(() => { ErrorMessage = Strings.CaldavIncomplete; });
+                Dispatch(() => { ErrorMessage = Strings.SharedCalDavMissing; });
                 return;
             }
 
@@ -419,11 +541,15 @@ namespace Naultinus.ViewModel
 
         private void Tasks_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
+            if (_suppressTaskPersistence)
+                return;
             Save();
             if (!_isSyncing)
             {
                 SyncStatus = Strings.SyncLocalChanges;
             }
+
+            OnPropertyChanged(nameof(HasNoTasks));
         }
 
         private void StartSyncTimer()
@@ -447,7 +573,7 @@ namespace Naultinus.ViewModel
             try
             {
                 var listIds = GetListIds().ToList();
-                if (listIds.Count == 0 || string.IsNullOrEmpty(CalDAVUrl))
+                if (!IsRemote || listIds.Count == 0)
                     return;
 
                 Dispatch(() => { IsSyncing = true; SyncStatus = Strings.SyncWithCalDav; ErrorMessage = string.Empty; });
@@ -510,6 +636,7 @@ namespace Naultinus.ViewModel
         public ICommand SelectTabCommand { get; }
         public ICommand ForceSyncCommand { get; }
         public ICommand AddTaskCommand { get; }
+        public ICommand EditTaskCommand { get; }
         public ICommand HideTaskCommand { get; }
         public ICommand ToggleTaskCompletedCommand { get; }
         public ICommand SaveTaskCommand { get; }

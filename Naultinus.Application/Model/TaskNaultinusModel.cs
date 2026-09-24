@@ -26,5 +26,8 @@ namespace Naultinus.Model
 
         /// <summary>Clés locales (id:/caldav:/uid:) des tâches masquées dans l’interface — elles restent sur le serveur.</summary>
         public List<string> HiddenTaskKeys { get; set; } = new();
+
+        /// <summary>Tâches locales, enregistrées dans state.xml quand la fenêtre n'est pas synchronisée.</summary>
+        public List<StoredLocalTask> LocalTasks { get; set; } = new();
     }
 }

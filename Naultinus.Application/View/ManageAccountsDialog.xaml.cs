@@ -19,6 +19,60 @@ namespace Naultinus.View
         {
             InitializeComponent();
             LoadAccounts();
+            LoadSharedCalDavAccount();
+        }
+
+        private void LoadSharedCalDavAccount()
+        {
+            var settings = AppSettingsStore.Load();
+            CalDavUrlTextBox.Text = settings.CalDavBaseUrl ?? string.Empty;
+            CalDavUsernameTextBox.Text = settings.CalDavUsername ?? string.Empty;
+            CalDavPasswordBox.Password = string.Empty;
+            CalDavStatusText.Text = SharedCalDavAccount.DescribeStatus(settings);
+        }
+
+        private void SaveCalDavButton_Click(object sender, RoutedEventArgs e)
+        {
+            var settings = AppSettingsStore.Load();
+            if (!SharedCalDavAccount.TryApply(settings, CalDavUrlTextBox.Text, CalDavUsernameTextBox.Text, CalDavPasswordBox.Password, out var error))
+            {
+                MessageBox.Show(SharedCalDavAccount.Describe(error), Strings.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            AppSettingsStore.Save(settings);
+            CalDavPasswordBox.Password = string.Empty;
+            LoadSharedCalDavAccount();
+            MessageBox.Show(Strings.SharedCalDavSaved, Strings.AccountTitle, MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void ClearCalDavButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (MessageBox.Show(Strings.ConfirmClearCalDav, Strings.ConfirmTitle, MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                return;
+
+            var settings = AppSettingsStore.Load();
+            SharedCalDavAccount.Clear(settings);
+            AppSettingsStore.Save(settings);
+            LoadSharedCalDavAccount();
+            MessageBox.Show(Strings.SharedCalDavCleared, Strings.AccountTitle, MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void UseZimbraForCalDavButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (AccountsListBox.SelectedItem is not ZimbraAccount acc)
+                return;
+
+            var settings = AppSettingsStore.Load();
+            if (!SharedCalDavAccount.TryCopyFromZimbra(settings, acc, overwrite: true, out var error))
+            {
+                MessageBox.Show(SharedCalDavAccount.Describe(error), Strings.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            AppSettingsStore.Save(settings);
+            LoadSharedCalDavAccount();
+            MessageBox.Show(Strings.SharedCalDavSaved, Strings.AccountTitle, MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void LoadAccounts()
@@ -40,6 +94,7 @@ namespace Naultinus.View
             TestButton.IsEnabled = hasSelection;
             CreateNaultinusButton.IsEnabled = hasSelection;
             DeleteButton.IsEnabled = hasSelection;
+            UseZimbraForCalDavButton.IsEnabled = hasSelection;
         }
 
         private void AddButton_Click(object sender, RoutedEventArgs e)

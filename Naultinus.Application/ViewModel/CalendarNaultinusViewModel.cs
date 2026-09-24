@@ -32,6 +32,9 @@ namespace Naultinus.ViewModel
         private readonly HashSet<string> _notifiedEventUids = new HashSet<string>();
         private static readonly CalendarSerializer _calendarSerializer = new CalendarSerializer();
 
+        /// <summary>Figé à l'ouverture : le client CalDAV a été construit avec le compte partagé de ce moment-là.</summary>
+        private readonly bool _sharedAccountConfigured = SharedCalDavAccount.IsConfigured();
+
         public CalendarNaultinusViewModel() : this(
             new CalendarNaultinusModel { Name = Strings.CalendarDefaultName, Width = 500, Height = 400 },
             new CalendarCalDAVService(new CalDAVClient("https://localhost/", "", "")))
@@ -47,9 +50,17 @@ namespace Naultinus.ViewModel
             NextDayCommand = new RelayCommand(() => SelectedDate = SelectedDate.AddDays(DaysToShow));
             TodayCommand = new RelayCommand(() => SelectedDate = DateTime.Today);
             AddEventCommand = new RelayCommand(() => ShowAddEventDialog());
+            EditEventCommand = new RelayCommand<Model.CalendarEvent>(ShowEditEventDialog);
+            DeleteEventCommand = new RelayCommand<Model.CalendarEvent>(DeleteLocalEvent);
             _ = LoadEventsAsync();
-            StartRefreshTimer();
+            if (IsRemote)
+                StartRefreshTimer();
         }
+
+        /// <summary>Synchro seulement si un compte partagé existe et que des calendriers ont été choisis.</summary>
+        public bool IsRemote => LocalPlannerStore.UsesRemoteCalendars(_model, _sharedAccountConfigured);
+
+        public bool IsLocalMode => !IsRemote;
 
         public ObservableCollection<Model.CalendarEvent> Events { get; }
         public ObservableCollection<CalendarLegendItem> CalendarLegend { get; } = new ObservableCollection<CalendarLegendItem>();
@@ -114,15 +125,12 @@ namespace Naultinus.ViewModel
             Dispatch(() => { IsLoading = true; ErrorMessage = ""; });
             try
             {
-                if (_model.CalendarIds == null || _model.CalendarIds.Count == 0)
+                if (!IsRemote)
                 {
-                    Dispatch(() =>
-                    {
-                        Events.Clear();
-                        CalendarLegend.Clear();
-                        OnPropertyChanged(nameof(HasCalendarLegend));
-                        ErrorMessage = Strings.CalendarNoCalendarsConfigured;
-                    });
+                    // Sans compte, ou sans calendrier distant : afficher les événements du state.xml, sans réseau.
+                    PublishLocalEvents();
+                    if (_sharedAccountConfigured == false && _model.CalendarIds != null && _model.CalendarIds.Count > 0)
+                        Dispatch(() => ErrorMessage = Strings.SharedCalDavMissing);
                     Dispatch(() => OnPropertyChanged(nameof(HasNoEvents)));
                     return;
                 }
@@ -145,35 +153,8 @@ namespace Naultinus.ViewModel
                     Save();
                 allEvents = allEvents.Where(e => e.DtEnd > start && e.DtStart < end).ToList();
                 var ordered = allEvents.OrderBy(e => e.DtStart).ToList();
-                DateTime? prevDate = null;
-                foreach (var evt in ordered)
-                {
-                    var evtDate = evt.DtStart.Date;
-                    evt.IsToday = evtDate == DateTime.Today;
-                    if (evtDate != prevDate)
-                    {
-                        evt.DayHeader = evt.DtStart.ToString("ddd dd MMM");
-                        prevDate = evtDate;
-                    }
-                }
-                Dispatch(() =>
-                {
-                    Events.Clear();
-                    foreach (var evt in ordered)
-                        Events.Add(evt);
-                    OnPropertyChanged(nameof(HasNoEvents));
-                    var now = DateTime.Now;
-                    var threshold = now.AddMinutes(15);
-                    foreach (var evt in Events)
-                    {
-                        if (evt.DtStart >= now && evt.DtStart <= threshold && _notifiedEventUids.Add(evt.Uid))
-                            ToastHelper.ShowEventReminder(evt.Summary, evt.DtStart);
-                    }
-
-                    // Borne la taille du set (sinon croissance sans fin) : on ne garde que les UID
-                    // des événements encore chargés.
-                    _notifiedEventUids.IntersectWith(Events.Select(e => e.Uid));
-                });
+                DecorateDayHeaders(ordered);
+                Dispatch(() => ShowEvents(ordered));
             }
             catch (Exception ex)
             {
@@ -184,6 +165,56 @@ namespace Naultinus.ViewModel
                 Dispatch(() => { IsLoading = false; OnPropertyChanged(nameof(HasNoEvents)); });
                 Interlocked.Exchange(ref _loadEventsInProgress, 0);
             }
+        }
+
+        private void PublishLocalEvents()
+        {
+            var start = SelectedDate.Date;
+            var end = start.AddDays(DaysToShow);
+            var ordered = LocalPlannerStore.EventsOverlapping(_model, start, end)
+                .Select(LocalPlannerStore.ToCalendarEvent)
+                .ToList();
+            DecorateDayHeaders(ordered);
+            Dispatch(() =>
+            {
+                CalendarLegend.Clear();
+                OnPropertyChanged(nameof(HasCalendarLegend));
+                ShowEvents(ordered);
+            });
+        }
+
+        private static void DecorateDayHeaders(List<Model.CalendarEvent> ordered)
+        {
+            DateTime? prevDate = null;
+            foreach (var evt in ordered)
+            {
+                var evtDate = evt.DtStart.Date;
+                evt.IsToday = evtDate == DateTime.Today;
+                if (evtDate != prevDate)
+                {
+                    evt.DayHeader = evt.DtStart.ToString("ddd dd MMM");
+                    prevDate = evtDate;
+                }
+            }
+        }
+
+        private void ShowEvents(List<Model.CalendarEvent> ordered)
+        {
+            Events.Clear();
+            foreach (var evt in ordered)
+                Events.Add(evt);
+            OnPropertyChanged(nameof(HasNoEvents));
+            var now = DateTime.Now;
+            var threshold = now.AddMinutes(15);
+            foreach (var evt in Events)
+            {
+                if (evt.DtStart >= now && evt.DtStart <= threshold && _notifiedEventUids.Add(evt.Uid))
+                    ToastHelper.ShowEventReminder(evt.Summary, evt.DtStart);
+            }
+
+            // Borne la taille du set (sinon croissance sans fin) : on ne garde que les UID
+            // des événements encore chargés.
+            _notifiedEventUids.IntersectWith(Events.Select(e => e.Uid));
         }
 
         private bool EnsureCalendarColors()
@@ -266,7 +297,7 @@ namespace Naultinus.ViewModel
             {
                 try
                 {
-                    await CreateEventAsync(dialog.NewEvent);
+                    await CreateEventAsync(dialog.NewEvent, dialog.Draft);
                     await LoadEventsAsync();
                 }
                 catch (Exception ex)
@@ -278,8 +309,59 @@ namespace Naultinus.ViewModel
             }
         }
 
-        private async Task CreateEventAsync(Model.CalendarEvent evt)
+        private void ShowEditEventDialog(Model.CalendarEvent? evt)
         {
+            if (evt == null || !IsLocalMode)
+                return;
+            var dialog = new AddCalendarEventDialog(evt);
+            try { dialog.Owner = NaultinusManager.GetWindow(Identifier); }
+            catch (KeyNotFoundException) { /* fenêtre non enregistrée : dialogue sans owner */ }
+            if (dialog.ShowDialog() != true || dialog.Draft == null)
+                return;
+            if (!LocalPlannerStore.TryUpdateEvent(_model, dialog.Draft, out var error))
+            {
+                ErrorMessage = LocalPlannerStore.Describe(error);
+                return;
+            }
+
+            Save();
+            _ = LoadEventsAsync();
+        }
+
+        private void DeleteLocalEvent(Model.CalendarEvent? evt)
+        {
+            if (evt == null || !IsLocalMode)
+                return;
+            if (!LocalPlannerStore.TryRemoveEvent(_model, evt.Uid, out var error))
+            {
+                ErrorMessage = LocalPlannerStore.Describe(error);
+                return;
+            }
+
+            Save();
+            _ = LoadEventsAsync();
+        }
+
+        private async Task CreateEventAsync(Model.CalendarEvent evt, StoredCalendarEvent? draft)
+        {
+            if (!IsRemote)
+            {
+                var stored = draft ?? new StoredCalendarEvent
+                {
+                    Uid = string.IsNullOrWhiteSpace(evt.Uid) ? Guid.NewGuid().ToString("D") : evt.Uid,
+                    Summary = evt.Summary,
+                    Description = evt.Description,
+                    Location = evt.Location,
+                    DtStart = evt.DtStart,
+                    DtEnd = evt.DtEnd,
+                    IsAllDay = evt.IsAllDay,
+                };
+                if (!LocalPlannerStore.TryAddEvent(_model, stored, out var error))
+                    throw new InvalidOperationException(LocalPlannerStore.Describe(error));
+                Save();
+                return;
+            }
+
             if (_model.CalendarIds == null || _model.CalendarIds.Count == 0) return;
             var calendar = new Ical.Net.Calendar();
             var dtStart = evt.IsAllDay
@@ -306,6 +388,8 @@ namespace Naultinus.ViewModel
         public ICommand NextDayCommand { get; }
         public ICommand TodayCommand { get; }
         public ICommand AddEventCommand { get; }
+        public ICommand EditEventCommand { get; }
+        public ICommand DeleteEventCommand { get; }
         public ICommand RefreshCommand { get; } = new AsyncRelayCommand<CalendarNaultinusViewModel>(async vm => { if (vm != null) await vm.LoadEventsAsync(); });
 
         public override void Dispose()

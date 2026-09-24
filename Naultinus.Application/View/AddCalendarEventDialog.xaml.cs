@@ -31,52 +31,58 @@ namespace Naultinus.View
 
         public CalendarEvent? NewEvent { get; private set; }
 
-        private void CreateButton_Click(object sender, RoutedEventArgs e)
+        /// <summary>Brouillon validé, utilisé pour l'enregistrement local.</summary>
+        public StoredCalendarEvent? Draft { get; private set; }
+
+        private string? _existingUid;
+
+        public AddCalendarEventDialog(CalendarEvent existing)
+            : this()
         {
-            var summary = SummaryTextBox?.Text?.Trim() ?? string.Empty;
-            if (string.IsNullOrEmpty(summary))
+            _existingUid = existing.Uid;
+            SummaryTextBox.Text = existing.Summary ?? string.Empty;
+            StartDatePicker.SelectedDate = existing.DtStart.Date;
+            if (existing.IsAllDay)
             {
-                MessageBox.Show(Strings.SummaryRequired, Strings.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            var startDate = StartDatePicker?.SelectedDate ?? DateTime.Today;
-            var endDate = EndDatePicker?.SelectedDate ?? DateTime.Today;
-            var startTimeStr = StartTimeTextBox?.Text?.Trim() ?? "09:00";
-            var endTimeStr = EndTimeTextBox?.Text?.Trim() ?? "10:00";
-            var location = LocationTextBox?.Text?.Trim() ?? string.Empty;
-            var isAllDay = IsAllDayCheckBox?.IsChecked == true;
-
-            DateTime dtStart;
-            DateTime dtEnd;
-
-            if (isAllDay)
-            {
-                dtStart = startDate.Date;
-                dtEnd = endDate.Date.AddDays(1);
+                var inclusiveEnd = existing.DtEnd.Date;
+                if (existing.DtEnd.TimeOfDay == TimeSpan.Zero && inclusiveEnd > existing.DtStart.Date)
+                    inclusiveEnd = inclusiveEnd.AddDays(-1);
+                EndDatePicker.SelectedDate = inclusiveEnd;
             }
             else
             {
-                if (!DateTime.TryParseExact(startTimeStr, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var st))
-                    st = new DateTime(2000, 1, 1, 9, 0, 0);
-                if (!DateTime.TryParseExact(endTimeStr, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var et))
-                    et = new DateTime(2000, 1, 1, 10, 0, 0);
-                dtStart = startDate.Date.Add(st.TimeOfDay);
-                dtEnd = endDate.Date.Add(et.TimeOfDay);
-                if (dtEnd <= dtStart)
-                    dtEnd = dtStart.AddHours(1);
+                EndDatePicker.SelectedDate = existing.DtEnd.Date;
             }
 
-            NewEvent = new CalendarEvent
-            {
-                Summary = summary,
-                Description = string.Empty,
-                Location = location,
-                DtStart = dtStart,
-                DtEnd = dtEnd,
-                IsAllDay = isAllDay
-            };
+            StartTimeTextBox.Text = existing.DtStart.ToString("HH:mm", CultureInfo.InvariantCulture);
+            EndTimeTextBox.Text = existing.DtEnd.ToString("HH:mm", CultureInfo.InvariantCulture);
+            LocationTextBox.Text = existing.Location ?? string.Empty;
+            IsAllDayCheckBox.IsChecked = existing.IsAllDay;
+            Title = Strings.WindowTitleEditEvent;
+            CreateButton.Content = Strings.ButtonSave;
+        }
 
+        private void CreateButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!Naultinus.Helpers.LocalPlannerStore.TryBuildEvent(
+                SummaryTextBox?.Text,
+                LocationTextBox?.Text,
+                string.Empty,
+                StartDatePicker?.SelectedDate,
+                EndDatePicker?.SelectedDate,
+                StartTimeTextBox?.Text,
+                EndTimeTextBox?.Text,
+                IsAllDayCheckBox?.IsChecked == true,
+                _existingUid,
+                out var draft,
+                out var error))
+            {
+                MessageBox.Show(Naultinus.Helpers.LocalPlannerStore.Describe(error), Strings.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            Draft = draft;
+            NewEvent = Naultinus.Helpers.LocalPlannerStore.ToCalendarEvent(draft!);
             DialogResult = true;
             Close();
         }

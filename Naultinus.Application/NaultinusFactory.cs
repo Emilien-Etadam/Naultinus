@@ -28,15 +28,15 @@ namespace Naultinus
                 return new FolderPortalViewModel(folderModel);
             if (concrete is TaskNaultinusModel taskModel)
             {
-                var (caldavUrl, username, password) = ResolveCalDAVCredentials(taskModel.ZimbraAccountId, taskModel.CalDAVUrl, taskModel.CalDAVUsername, taskModel.CalDAVPassword);
-                var client = new CalDAVClient(caldavUrl, username, password);
-                return new TaskNaultinusViewModel(taskModel, new CalDAVService(client));
+                // Ancienne fenêtre : ses identifiants deviennent le compte partagé s'il n'existe pas encore.
+                AdoptLegacyCalDav(taskModel.ZimbraAccountId, taskModel.CalDAVUrl, taskModel.CalDAVUsername, taskModel.CalDAVPassword);
+                return new TaskNaultinusViewModel(taskModel, new CalDAVService(CreateSharedCalDavClient()));
             }
 
             if (concrete is CalendarNaultinusModel calModel)
             {
-                var (calUrl, calUser, calPass) = ResolveCalDAVCredentials(calModel.ZimbraAccountId, calModel.CalDAVBaseUrl, calModel.CalDAVUsername, calModel.CalDAVPassword);
-                return new CalendarNaultinusViewModel(calModel, new CalendarCalDAVService(new CalDAVClient(calUrl, calUser, calPass)));
+                AdoptLegacyCalDav(calModel.ZimbraAccountId, calModel.CalDAVBaseUrl, calModel.CalDAVUsername, calModel.CalDAVPassword);
+                return new CalendarNaultinusViewModel(calModel, new CalendarCalDAVService(CreateSharedCalDavClient()));
             }
 
             if (concrete is MailNaultinusModel mailModel)
@@ -46,15 +46,32 @@ namespace Naultinus
             return null;
         }
 
-        private static (string Url, string Username, string Password) ResolveCalDAVCredentials(Guid? zimbraAccountId, string? modelUrl, string? modelUser, string? modelEncPass)
+        /// <summary>
+        /// Si settings.xml n'a pas encore de compte CalDAV, reprend celui d'une fenêtre existante (une seule fois).
+        /// Les fenêtres suivantes lisent ensuite ce compte, pas le leur.
+        /// </summary>
+        private static void AdoptLegacyCalDav(Guid? zimbraAccountId, string? url, string? username, string? encryptedPassword)
         {
-            if (zimbraAccountId is Guid id && ZimbraAccountStore.GetById(id) is ZimbraAccount acc)
-            {
-                string url = !string.IsNullOrEmpty(acc.CalDAVBaseUrl) ? acc.CalDAVBaseUrl : (modelUrl ?? "");
-                string user = !string.IsNullOrEmpty(acc.Email) ? acc.Email : (modelUser ?? "");
-                return (url, user, CredentialEncryptor.Decrypt(acc.EncryptedPassword ?? ""));
-            }
-            return (modelUrl ?? "", modelUser ?? "", CredentialEncryptor.Decrypt(modelEncPass ?? ""));
+            var settings = AppSettingsStore.Load();
+            if (SharedCalDavAccount.IsConfigured(settings))
+                return;
+
+            var changed = false;
+            if (zimbraAccountId is Guid id)
+                changed = SharedCalDavAccount.TryCopyFromZimbra(settings, ZimbraAccountStore.GetById(id), overwrite: false, out _);
+            if (!changed)
+                changed = SharedCalDavAccount.TryAdoptLegacy(settings, url, username, encryptedPassword);
+            if (changed)
+                AppSettingsStore.Save(settings);
+        }
+
+        private static CalDAVClient CreateSharedCalDavClient()
+        {
+            var settings = AppSettingsStore.Load();
+            return new CalDAVClient(
+                settings.CalDavBaseUrl ?? string.Empty,
+                settings.CalDavUsername ?? string.Empty,
+                SharedCalDavAccount.ReadPassword(settings));
         }
 
         private static void ApplySize(NaultinusModelBase model, int? x, int? y, int? width, int? height, int defW, int defH)
@@ -68,41 +85,36 @@ namespace Naultinus
         public static TaskNaultinusViewModel CreateTaskViewModel(string caldavUrl, string username, string password, List<string> taskListIds, string title, int? x, int? y, int? width, int? height, Guid? zimbraAccountId = null)
         {
             taskListIds = taskListIds ?? new List<string>();
+            // Les identifiants reçus ne sont pas recopiés : le client lit le compte CalDAV partagé.
+            _ = caldavUrl;
+            _ = username;
+            _ = password;
+            _ = zimbraAccountId;
             var model = new TaskNaultinusModel
             {
                 Name = title,
-                CalDAVUrl = caldavUrl,
-                CalDAVUsername = username,
-                CalDAVPassword = zimbraAccountId.HasValue ? string.Empty : CredentialEncryptor.Encrypt(password),
-                ZimbraAccountId = zimbraAccountId,
                 TaskListIds = taskListIds,
                 TaskListId = taskListIds.Count > 0 ? taskListIds[0] : string.Empty,
             };
             ApplySize(model, x, y, width, height, 600, 400);
-            var (url, user, pass) = ResolveCalDAVCredentials(zimbraAccountId, caldavUrl, username, model.CalDAVPassword);
-            var client = new CalDAVClient(url, user, pass);
-            var caldavService = new CalDAVService(client);
-            return new TaskNaultinusViewModel(model, caldavService);
+            return new TaskNaultinusViewModel(model, new CalDAVService(CreateSharedCalDavClient()));
         }
 
         public static CalendarNaultinusViewModel CreateCalendarViewModel(string caldavUrl, string username, string password, List<string> calendarIds, string title, CalendarViewMode viewMode, int daysToShow, int? x, int? y, int? width, int? height, Guid? zimbraAccountId = null)
         {
+            _ = caldavUrl;
+            _ = username;
+            _ = password;
+            _ = zimbraAccountId;
             var model = new CalendarNaultinusModel
             {
                 Name = title,
-                CalDAVBaseUrl = caldavUrl,
-                CalDAVUsername = username,
-                CalDAVPassword = zimbraAccountId.HasValue ? string.Empty : CredentialEncryptor.Encrypt(password),
-                ZimbraAccountId = zimbraAccountId,
                 CalendarIds = calendarIds ?? new List<string>(),
                 ViewMode = viewMode,
                 DaysToShow = daysToShow,
             };
             ApplySize(model, x, y, width, height, 500, 400);
-            var (url, user, pass) = ResolveCalDAVCredentials(zimbraAccountId, caldavUrl, username, model.CalDAVPassword);
-            var client = new CalDAVClient(url, user, pass);
-            var calendarService = new CalendarCalDAVService(client);
-            return new CalendarNaultinusViewModel(model, calendarService);
+            return new CalendarNaultinusViewModel(model, new CalendarCalDAVService(CreateSharedCalDavClient()));
         }
 
         public static MailNaultinusViewModel CreateMailViewModel(string imapHost, int imapPort, string username, string password, List<string> monitoredFolders, string title, MailDisplayMode displayMode, int pollIntervalMinutes, string? webmailUrl, int? x, int? y, int? width, int? height, Guid? zimbraAccountId = null)

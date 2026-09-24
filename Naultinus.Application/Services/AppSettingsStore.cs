@@ -15,7 +15,17 @@ namespace Naultinus.Services
 
         public static AppSettings Load()
         {
-            var path = AppPaths.GetSettingsFilePath();
+            return LoadFrom(AppPaths.GetSettingsFilePath());
+        }
+
+        public static void Save(AppSettings settings)
+        {
+            SaveTo(AppPaths.GetSettingsFilePath(), settings);
+        }
+
+        /// <summary>Même lecture que <see cref="Load"/>, vers un fichier explicite (tests, sans toucher au profil).</summary>
+        internal static AppSettings LoadFrom(string path)
+        {
             if (!File.Exists(path))
                 return new AppSettings();
             try
@@ -32,9 +42,9 @@ namespace Naultinus.Services
             return new AppSettings();
         }
 
-        public static void Save(AppSettings settings)
+        /// <summary>Même écriture que <see cref="Save"/>, vers un fichier explicite.</summary>
+        internal static void SaveTo(string path, AppSettings settings)
         {
-            var path = AppPaths.GetSettingsFilePath();
             AppPaths.WriteAtomicText(path, writer => Serializer.Serialize(writer, settings ?? new AppSettings()));
         }
     }
