@@ -165,8 +165,9 @@
                                             </Style>
                                         </Border.Style>
                                         <StackPanel VerticalAlignment="Top" HorizontalAlignment="Center" Cursor="Hand">
-                                            <Image Source="{Binding IconPath, Converter={StaticResource PathToImage}}" Width="48" Height="48" Stretch="UniformToFill" Margin="5" />
-                                            <TextBlock TextWrapping="NoWrap" TextAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding Name, Mode=OneWay}"
+                                            <Image Source="{Binding PreviewPath, Converter={StaticResource PathToImage}, ConverterParameter=48}" Width="48" Height="48" Stretch="UniformToFill" Margin="5" />
+                                            <TextBlock TextWrapping="NoWrap" TextAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding DisplayName, Mode=OneWay}"
+                                                       ToolTip="{Binding DisplayName, Mode=OneWay}"
                                                        Foreground="{DynamicResource NaultinusTextBrush}"
                                                        HorizontalAlignment="Center" Margin="5,0,5,5" />
                                         </StackPanel>

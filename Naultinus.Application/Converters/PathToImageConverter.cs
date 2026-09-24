@@ -14,11 +14,6 @@ namespace Naultinus.Converters
 {
     public class PathToImageConverter : IValueConverter
     {
-        private static readonly string[] RasterExtensions =
-        {
-            ".png", ".jpg", ".jpeg", ".jpe", ".jfif", ".gif", ".bmp", ".dib", ".tif", ".tiff", ".ico", ".wdp", ".jxr",
-        };
-
         public object? Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is not string path || string.IsNullOrWhiteSpace(path))
@@ -33,10 +28,10 @@ namespace Naultinus.Converters
 
             try
             {
-                var ext = Path.GetExtension(path).ToLowerInvariant();
-                if (Array.IndexOf(RasterExtensions, ext) >= 0)
+                if (RasterImageFiles.IsRasterPath(path))
                 {
-                    var raster = LoadBitmapImage(path);
+                    int? decodeWidth = TryDecodeWidth(parameter);
+                    var raster = LoadBitmapImage(path, decodeWidth);
                     if (raster != null)
                     {
                         return raster;
@@ -51,7 +46,14 @@ namespace Naultinus.Converters
             }
         }
 
-        private static BitmapImage? LoadBitmapImage(string path)
+        private static int? TryDecodeWidth(object parameter)
+        {
+            if (parameter is string text && int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int width) && width > 0)
+                return width;
+            return null;
+        }
+
+        private static BitmapImage? LoadBitmapImage(string path, int? decodeWidth)
         {
             try
             {
@@ -61,6 +63,8 @@ namespace Naultinus.Converters
                     image.BeginInit();
                     image.StreamSource = stream;
                     image.CacheOption = BitmapCacheOption.OnLoad;
+                    if (decodeWidth is int width)
+                        image.DecodePixelWidth = width;
                     image.EndInit();
                 }
 

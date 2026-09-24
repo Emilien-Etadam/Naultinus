@@ -48,7 +48,7 @@ namespace Naultinus.ViewModel
 
             SortByNameCommand = new RelayCommand(() =>
             {
-                var sorted = Shortcuts.OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase).ToList();
+                var sorted = Shortcuts.OrderBy(s => s.DisplayName, StringComparer.OrdinalIgnoreCase).ToList();
                 Shortcuts.Clear();
                 foreach (var s in sorted) Shortcuts.Add(s);
                 Save();
