@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Naultinus.Helpers
 {
@@ -154,14 +156,38 @@ namespace Naultinus.Helpers
 
         internal static string CreateIconPng(string filePath, string naultinusIdentifier)
         {
-            using Bitmap? icon = IconExtractor.GetFileImageFromPath(filePath, Native.IconSizeEnum.LargeIcon48);
-            if (icon == null) return string.Empty;
             string iconDir = GetNaultinusIconsDirectory(naultinusIdentifier);
             EnsureExists(iconDir);
-            string iconPath = Path.Combine(iconDir, Guid.NewGuid().ToString() + ".png");
-            using FileStream fs = new(iconPath, FileMode.Create);
-            icon.Save(fs, ImageFormat.Png);
-            return iconPath;
+            string prefix = Directory.Exists(filePath) ? "folder_" : "file_";
+            return GetOrCreateIcon(filePath, prefix, iconDir);
+        }
+
+        /// <summary>
+        /// Icône shell mise en cache, partagée avec le file browser.
+        /// Le nom de fichier reste <c>préfixe + hash</c> pour réutiliser les PNG déjà écrits.
+        /// </summary>
+        internal static string GetOrCreateIcon(string path, string prefix, string iconsDir)
+        {
+            EnsureExists(iconsDir);
+            string iconPath = Path.Combine(iconsDir, prefix + StableHash(path) + ".png");
+            if (File.Exists(iconPath))
+                return iconPath;
+            try
+            {
+                using Bitmap? icon = IconExtractor.GetFileImageFromPath(path, Native.IconSizeEnum.LargeIcon48);
+                if (icon != null)
+                {
+                    using FileStream fileStream = new(iconPath, FileMode.Create);
+                    icon.Save(fileStream, ImageFormat.Png);
+                    return iconPath;
+                }
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("AppPaths.GetOrCreateIcon", ex);
+            }
+
+            return string.Empty;
         }
 
         internal static void MoveRobust(string source, string dest, bool isDirectory)
@@ -176,6 +202,13 @@ namespace Naultinus.Helpers
                 try { File.Move(source, dest); }
                 catch (IOException) { File.Copy(source, dest, overwrite: false); File.Delete(source); }
             }
+        }
+
+        private static string StableHash(string input)
+        {
+            byte[] bytes = Encoding.UTF8.GetBytes(input);
+            byte[] hash = SHA256.HashData(bytes);
+            return Convert.ToHexString(hash, 0, 8);
         }
     }
 }

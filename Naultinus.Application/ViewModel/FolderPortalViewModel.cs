@@ -7,12 +7,8 @@ using Naultinus.View;
 using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Windows;
 using System.Windows.Input;
@@ -255,7 +251,7 @@ namespace Naultinus.ViewModel
                     if (IsHiddenOrSystemEntry(dir))
                         continue;
                     string dirName = Path.GetFileName(dir);
-                    string iconPath = GetOrCreateIcon(dir, "folder_", iconsDir);
+                    string iconPath = AppPaths.GetOrCreateIcon(dir, "folder_", iconsDir);
                     newItems.Add(new FolderPortalItem(dirName, dir, true, iconPath));
                 }
 
@@ -264,7 +260,7 @@ namespace Naultinus.ViewModel
                     string fileName = Path.GetFileName(file);
                     if (fileName.StartsWith("~$", StringComparison.Ordinal) || IsHiddenOrSystemEntry(file))
                         continue;
-                    string iconPath = GetOrCreateIcon(file, "file_", iconsDir);
+                    string iconPath = AppPaths.GetOrCreateIcon(file, "file_", iconsDir);
                     newItems.Add(new FolderPortalItem(fileName, file, false, iconPath));
                 }
 
@@ -330,32 +326,6 @@ namespace Naultinus.ViewModel
                 return (attrs & FileAttributes.Hidden) != 0 || (attrs & FileAttributes.System) != 0;
             }
             catch (Exception ex) { NaultinusDiagnostics.LogDebug("FolderPortal.IsHiddenOrSystemEntry", ex); return false; }
-        }
-
-        private static string StableHash(string input)
-        {
-            var bytes = Encoding.UTF8.GetBytes(input);
-            var hash = SHA256.HashData(bytes);
-            return Convert.ToHexString(hash, 0, 8);
-        }
-
-        private static string GetOrCreateIcon(string path, string prefix, string iconsDir)
-        {
-            string iconPath = Path.Combine(iconsDir, prefix + StableHash(path) + ".png");
-            if (File.Exists(iconPath))
-                return iconPath;
-            try
-            {
-                using Bitmap? icon = IconExtractor.GetFileImageFromPath(path, Helpers.Native.IconSizeEnum.LargeIcon48);
-                if (icon != null)
-                {
-                    using FileStream fileStream = new(iconPath, FileMode.Create);
-                    icon.Save(fileStream, ImageFormat.Png);
-                    return iconPath;
-                }
-            }
-            catch (Exception ex) { NaultinusDiagnostics.LogDebug("FolderPortal.GetOrCreateIcon", ex); }
-            return "";
         }
 
         private void SetupWatcher(string? path)
