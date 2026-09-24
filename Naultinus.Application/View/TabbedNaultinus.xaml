@@ -492,8 +492,8 @@
     </Window.Resources>
     <Border x:Name="LayoutRoot" CornerRadius="0" ClipToBounds="True">
         <DockPanel>
-            <!-- Colonne « poignée » : les onglets Parcourir ont un libellé long (TabBarLabel) et couvrent presque toute la barre ; les boutons d’onglet absorbent le clic et empêchent DragMove sur le Grid parent. -->
-            <Grid DockPanel.Dock="Top" x:Name="Header" Height="32" MouseLeftButtonDown="Header_MouseLeftButtonDown" IsHitTestVisible="True" Background="{DynamicResource NaultinusWindowBrush}" ColumnDefinitions="Auto, 12, *, Auto">
+            <!-- Les boutons d’onglet absorbent le clic (DragMove du Grid ne part pas). Un glissement au-delà du seuil système sur un onglet déplace la fenêtre ; un clic court la sélectionne. La colonne de 12 px reste une poignée pour le vide de la barre. -->
+            <Grid DockPanel.Dock="Top" x:Name="Header" Height="32" MouseLeftButtonDown="Header_MouseLeftButtonDown" PreviewMouseLeftButtonDown="Header_PreviewMouseLeftButtonDown" PreviewMouseMove="Header_PreviewMouseMove" PreviewMouseLeftButtonUp="Header_PreviewMouseLeftButtonUp" IsHitTestVisible="True" Background="{DynamicResource NaultinusWindowBrush}" ColumnDefinitions="Auto, 12, *, Auto">
                 <Grid.ContextMenu>
                     <ContextMenu>
                         <MenuItem Header="{x:Static properties:Strings.MenuEdit}" Command="{x:Static pal:NaultinusWpfCommands.OpenEditSelectedTabCommand}" CommandParameter="{Binding SelectedMember}" />
