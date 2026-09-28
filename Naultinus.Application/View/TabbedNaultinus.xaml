@@ -416,6 +416,7 @@
                         <TextBlock Text="{x:Static properties:Strings.LoadingEllipsis}" HorizontalAlignment="Center" Margin="0,8,0,0" Foreground="{DynamicResource NaultinusTextBrush}"/>
                     </StackPanel>
                     <ListBox Grid.Row="2" ItemsSource="{Binding Events}"
+                             SelectedItem="{Binding SelectedEvent, Mode=TwoWay}"
                              VirtualizingPanel.IsVirtualizing="True"
                              VirtualizingPanel.VirtualizationMode="Recycling"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -450,16 +451,10 @@
                                     <Border BorderBrush="{DynamicResource NaultinusAccentBrush}" BorderThickness="3,0,0,0"
                                             Padding="10,8" Margin="0,0,0,2" Background="{DynamicResource NaultinusCardBrush}" CornerRadius="0,4,4,0"
                                             x:Name="EventCard">
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <Grid Grid.Column="0" RowDefinitions="Auto,Auto,Auto">
-                                                <TextBlock Grid.Row="0" Text="{Binding Summary, Mode=OneWay}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource NaultinusTextBrush}" TextTrimming="CharacterEllipsis"/>
-                                                <TextBlock Grid.Row="1" Text="{Binding TimeDisplay, Mode=OneWay}" Margin="0,2,0,0" Foreground="{DynamicResource NaultinusSubtleBrush}" FontSize="11"/>
-                                                <TextBlock Grid.Row="2" Text="{Binding Location}" Visibility="{Binding Location, Converter={StaticResource StringToVisibilityConverter}}" FontSize="11" Foreground="{DynamicResource NaultinusSubtleBrush}" FontStyle="Italic" Margin="0,2,0,0"/>
-                                            </Grid>
-                                            <Button Grid.Column="1" Content="🗑" ToolTip="{x:Static properties:Strings.TooltipDelete}" Style="{StaticResource CircleButton}" Width="22" Height="22" Margin="4,0,0,0"
-                                                    VerticalAlignment="Center"
-                                                    Command="{Binding DataContext.DeleteEventCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
-                                                    CommandParameter="{Binding}"/>
+                                        <Grid RowDefinitions="Auto,Auto,Auto">
+                                            <TextBlock Grid.Row="0" Text="{Binding Summary, Mode=OneWay}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource NaultinusTextBrush}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Row="1" Text="{Binding TimeDisplay, Mode=OneWay}" Margin="0,2,0,0" Foreground="{DynamicResource NaultinusSubtleBrush}" FontSize="11"/>
+                                            <TextBlock Grid.Row="2" Text="{Binding Location}" Visibility="{Binding Location, Converter={StaticResource StringToVisibilityConverter}}" FontSize="11" Foreground="{DynamicResource NaultinusSubtleBrush}" FontStyle="Italic" Margin="0,2,0,0"/>
                                         </Grid>
                                     </Border>
                                 </StackPanel>

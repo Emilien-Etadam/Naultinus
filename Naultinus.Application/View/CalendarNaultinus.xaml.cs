@@ -11,6 +11,11 @@ namespace Naultinus.View
             InitializeComponent();
             DataContext = viewModel;
             Activated += (_, _) => viewModel.OnWindowActivated();
+            PreviewKeyDown += (_, e) =>
+            {
+                if (CalendarEventDeleteKey.TryHandle(viewModel, e))
+                    e.Handled = true;
+            };
             Show();
         }
 

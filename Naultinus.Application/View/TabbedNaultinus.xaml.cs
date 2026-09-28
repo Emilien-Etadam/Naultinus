@@ -40,11 +40,17 @@ namespace Naultinus.View
             {
                 if (e.Key != Key.Delete && e.Key != Key.Back)
                     return;
+
+                // Suppr et Retour arrière retirent le raccourci sélectionné. Ce geste ne change pas.
                 if (_group.SelectedMember is NaultinusViewModel vm)
                 {
                     vm.DeleteShortcut();
                     e.Handled = true;
+                    return;
                 }
+
+                if (CalendarEventDeleteKey.TryHandle(_group.SelectedMember as CalendarNaultinusViewModel, e))
+                    e.Handled = true;
             };
 
             Show();

@@ -35,6 +35,7 @@ namespace Naultinus.ViewModel
         private int _reloadRequested;
         private bool _disposed;
         private readonly HashSet<string> _notifiedEventUids = new HashSet<string>();
+        private Model.CalendarEvent? _selectedEvent;
         private static readonly CalendarSerializer _calendarSerializer = new CalendarSerializer();
 
         /// <summary>Figé à l'ouverture : le client CalDAV a été construit avec le compte partagé de ce moment-là.</summary>
@@ -71,6 +72,20 @@ namespace Naultinus.ViewModel
         public bool IsLocalMode => !IsRemote;
 
         public ObservableCollection<Model.CalendarEvent> Events { get; }
+
+        /// <summary>Événement surligné dans la liste. Suppr le supprime, après confirmation.</summary>
+        public Model.CalendarEvent? SelectedEvent
+        {
+            get => _selectedEvent;
+            set
+            {
+                if (ReferenceEquals(_selectedEvent, value))
+                    return;
+                _selectedEvent = value;
+                OnPropertyChanged();
+            }
+        }
+
         public ObservableCollection<CalendarLegendItem> CalendarLegend { get; } = new ObservableCollection<CalendarLegendItem>();
 
         public bool HasCalendarLegend => CalendarLegend.Count > 0;
