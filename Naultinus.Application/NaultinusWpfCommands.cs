@@ -7,5 +7,12 @@ namespace Naultinus
     {
         public static ICommand OpenEditSelectedTabCommand { get; } =
             new RelayCommand<INaultinusViewModel>(vm => NaultinusManager.OpenEditDialog(vm));
+
+        public static ICommand OpenWebmailSelectedTabCommand { get; } =
+            new RelayCommand<INaultinusViewModel>(vm =>
+            {
+                if (vm is MailNaultinusViewModel mail)
+                    mail.OpenWebmail();
+            });
     }
 }

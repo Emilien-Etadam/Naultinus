@@ -604,6 +604,14 @@ namespace Naultinus.ViewModel
         public ICommand DeleteEventCommand { get; }
         public ICommand RefreshCommand { get; } = new AsyncRelayCommand<CalendarNaultinusViewModel>(async vm => { if (vm != null) await vm.LoadEventsAsync(); });
 
+        // Jours, mode, titre et calendriers vivent déjà dans Modifier : ⚙ ouvre ce dialogue, sans second écran.
+        public ICommand ShowSettingsCommand { get; } = new RelayCommand<CalendarNaultinusViewModel>(viewModel =>
+        {
+            if (viewModel == null)
+                return;
+            NaultinusManager.OpenEditDialog(viewModel);
+        });
+
         public override void Dispose()
         {
             _disposed = true;

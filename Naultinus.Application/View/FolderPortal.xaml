@@ -79,14 +79,15 @@
                     </ContextMenu>
                 </Grid.ContextMenu>
                 <Grid Grid.Row="0" Height="32" Background="{DynamicResource NaultinusWindowBrush}" ColumnDefinitions="Auto,Auto,*,Auto,Auto">
-                    <Button Grid.Column="0" Style="{StaticResource NaultinusNavButton}" Click="TitleBarMenuButton_Click" ToolTip="{x:Static properties:Strings.TooltipMenu}">
-                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE700;" FontSize="14" VerticalAlignment="Center"/>
+                    <Button Grid.Column="0" Style="{StaticResource HeaderActionButton}" Margin="4,0,0,0" Click="TitleBarMenuButton_Click" ToolTip="{x:Static properties:Strings.TooltipMenu}">
+                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE700;" FontSize="12" VerticalAlignment="Center"/>
                     </Button>
                     <Button Grid.Column="1"
                             Content="&#x2190;"
                             Command="{Binding NavigateBackCommand}"
                             ToolTip="{x:Static properties:Strings.TooltipNavigateBack}"
-                            Style="{StaticResource NaultinusNavButton}"
+                            Style="{StaticResource HeaderActionButton}"
+                            Margin="2,0,0,0"
                             Visibility="{Binding CanNavigateBack, Converter={StaticResource BoolToVis}}"/>
                     <TextBlock Grid.Column="2" Text="{Binding Name, Mode=OneWay}" Margin="5,0" Style="{StaticResource NaultinusHeaderText}" HorizontalAlignment="Center"/>
 
@@ -95,10 +96,11 @@
                             Content="&#x2302;"
                             Command="{Binding NavigateToRootCommand}"
                             ToolTip="{x:Static properties:Strings.TooltipGoToRoot}"
-                            Style="{StaticResource NaultinusNavButton}"
+                            Style="{StaticResource HeaderActionButton}"
+                            Margin="2,0,0,0"
                             Visibility="{Binding CanNavigateBack, Converter={StaticResource BoolToVis}}"/>
-                    <Button Grid.Column="4" Style="{StaticResource NaultinusNavButton}" Click="AddFolderPortalTab_Click" ToolTip="{x:Static properties:Strings.TooltipAddTabBrowseSameGroup}">
-                        <TextBlock Text="+" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource NaultinusTextBrush}" VerticalAlignment="Center"/>
+                    <Button Grid.Column="4" Style="{StaticResource HeaderActionButton}" Margin="2,0,8,0" Click="AddFolderPortalTab_Click" ToolTip="{x:Static properties:Strings.TooltipAddTabBrowseSameGroup}">
+                        <TextBlock Text="+" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource NaultinusTextBrush}" VerticalAlignment="Center"/>
                     </Button>
                 </Grid>
                 <Grid Grid.Row="1" Background="{DynamicResource NaultinusWindowBrush}">

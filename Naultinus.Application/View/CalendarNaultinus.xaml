@@ -24,6 +24,7 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/View/Styles/NaultinusStyles.xaml"/>
+                <ResourceDictionary Source="/View/Styles/PanelHeaderActions.xaml"/>
                 <ResourceDictionary Source="/View/Styles/ThemeResources.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
@@ -72,8 +73,8 @@
                     </ContextMenu>
                 </Grid.ContextMenu>
                 <TextBlock Grid.Column="0" Text="{Binding Name, Mode=OneWay}" Margin="8,0" Style="{StaticResource NaultinusHeaderText}"/>
-                <Button Grid.Column="1" Content="🔄" ToolTip="{x:Static properties:Strings.TooltipRefresh}" Command="{Binding RefreshCommand}" CommandParameter="{Binding}"
-                        Style="{StaticResource CircleButton}" Width="28" Height="28" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                <ContentControl Grid.Column="1" Content="{Binding}" ContentTemplate="{StaticResource CalendarHeaderActionsTemplate}"
+                                VerticalAlignment="Center" Focusable="False"/>
             </Grid>
             <Border DockPanel.Dock="Top" Background="{DynamicResource NaultinusControlBrush}" CornerRadius="0" Padding="12">
                 <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">

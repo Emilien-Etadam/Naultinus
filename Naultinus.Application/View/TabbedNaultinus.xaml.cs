@@ -81,6 +81,9 @@ namespace Naultinus.View
                 return;
             if (FindAncestor<Button>(e.OriginalSource as DependencyObject) is not Button button)
                 return;
+            // Les actions d'en-tête (⟳, ⚙, ✎, retour, racine) ne sont pas des onglets : leur clic reste le leur.
+            if (FindAncestor<ItemsControl>(button) is null)
+                return;
             if (button.DataContext is not INaultinusViewModel)
                 return;
 
