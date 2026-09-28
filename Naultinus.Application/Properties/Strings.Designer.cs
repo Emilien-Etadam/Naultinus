@@ -31,6 +31,7 @@ namespace Naultinus.Properties
         public static string CaldavEnterUrlUser => ResourceManager.GetString(nameof(CaldavEnterUrlUser)) ?? string.Empty;
         public static string CaldavEnterBaseUrl => ResourceManager.GetString(nameof(CaldavEnterBaseUrl)) ?? string.Empty;
         public static string CaldavHttpsRequired => ResourceManager.GetString(nameof(CaldavHttpsRequired)) ?? string.Empty;
+        public static string CaldavUrlUserInfoNotAllowed => ResourceManager.GetString(nameof(CaldavUrlUserInfoNotAllowed)) ?? string.Empty;
         public static string CaldavNoCalendar => ResourceManager.GetString(nameof(CaldavNoCalendar)) ?? string.Empty;
         public static string CaldavLoadCalendarFailedFormat => ResourceManager.GetString(nameof(CaldavLoadCalendarFailedFormat)) ?? string.Empty;
         public static string CaldavEnterServerUrl => ResourceManager.GetString(nameof(CaldavEnterServerUrl)) ?? string.Empty;
@@ -101,6 +102,8 @@ namespace Naultinus.Properties
         public static string SyncWithCalDav => ResourceManager.GetString(nameof(SyncWithCalDav)) ?? string.Empty;
         public static string SyncCompletedFormat => ResourceManager.GetString(nameof(SyncCompletedFormat)) ?? string.Empty;
         public static string SyncFailedFormat => ResourceManager.GetString(nameof(SyncFailedFormat)) ?? string.Empty;
+        public static string CaldavHttpFailedFormat => ResourceManager.GetString(nameof(CaldavHttpFailedFormat)) ?? string.Empty;
+        public static string CaldavServerUnavailableFormat => ResourceManager.GetString(nameof(CaldavServerUnavailableFormat)) ?? string.Empty;
         public static string SyncError => ResourceManager.GetString(nameof(SyncError)) ?? string.Empty;
         public static string ToastNewMessagesFormat => ResourceManager.GetString(nameof(ToastNewMessagesFormat)) ?? string.Empty;
         public static string ToastMailAttribution => ResourceManager.GetString(nameof(ToastMailAttribution)) ?? string.Empty;

@@ -58,8 +58,7 @@ namespace Naultinus.View
 
         private async void LoadCalendarsButton_Click(object sender, RoutedEventArgs e)
         {
-            var account = SharedCalDavAccount.GetMarked();
-            if (account == null)
+            if (!SharedCalDavAccount.IsUsable(SharedCalDavAccount.GetMarked()))
             {
                 MessageBox.Show(Strings.SharedCalDavMissing, Strings.CalendarTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
@@ -67,9 +66,13 @@ namespace Naultinus.View
 
             try
             {
-                using var client = new CalDAVClient(account.CalDAVBaseUrl, account.Email ?? string.Empty, SharedCalDavAccount.ReadPassword(account));
-                var service = new CalendarCalDAVService(client);
-                _calendarList = await service.GetCalendarListAsync();
+                _calendarList = await CalendarCalDAVService.DiscoverSharedCalendarsAsync();
+                if (_calendarList == null)
+                {
+                    MessageBox.Show(Strings.SharedCalDavMissing, Strings.CalendarTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
                 CalendarsListBox.ItemsSource = _calendarList;
                 CalendarsListBox.SelectedItems.Clear();
                 if (_calendarList.Count == 0)

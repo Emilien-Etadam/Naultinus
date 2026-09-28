@@ -125,6 +125,11 @@
     "en": "CalDAV URL must start with https://."
   },
   {
+    "key": "CaldavUrlUserInfoNotAllowed",
+    "fr": "L'URL ne doit pas contenir d'identifiant ni de mot de passe.",
+    "en": "The URL must not include a username or password."
+  },
+  {
     "key": "CaldavNoCalendar",
     "fr": "Aucune collection de calendriers à cette URL.",
     "en": "No calendar collection at this URL."
@@ -473,6 +478,16 @@
     "key": "SyncFailedFormat",
     "fr": "Échec de la synchronisation : {0}",
     "en": "Sync failed: {0}"
+  },
+  {
+    "key": "CaldavHttpFailedFormat",
+    "fr": "{0} a échoué: {1}. {2}",
+    "en": "{0} failed: {1}. {2}"
+  },
+  {
+    "key": "CaldavServerUnavailableFormat",
+    "fr": "{0} a échoué: {1}. Le serveur est indisponible.",
+    "en": "{0} failed: {1}. The server is unavailable."
   },
   {
     "key": "SyncError",

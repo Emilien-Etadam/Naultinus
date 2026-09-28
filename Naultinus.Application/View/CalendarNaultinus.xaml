@@ -78,7 +78,7 @@
             <Border DockPanel.Dock="Top" Background="{DynamicResource NaultinusControlBrush}" CornerRadius="0" Padding="12">
                 <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
                     <!-- Row 0 : Error -->
-                    <TextBlock Text="{Binding ErrorMessage, Mode=OneWay}" Foreground="{DynamicResource NaultinusErrorBrush}" Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibilityConverter}}" Grid.Row="0" Margin="0,0,0,8"/>
+                    <TextBlock Text="{Binding ErrorMessage, Mode=OneWay}" Foreground="{DynamicResource NaultinusErrorBrush}" Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibilityConverter}}" Grid.Row="0" Margin="0,0,0,8" TextWrapping="Wrap"/>
 
                     <!-- Row 1 : Navigation bar — use Grid not StackPanel -->
                     <Grid Grid.Row="1" Margin="0,0,0,8" ColumnDefinitions="Auto,Auto,*,Auto,Auto">

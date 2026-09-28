@@ -88,10 +88,10 @@ namespace Naultinus.Services
 
         private static CalDAVTask MapTodoToCalDAVTask(Todo todo, string caldavId, string etag)
         {
-            var due = todo.Due?.Value;
-            var completedDt = todo.Completed?.Value;
-            var created = todo.Created?.Value ?? DateTime.UtcNow;
-            var lastMod = todo.LastModified?.Value ?? DateTime.UtcNow;
+            var due = ReadOptionalCalDate(todo.Due);
+            var completedDt = ReadOptionalCalDate(todo.Completed);
+            var created = todo.Created is { } createdDt ? ReadCalDate(createdDt) : DateTime.UtcNow;
+            var lastMod = todo.LastModified is { } modified ? ReadCalDate(modified) : DateTime.UtcNow;
             return new CalDAVTask(todo.Summary ?? "")
             {
                 Description = todo.Description ?? "",
@@ -106,15 +106,47 @@ namespace Naultinus.Services
             };
         }
 
+        // Ical.Net expose CalDateTime.Value toujours en Unspecified, y compris pour un instant UTC (Z).
+        // On rétablit le kind sans conversion : les composants sont déjà l'heure UTC. Une date flottante garde l'heure murale.
+        private static DateTime ReadCalDate(CalDateTime value)
+        {
+            if (value.IsUtc)
+                return DateTime.SpecifyKind(value.Value, DateTimeKind.Utc);
+            return value.Value;
+        }
+
+        private static DateTime? ReadOptionalCalDate(CalDateTime? value)
+            => value is null ? null : ReadCalDate(value);
+
+        // Échéance flottante ou journée entière : conserver l'heure murale.
+        // Local (ex. DateTime.Today) devient Unspecified. Pas de ToUniversalTime : cela décalerait le jour.
+        // Une valeur déjà UTC (Z) reste UTC.
+        private static CalDateTime ToDueCalDateTime(DateTime due)
+        {
+            if (due.Kind == DateTimeKind.Local)
+                due = DateTime.SpecifyKind(due, DateTimeKind.Unspecified);
+            return new CalDateTime(due);
+        }
+
+        // CREATED, LAST-MODIFIED et COMPLETED sont des instants UTC (RFC 5545).
+        // DateTime.Now est Local : on le convertit. Une valeur déjà UTC reste UTC.
+        // Unspecified n'est pas réinterprété (pas de décalage).
+        private static CalDateTime ToUtcCalDateTime(DateTime instant)
+        {
+            if (instant.Kind == DateTimeKind.Local)
+                instant = instant.ToUniversalTime();
+            return new CalDateTime(instant);
+        }
+
         private static Todo BuildTodo(CalDAVTask task, string uid, DateTime lastModified) => new Todo
         {
             Summary = task.Title,
             Description = task.Description,
-            Due = task.DueDate.HasValue ? new CalDateTime(task.DueDate.Value) : null,
+            Due = task.DueDate.HasValue ? ToDueCalDateTime(task.DueDate.Value) : null,
             Status = task.Completed ? "COMPLETED" : "NEEDS-ACTION",
-            Completed = task.Completed ? new CalDateTime(task.CompletedDate ?? DateTime.Now) : null,
-            Created = new CalDateTime(task.CreatedDate),
-            LastModified = new CalDateTime(lastModified),
+            Completed = task.Completed ? ToUtcCalDateTime(task.CompletedDate ?? DateTime.Now) : null,
+            Created = ToUtcCalDateTime(task.CreatedDate),
+            LastModified = ToUtcCalDateTime(lastModified),
             Uid = uid
         };
 

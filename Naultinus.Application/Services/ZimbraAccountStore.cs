@@ -21,11 +21,12 @@ namespace Naultinus.Services
                 return new List<ZimbraAccount>();
 
             var settings = AppSettingsStore.Load();
-            if (SharedCalDavAccount.TryAbsorbIntoList(settings, accounts))
-            {
+            var absorbed = SharedCalDavAccount.TryAbsorbIntoList(settings, accounts);
+            var stripped = SharedCalDavAccount.RemoveStoredUrlUserInfo(accounts);
+            if (absorbed || stripped)
                 Save(accounts);
+            if (absorbed)
                 AppSettingsStore.Save(settings);
-            }
 
             return accounts;
         }

@@ -13,6 +13,7 @@ namespace Naultinus.Helpers
         None = 0,
         UrlRequired,
         HttpsRequired,
+        UrlUserInfo,
         UrlTooLong,
         UsernameRequired,
         UsernameTooLong,
@@ -49,7 +50,16 @@ namespace Naultinus.Helpers
                 return false;
             }
 
-            return TryNormalize(account.CalDAVBaseUrl, account.Email, out _, out _, out error);
+            if (!TryNormalize(account.CalDAVBaseUrl, account.Email, out _, out _, out error))
+                return false;
+
+            if (string.IsNullOrWhiteSpace(account.EncryptedPassword))
+            {
+                error = SharedCalDavAccountError.PasswordRequired;
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>Ligne marquée pour les calendriers et les tâches, après migration éventuelle.</summary>
@@ -89,6 +99,7 @@ namespace Naultinus.Helpers
             {
                 SharedCalDavAccountError.UrlRequired => Strings.CaldavEnterBaseUrl,
                 SharedCalDavAccountError.HttpsRequired => Strings.CaldavHttpsRequired,
+                SharedCalDavAccountError.UrlUserInfo => Strings.CaldavUrlUserInfoNotAllowed,
                 SharedCalDavAccountError.UrlTooLong => Strings.TextTooLong,
                 SharedCalDavAccountError.UsernameRequired => Strings.MailEnterUsername,
                 SharedCalDavAccountError.UsernameTooLong => Strings.TitleTooLong,
@@ -111,7 +122,7 @@ namespace Naultinus.Helpers
 
             if (string.IsNullOrEmpty(password))
             {
-                if (string.IsNullOrEmpty(account.EncryptedPassword))
+                if (string.IsNullOrWhiteSpace(account.EncryptedPassword))
                 {
                     error = SharedCalDavAccountError.PasswordRequired;
                     return false;
@@ -134,9 +145,10 @@ namespace Naultinus.Helpers
         }
 
         /// <summary>
-        /// Au premier chargement : si settings.xml a encore un compte CalDAV absent de la liste,
-        /// ajoute la ligne en copiant le blob chiffré. Une ligne déjà présente n'a pas son blob
-        /// remplacé. Les champs CalDAV de settings sont ensuite vidés.
+        /// Au premier chargement : si settings.xml a encore un compte CalDAV avec un blob,
+        /// ajoute ou complète la ligne puis vide ces champs. Un blob vide n'est pas un compte.
+        /// Un mot de passe déjà présent n'est pas remplacé. L'hôte IMAP n'est pas touché.
+        /// Un identifiant dans l'URL n'est pas recopié.
         /// </summary>
         public static bool TryAbsorbIntoList(AppSettings settings, IList<ZimbraAccount> accounts)
         {
@@ -145,23 +157,30 @@ namespace Naultinus.Helpers
             if (!LegacySettingsConfigured(settings))
                 return false;
 
-            var url = settings.CalDavBaseUrl.Trim();
-            var user = settings.CalDavUsername.Trim();
+            var url = (settings.CalDavBaseUrl ?? string.Empty).Trim();
+            var user = (settings.CalDavUsername ?? string.Empty).Trim();
             var blob = settings.CalDavEncryptedPassword ?? string.Empty;
-            var match = FindByIdentity(accounts, url, user);
+            if (!TryRemoveUserInfo(url, out var safeUrl))
+                return false;
+
+            var match = FindByIdentity(accounts, safeUrl, user);
             if (match == null)
             {
                 match = new ZimbraAccount
                 {
                     Email = user,
-                    CalDAVBaseUrl = url,
+                    CalDAVBaseUrl = safeUrl,
                     EncryptedPassword = blob,
                 };
                 accounts.Add(match);
             }
-            else if (string.IsNullOrEmpty(match.EncryptedPassword) && !string.IsNullOrEmpty(blob))
+            else
             {
-                match.EncryptedPassword = blob;
+                if (!string.Equals(match.CalDAVBaseUrl, safeUrl, StringComparison.Ordinal)
+                    && UriHasUserInfo(match.CalDAVBaseUrl))
+                    match.CalDAVBaseUrl = safeUrl;
+                if (string.IsNullOrWhiteSpace(match.EncryptedPassword))
+                    match.EncryptedPassword = blob;
             }
 
             if (!IsSoleMarked(accounts, match))
@@ -174,34 +193,25 @@ namespace Naultinus.Helpers
         }
 
         /// <summary>
-        /// Reprend les identifiants d'une ancienne fenêtre si aucun compte n'est encore marqué.
-        /// Copie le blob. N'écrase pas le mot de passe d'une ligne déjà présente.
+        /// Retire un identifiant ou un mot de passe laissés dans l'URL CalDAV déjà enregistrée.
+        /// Ne déchiffre rien. Retourne vrai si une ligne a été réécrite.
         /// </summary>
-        public static bool TryAdoptWindowCredentials(IList<ZimbraAccount> accounts, string? url, string? username, string? encryptedPassword)
+        public static bool RemoveStoredUrlUserInfo(IList<ZimbraAccount> accounts)
         {
             ArgumentNullException.ThrowIfNull(accounts);
-            if (FindMarked(accounts) != null)
-                return false;
-            if (!TryNormalize(url, username, out var normalizedUrl, out var normalizedUser, out _))
-                return false;
-
-            var match = FindByIdentity(accounts, normalizedUrl, normalizedUser);
-            if (match != null)
+            var changed = false;
+            foreach (var account in accounts)
             {
-                if (string.IsNullOrEmpty(match.EncryptedPassword) && !string.IsNullOrEmpty(encryptedPassword))
-                    match.EncryptedPassword = encryptedPassword;
-                MarkExclusive(accounts, match.Id);
-                return true;
+                if (!TryRemoveUserInfo(account.CalDAVBaseUrl, out var cleaned))
+                    continue;
+                if (string.Equals(cleaned, account.CalDAVBaseUrl ?? string.Empty, StringComparison.Ordinal))
+                    continue;
+
+                account.CalDAVBaseUrl = cleaned;
+                changed = true;
             }
 
-            accounts.Add(new ZimbraAccount
-            {
-                Email = normalizedUser,
-                CalDAVBaseUrl = normalizedUrl,
-                EncryptedPassword = encryptedPassword ?? string.Empty,
-                UsedByCalendarsAndTasks = true,
-            });
-            return true;
+            return changed;
         }
 
         /// <summary>Marque un compte déjà dans la liste, sans copier son mot de passe.</summary>
@@ -253,7 +263,10 @@ namespace Naultinus.Helpers
         {
             var url = (settings.CalDavBaseUrl ?? string.Empty).Trim();
             var user = (settings.CalDavUsername ?? string.Empty).Trim();
-            return url.StartsWith("https://", StringComparison.OrdinalIgnoreCase) && user.Length > 0;
+            var blob = settings.CalDavEncryptedPassword ?? string.Empty;
+            return url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+                && user.Length > 0
+                && !string.IsNullOrWhiteSpace(blob);
         }
 
         private static bool IsSoleMarked(IList<ZimbraAccount> accounts, ZimbraAccount match)
@@ -285,7 +298,40 @@ namespace Naultinus.Helpers
 
         private static string NormalizeIdentityUrl(string? url)
         {
-            return (url ?? string.Empty).Trim().TrimEnd('/');
+            var trimmed = (url ?? string.Empty).Trim();
+            if (TryRemoveUserInfo(trimmed, out var cleaned))
+                trimmed = cleaned;
+            return trimmed.TrimEnd('/');
+        }
+
+        private static bool UriHasUserInfo(string? url)
+        {
+            return Uri.TryCreate((url ?? string.Empty).Trim(), UriKind.Absolute, out var uri)
+                && !string.IsNullOrEmpty(uri.UserInfo);
+        }
+
+        /// <summary>
+        /// Conserve l'URL si elle n'a pas d'userinfo. Sinon en renvoie une sans identifiant.
+        /// Une URL illisible n'est pas réécrite.
+        /// </summary>
+        private static bool TryRemoveUserInfo(string? url, out string cleaned)
+        {
+            cleaned = (url ?? string.Empty).Trim();
+            if (!Uri.TryCreate(cleaned, UriKind.Absolute, out var uri))
+                return false;
+            if (string.IsNullOrEmpty(uri.UserInfo))
+                return true;
+
+            var stripped = new UriBuilder(uri)
+            {
+                UserName = string.Empty,
+                Password = string.Empty,
+            }.Uri;
+            if (!string.IsNullOrEmpty(stripped.UserInfo))
+                return false;
+
+            cleaned = stripped.AbsoluteUri;
+            return true;
         }
 
         private static bool TryProtect(string password, out string encrypted, out SharedCalDavAccountError error)
@@ -315,6 +361,18 @@ namespace Naultinus.Helpers
             if (!normalizedUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
             {
                 error = SharedCalDavAccountError.HttpsRequired;
+                return false;
+            }
+
+            if (!Uri.TryCreate(normalizedUrl, UriKind.Absolute, out var uri))
+            {
+                error = SharedCalDavAccountError.UrlRequired;
+                return false;
+            }
+
+            if (!string.IsNullOrEmpty(uri.UserInfo))
+            {
+                error = SharedCalDavAccountError.UrlUserInfo;
                 return false;
             }
 

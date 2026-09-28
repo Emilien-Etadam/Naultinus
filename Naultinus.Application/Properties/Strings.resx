@@ -79,6 +79,9 @@
   <data name="CaldavHttpsRequired" xml:space="preserve">
     <value>CalDAV URL must start with https://.</value>
   </data>
+  <data name="CaldavUrlUserInfoNotAllowed" xml:space="preserve">
+    <value>The URL must not include a username or password.</value>
+  </data>
   <data name="CaldavNoCalendar" xml:space="preserve">
     <value>No calendar collection at this URL.</value>
   </data>
@@ -288,6 +291,12 @@
   </data>
   <data name="SyncFailedFormat" xml:space="preserve">
     <value>Sync failed: {0}</value>
+  </data>
+  <data name="CaldavHttpFailedFormat" xml:space="preserve">
+    <value>{0} failed: {1}. {2}</value>
+  </data>
+  <data name="CaldavServerUnavailableFormat" xml:space="preserve">
+    <value>{0} failed: {1}. The server is unavailable.</value>
   </data>
   <data name="SyncError" xml:space="preserve">
     <value>Sync error</value>

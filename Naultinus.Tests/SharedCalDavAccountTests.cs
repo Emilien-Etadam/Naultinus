@@ -22,12 +22,87 @@ namespace Naultinus.Tests
             {
                 CalDAVBaseUrl = "http://example.test/dav/",
                 Email = "user",
+                EncryptedPassword = "cipher",
+            }));
+            Assert.False(SharedCalDavAccount.IsUsable(new ZimbraAccount
+            {
+                CalDAVBaseUrl = "https://example.test/dav/",
+                Email = "user",
             }));
             Assert.True(SharedCalDavAccount.IsUsable(new ZimbraAccount
             {
                 CalDAVBaseUrl = "https://example.test/dav/",
                 Email = "user",
+                EncryptedPassword = "cipher",
             }));
+        }
+
+        [Fact]
+        public void TryApplyToAccount_RejectsUrlUserInfo_AndDoesNotStoreIt()
+        {
+            var account = new ZimbraAccount { ImapHost = "imap.exemple.test", EncryptedPassword = ImapCipher };
+            var url = "https://user:" + Secret + "@example.test/dav/";
+            Assert.False(SharedCalDavAccount.TryApplyToAccount(account, url, "user", Secret, out var error));
+            Assert.Equal(SharedCalDavAccountError.UrlUserInfo, error);
+            Assert.Equal(ImapCipher, account.EncryptedPassword);
+            Assert.Equal("imap.exemple.test", account.ImapHost);
+            Assert.DoesNotContain(Secret, account.CalDAVBaseUrl ?? string.Empty, StringComparison.Ordinal);
+            Assert.DoesNotContain(Secret, account.Email ?? string.Empty, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void TryAbsorbIntoList_DoesNotTreatAnEmptyBlobAsConfigured()
+        {
+            var settings = new AppSettings
+            {
+                CalDavBaseUrl = "https://zimbra.exemple.test/dav/emilien/",
+                CalDavUsername = "emilien@etadam.com",
+                CalDavEncryptedPassword = "   ",
+            };
+            var accounts = new List<ZimbraAccount>();
+            Assert.False(SharedCalDavAccount.TryAbsorbIntoList(settings, accounts));
+            Assert.Empty(accounts);
+            Assert.Equal("https://zimbra.exemple.test/dav/emilien/", settings.CalDavBaseUrl);
+            Assert.Equal("emilien@etadam.com", settings.CalDavUsername);
+        }
+
+        [Fact]
+        public void TryAbsorbIntoList_StripsUrlUserInfoBeforeCopyingTheBlob()
+        {
+            var settings = new AppSettings
+            {
+                CalDavBaseUrl = "https://emilien:" + Secret + "@zimbra.exemple.test/dav/emilien/",
+                CalDavUsername = "emilien@etadam.com",
+                CalDavEncryptedPassword = CalDavCipher,
+            };
+            var accounts = new List<ZimbraAccount>();
+            Assert.True(SharedCalDavAccount.TryAbsorbIntoList(settings, accounts));
+            Assert.Single(accounts);
+            Assert.Equal("https://zimbra.exemple.test/dav/emilien/", accounts[0].CalDAVBaseUrl);
+            Assert.Equal(CalDavCipher, accounts[0].EncryptedPassword);
+            Assert.DoesNotContain(Secret, accounts[0].CalDAVBaseUrl, StringComparison.Ordinal);
+            Assert.Equal(string.Empty, settings.CalDavBaseUrl);
+            Assert.Equal(string.Empty, settings.CalDavEncryptedPassword);
+        }
+
+        [Fact]
+        public void RemoveStoredUrlUserInfo_RewritesTheStoredUrlWithoutTouchingTheBlob()
+        {
+            var account = new ZimbraAccount
+            {
+                Email = "emilien@etadam.com",
+                CalDAVBaseUrl = "https://emilien:" + Secret + "@zimbra.exemple.test/dav/emilien/",
+                EncryptedPassword = ImapCipher,
+                ImapHost = "ssl0.ovh.net",
+                UsedByCalendarsAndTasks = true,
+            };
+            var accounts = new List<ZimbraAccount> { account };
+            Assert.True(SharedCalDavAccount.RemoveStoredUrlUserInfo(accounts));
+            Assert.False(SharedCalDavAccount.RemoveStoredUrlUserInfo(accounts));
+            Assert.Equal("https://zimbra.exemple.test/dav/emilien/", account.CalDAVBaseUrl);
+            Assert.Equal(ImapCipher, account.EncryptedPassword);
+            Assert.Equal("ssl0.ovh.net", account.ImapHost);
+            Assert.DoesNotContain(Secret, account.CalDAVBaseUrl, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -176,28 +251,6 @@ namespace Naultinus.Tests
             Assert.Equal(CalDavCipher, accounts[1].EncryptedPassword);
             Assert.True(accounts[1].UsedByCalendarsAndTasks);
             Assert.Equal(string.Empty, accounts[1].ImapHost);
-        }
-
-        [Fact]
-        public void TryAdoptWindowCredentials_DoesNotReplaceAnExistingBlob()
-        {
-            var existing = new ZimbraAccount
-            {
-                Email = "a@exemple.test",
-                CalDAVBaseUrl = "https://a.example/dav/",
-                EncryptedPassword = ImapCipher,
-                ImapHost = "imap.exemple.test",
-            };
-            var accounts = new List<ZimbraAccount> { existing };
-
-            Assert.True(SharedCalDavAccount.TryAdoptWindowCredentials(accounts, "https://a.example/dav", "A@exemple.test", CalDavCipher));
-            Assert.Single(accounts);
-            Assert.Equal(ImapCipher, existing.EncryptedPassword);
-            Assert.Equal("imap.exemple.test", existing.ImapHost);
-            Assert.True(existing.UsedByCalendarsAndTasks);
-
-            Assert.False(SharedCalDavAccount.TryAdoptWindowCredentials(accounts, "https://b.example/dav/", "b@exemple.test", "cipher-b"));
-            Assert.Single(accounts);
         }
 
         [Fact]
