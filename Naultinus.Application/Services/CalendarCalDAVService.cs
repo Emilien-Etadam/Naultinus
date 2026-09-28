@@ -1,5 +1,6 @@
 using Naultinus.Helpers;
 using Naultinus.Model;
+using Naultinus.Properties;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -86,6 +87,17 @@ namespace Naultinus.Services
             var uid = Guid.NewGuid().ToString();
             var resourceHref = calendarHref.TrimEnd('/') + "/" + uid + ".ics";
             return await _client.PutAsync(resourceHref, icalData).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Supprime la ressource d'un seul événement. Un href de collection calendrier est refusé.
+        /// </summary>
+        public async Task DeleteEventAsync(string eventHref, string? etag, IReadOnlyList<string>? calendarCollectionHrefs)
+        {
+            if (!CalendarEventHref.TryGetDeletableResource(eventHref, calendarCollectionHrefs, out var resourceHref))
+                throw new InvalidOperationException(Strings.DeleteEventRefused);
+
+            await _client.DeleteAsync(resourceHref, string.IsNullOrWhiteSpace(etag) ? null : etag).ConfigureAwait(false);
         }
 
         private static void ParseEventsFromMultistatus(XDocument xdoc, string calendarId, string calendarName, string defaultColorHex, List<Model.CalendarEvent> events)

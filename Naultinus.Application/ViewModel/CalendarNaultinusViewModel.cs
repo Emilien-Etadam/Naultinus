@@ -11,6 +11,7 @@ using Naultinus.View;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -55,7 +56,7 @@ namespace Naultinus.ViewModel
             TodayCommand = new RelayCommand(() => SetVisibleStart(DateTime.Today));
             AddEventCommand = new RelayCommand(() => ShowAddEventDialog());
             EditEventCommand = new RelayCommand<Model.CalendarEvent>(ShowEditEventDialog);
-            DeleteEventCommand = new RelayCommand<Model.CalendarEvent>(DeleteLocalEvent);
+            DeleteEventCommand = new AsyncRelayCommand<Model.CalendarEvent>(DeleteEventAsync);
             _ = LoadEventsAsync();
             StartDayWatch();
             if (IsRemote)
@@ -479,10 +480,29 @@ namespace Naultinus.ViewModel
             _ = LoadEventsAsync();
         }
 
-        private void DeleteLocalEvent(Model.CalendarEvent? evt)
+        private async Task DeleteEventAsync(Model.CalendarEvent? evt)
         {
-            if (evt == null || !IsLocalMode)
+            if (evt == null || _disposed)
                 return;
+
+            var label = string.IsNullOrWhiteSpace(evt.Summary) ? evt.Uid : evt.Summary.Trim();
+            if (string.IsNullOrWhiteSpace(label))
+                label = "—";
+            var message = string.Format(CultureInfo.CurrentCulture, Strings.DeleteEventConfirmFormat, label);
+            if (MessageBox.Show(message, Strings.ConfirmTitle, MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                return;
+
+            if (!IsRemote)
+            {
+                DeleteStoredEvent(evt);
+                return;
+            }
+
+            await DeleteRemoteEventAsync(evt);
+        }
+
+        private void DeleteStoredEvent(Model.CalendarEvent evt)
+        {
             if (!LocalPlannerStore.TryRemoveEvent(_model, evt.Uid, out var error))
             {
                 ErrorMessage = LocalPlannerStore.Describe(error);
@@ -491,6 +511,47 @@ namespace Naultinus.ViewModel
 
             Save();
             _ = LoadEventsAsync();
+        }
+
+        private async Task DeleteRemoteEventAsync(Model.CalendarEvent evt)
+        {
+            if (!CalendarEventHref.TryGetDeletableResource(evt.CalDAVHref, _model.CalendarIds, out var resourceHref)
+                || AnotherEventSharesResource(evt))
+            {
+                ErrorMessage = Strings.DeleteEventRefused;
+                return;
+            }
+
+            try
+            {
+                var etag = string.IsNullOrWhiteSpace(evt.ETag) ? null : evt.ETag;
+                await _calendarService.DeleteEventAsync(resourceHref, etag, _model.CalendarIds);
+                Dispatch(() =>
+                {
+                    Events.Remove(evt);
+                    OnPropertyChanged(nameof(HasNoEvents));
+                });
+                await LoadEventsAsync();
+            }
+            catch (Exception ex)
+            {
+                Dispatch(() => ErrorMessage = ex.Message);
+            }
+        }
+
+        private bool AnotherEventSharesResource(Model.CalendarEvent evt)
+        {
+            foreach (var other in Events)
+            {
+                if (ReferenceEquals(other, evt))
+                    continue;
+                if (string.Equals(other.Uid, evt.Uid, StringComparison.Ordinal))
+                    continue;
+                if (CalendarEventHref.SharesResource(other.CalDAVHref, evt.CalDAVHref))
+                    return true;
+            }
+
+            return false;
         }
 
         private async Task CreateEventAsync(Model.CalendarEvent evt, StoredCalendarEvent? draft)

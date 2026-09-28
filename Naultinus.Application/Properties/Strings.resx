@@ -130,6 +130,12 @@
   <data name="DeleteAccountFormat" xml:space="preserve">
     <value>Delete account {0}?</value>
   </data>
+  <data name="DeleteEventConfirmFormat" xml:space="preserve">
+    <value>Delete event "{0}"?</value>
+  </data>
+  <data name="DeleteEventRefused" xml:space="preserve">
+    <value>Deletion refused: this item is not a single event.</value>
+  </data>
   <data name="StartupErrorFormat" xml:space="preserve">
     <value>Startup error: {0}{1}{1}{2}</value>
   </data>
