@@ -17,7 +17,7 @@
         <TextBlock Text="{x:Static properties:Strings.LabelNaultinusTitle}" Grid.Row="0" Style="{StaticResource NaultinusDialogLabel}"/>
         <TextBox Grid.Row="1" Margin="0,0,0,10" Style="{StaticResource NaultinusDialogTextBox}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
         <TextBlock Text="{x:Static properties:Strings.LabelDaysToShow}" Grid.Row="2" Style="{StaticResource NaultinusDialogLabel}"/>
-        <TextBox Grid.Row="3" Margin="0,0,0,10" Style="{StaticResource NaultinusDialogTextBox}" Text="{Binding DaysToShow, UpdateSourceTrigger=PropertyChanged}"/>
+        <TextBox x:Name="DaysToShowBox" Grid.Row="3" Margin="0,0,0,10" Style="{StaticResource NaultinusDialogTextBox}" Text="{Binding DaysToShow, UpdateSourceTrigger=PropertyChanged}"/>
         <TextBlock Text="{x:Static properties:Strings.LabelViewMode}" Grid.Row="4" Style="{StaticResource NaultinusDialogLabel}"/>
         <ComboBox x:Name="ViewModeCombo" Grid.Row="5" Margin="0,0,0,10" Style="{StaticResource NaultinusDialogComboBox}"/>
         <TextBlock x:Name="AccountStatusText" Grid.Row="6" Margin="0,0,0,8" TextWrapping="Wrap" Foreground="{DynamicResource NaultinusSubtleBrush}"/>

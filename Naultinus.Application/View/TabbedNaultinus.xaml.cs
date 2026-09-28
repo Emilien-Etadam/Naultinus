@@ -27,6 +27,14 @@ namespace Naultinus.View
             LocationChanged += (_, _) => SyncBounds();
             SizeChanged += (_, _) => SyncBounds();
             Loaded += (_, _) => SyncBounds();
+            Activated += (_, _) =>
+            {
+                foreach (var member in _group.Members)
+                {
+                    if (member is CalendarNaultinusViewModel calendar)
+                        calendar.OnWindowActivated();
+                }
+            };
 
             PreviewKeyDown += (_, e) =>
             {

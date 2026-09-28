@@ -24,9 +24,12 @@ namespace Naultinus.ViewModel
         private readonly CalendarNaultinusModel _model;
         private readonly ICalendarCalDAVService _calendarService;
         private DateTime _selectedDate = DateTime.Today;
+        private DateTime _agendaAnchor = DateTime.Today;
+        private DateTime _observedLocalDate = DateTime.Today;
         private string _errorMessage = string.Empty;
         private bool _isLoading;
         private Timer? _refreshTimer;
+        private Timer? _dayChangeTimer;
         private int _loadEventsInProgress;
         private int _reloadRequested;
         private bool _disposed;
@@ -47,13 +50,14 @@ namespace Naultinus.ViewModel
             _model = model;
             _calendarService = calendarService;
             Events = new ObservableCollection<Model.CalendarEvent>();
-            PreviousDayCommand = new RelayCommand(() => SelectedDate = SelectedDate.AddDays(-DaysToShow));
-            NextDayCommand = new RelayCommand(() => SelectedDate = SelectedDate.AddDays(DaysToShow));
-            TodayCommand = new RelayCommand(() => SelectedDate = DateTime.Today);
+            PreviousDayCommand = new RelayCommand(() => SetVisibleStart(VisibleStart.AddDays(-DaysToShow)));
+            NextDayCommand = new RelayCommand(() => SetVisibleStart(VisibleStart.AddDays(DaysToShow)));
+            TodayCommand = new RelayCommand(() => SetVisibleStart(DateTime.Today));
             AddEventCommand = new RelayCommand(() => ShowAddEventDialog());
             EditEventCommand = new RelayCommand<Model.CalendarEvent>(ShowEditEventDialog);
             DeleteEventCommand = new RelayCommand<Model.CalendarEvent>(DeleteLocalEvent);
             _ = LoadEventsAsync();
+            StartDayWatch();
             if (IsRemote)
                 StartRefreshTimer();
         }
@@ -77,6 +81,11 @@ namespace Naultinus.ViewModel
             get => _model.ViewMode;
             set
             {
+                // Réassigner le mode déjà actif (Enregistrer du dialogue) ne doit pas
+                // écraser un DaysToShow saisi : Agenda forçait 14 ici.
+                if (_model.ViewMode == value)
+                    return;
+
                 _model.ViewMode = value;
                 OnPropertyChanged();
                 Save();
@@ -102,9 +111,12 @@ namespace Naultinus.ViewModel
             set { _model.DaysToShow = value; OnPropertyChanged(); Save(); OnPropertyChanged(nameof(DateRangeDisplay)); _ = LoadEventsAsync(); }
         }
 
+        /// <summary>Ancre affichée : aujourd'hui en agenda, la date naviguée pour les autres modes.</summary>
+        private DateTime VisibleStart => ViewMode == CalendarViewMode.Agenda ? _agendaAnchor : _selectedDate;
+
         public string DateRangeDisplay => DaysToShow == 1
-            ? SelectedDate.ToString("ddd dd MMM yyyy")
-            : SelectedDate.ToString("ddd dd MMM") + " → " + SelectedDate.AddDays(DaysToShow - 1).ToString("ddd dd MMM yyyy");
+            ? VisibleStart.ToString("ddd dd MMM yyyy")
+            : VisibleStart.ToString("ddd dd MMM") + " → " + VisibleStart.AddDays(DaysToShow - 1).ToString("ddd dd MMM yyyy");
 
         public string ErrorMessage
         {
@@ -130,7 +142,15 @@ namespace Naultinus.ViewModel
                 return;
             }
 
-            Dispatch(() => { IsLoading = true; ErrorMessage = ""; });
+            Dispatch(() =>
+            {
+                // Le rafraîchissement met déjà à jour le libellé « aujourd'hui ».
+                // Il doit aussi recaler l'ancre, sinon les jours d'avant restent au-dessus.
+                if (!_disposed)
+                    AlignAgendaWithLocalDay(DateTime.Now, reload: false);
+                IsLoading = true;
+                ErrorMessage = "";
+            });
             try
             {
                 if (!IsRemote)
@@ -145,7 +165,7 @@ namespace Naultinus.ViewModel
 
                 IsLoading = true;
                 ErrorMessage = "";
-                var start = SelectedDate.Date;
+                var start = VisibleStart.Date;
                 var end = start.AddDays(DaysToShow);
                 var allEvents = new List<Model.CalendarEvent>();
                 var colorsChanged = EnsureCalendarColors();
@@ -160,8 +180,11 @@ namespace Naultinus.ViewModel
                 if (colorsChanged)
                     Save();
                 allEvents = allEvents.Where(e => e.DtEnd > start && e.DtStart < end).ToList();
-                var ordered = allEvents.OrderBy(e => e.DtStart).ToList();
-                DecorateDayHeaders(ordered);
+                var ordered = allEvents
+                    .OrderBy(e => AgendaAnchor.DisplayDay(e.DtStart, start))
+                    .ThenBy(e => e.DtStart)
+                    .ToList();
+                DecorateDayHeaders(ordered, start);
                 Dispatch(() => ShowEvents(ordered));
             }
             catch (Exception ex)
@@ -212,12 +235,14 @@ namespace Naultinus.ViewModel
 
         private void PublishLocalEvents()
         {
-            var start = SelectedDate.Date;
+            var start = VisibleStart.Date;
             var end = start.AddDays(DaysToShow);
             var ordered = LocalPlannerStore.EventsOverlapping(_model, start, end)
                 .Select(LocalPlannerStore.ToCalendarEvent)
+                .OrderBy(e => AgendaAnchor.DisplayDay(e.DtStart, start))
+                .ThenBy(e => e.DtStart)
                 .ToList();
-            DecorateDayHeaders(ordered);
+            DecorateDayHeaders(ordered, start);
             Dispatch(() =>
             {
                 CalendarLegend.Clear();
@@ -226,17 +251,21 @@ namespace Naultinus.ViewModel
             });
         }
 
-        private static void DecorateDayHeaders(List<Model.CalendarEvent> ordered)
+        private static void DecorateDayHeaders(List<Model.CalendarEvent> ordered, DateTime rangeStart)
         {
             DateTime? prevDate = null;
             foreach (var evt in ordered)
             {
-                var evtDate = evt.DtStart.Date;
+                var evtDate = AgendaAnchor.DisplayDay(evt.DtStart, rangeStart);
                 evt.IsToday = evtDate == DateTime.Today;
                 if (evtDate != prevDate)
                 {
-                    evt.DayHeader = evt.DtStart.ToString("ddd dd MMM");
+                    evt.DayHeader = evtDate.ToString("ddd dd MMM");
                     prevDate = evtDate;
+                }
+                else
+                {
+                    evt.DayHeader = string.Empty;
                 }
             }
         }
@@ -317,6 +346,85 @@ namespace Naultinus.ViewModel
 
                 OnPropertyChanged(nameof(HasCalendarLegend));
             });
+        }
+
+        private void SetVisibleStart(DateTime value)
+        {
+            var date = value.Date;
+            if (ViewMode == CalendarViewMode.Agenda)
+            {
+                if (_agendaAnchor == date)
+                    return;
+                _agendaAnchor = date;
+                OnPropertyChanged(nameof(DateRangeDisplay));
+                _ = LoadEventsAsync();
+                return;
+            }
+
+            SelectedDate = date;
+        }
+
+        /// <summary>Minuit, ou retour sur la fenêtre : recale l'agenda sur le jour local sans toucher aux autres modes.</summary>
+        public void OnWindowActivated()
+        {
+            if (_disposed)
+                return;
+            AlignAgendaWithLocalDay(DateTime.Now, reload: true);
+        }
+
+        /// <summary>Recale l'ancre agenda sur le jour local. Semaine et jour gardent leur date.</summary>
+        /// <param name="localNow">Instant local observé.</param>
+        /// <param name="reload">Faux quand l'appelant est déjà un chargement : il lira la nouvelle ancre.</param>
+        private void AlignAgendaWithLocalDay(DateTime localNow, bool reload)
+        {
+            var today = AgendaAnchor.LocalDate(localNow);
+            if (!AgendaAnchor.ShouldRealign(ViewMode, _agendaAnchor, _observedLocalDate, localNow))
+            {
+                if (today != _observedLocalDate)
+                {
+                    _observedLocalDate = today;
+                    if (ViewMode != CalendarViewMode.Agenda)
+                        _agendaAnchor = today;
+                }
+
+                return;
+            }
+
+            _observedLocalDate = today;
+            _agendaAnchor = today;
+            OnPropertyChanged(nameof(DateRangeDisplay));
+            if (reload)
+                _ = LoadEventsAsync();
+        }
+
+        private void StartDayWatch()
+        {
+            var delay = DelayUntilNextLocalMidnight(DateTime.Now);
+            if (_dayChangeTimer == null)
+                _dayChangeTimer = new Timer(OnDayWatch, null, delay, Timeout.InfiniteTimeSpan);
+            else
+                _dayChangeTimer.Change(delay, Timeout.InfiniteTimeSpan);
+        }
+
+        private void OnDayWatch(object? state)
+        {
+            if (_disposed)
+                return;
+
+            Dispatch(() =>
+            {
+                if (_disposed)
+                    return;
+                AlignAgendaWithLocalDay(DateTime.Now, reload: true);
+                if (!_disposed)
+                    StartDayWatch();
+            });
+        }
+
+        private static TimeSpan DelayUntilNextLocalMidnight(DateTime localNow)
+        {
+            var delay = localNow.Date.AddDays(1) - localNow;
+            return delay < TimeSpan.FromSeconds(1) ? TimeSpan.FromSeconds(1) : delay;
         }
 
         private void StartRefreshTimer()
@@ -440,6 +548,8 @@ namespace Naultinus.ViewModel
             _disposed = true;
             _refreshTimer?.Dispose();
             _refreshTimer = null;
+            _dayChangeTimer?.Dispose();
+            _dayChangeTimer = null;
             (_calendarService as IDisposable)?.Dispose();
             base.Dispose();
             GC.SuppressFinalize(this);

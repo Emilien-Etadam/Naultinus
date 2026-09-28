@@ -18,6 +18,8 @@ namespace Naultinus.View
     {
         private bool _accountUsable;
         private bool _calendarsLoaded;
+        private int _daysToShowOnOpen;
+        private bool _daysToShowCaptured;
         private bool _selectionTouched;
         private bool _suppressSelection;
         private int _loadInProgress;
@@ -36,7 +38,11 @@ namespace Naultinus.View
         {
             ViewModeCombo.ItemsSource = new[] { CalendarViewMode.Agenda, CalendarViewMode.Day, CalendarViewMode.Week };
             if (DataContext is CalendarNaultinusViewModel vm)
+            {
                 ViewModeCombo.SelectedItem = vm.ViewMode;
+                _daysToShowOnOpen = vm.DaysToShow;
+                _daysToShowCaptured = true;
+            }
 
             var settings = AppSettingsStore.Load();
             _accountUsable = SharedCalDavAccount.IsUsable(settings);
@@ -167,8 +173,15 @@ namespace Naultinus.View
         {
             if (DataContext is CalendarNaultinusViewModel vm)
             {
-                if (ViewModeCombo.SelectedItem is CalendarViewMode mode)
+                // Le binding a déjà poussé la saisie. On la relit avant ViewMode :
+                // assigner le mode Agenda réécrivait DaysToShow à 14.
+                DaysToShowBox.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+                var editedDays = vm.DaysToShow;
+                var daysEdited = _daysToShowCaptured && editedDays != _daysToShowOnOpen;
+                if (ViewModeCombo.SelectedItem is CalendarViewMode mode && vm.ViewMode != mode)
                     vm.ViewMode = mode;
+                if (daysEdited && vm.DaysToShow != editedDays)
+                    vm.DaysToShow = editedDays;
 
                 // Sans liste chargée, ou sans compte, on garde CalendarIds.
                 // Une sélection vide n'est écrite que si l'utilisateur l'a vraiment modifiée.
