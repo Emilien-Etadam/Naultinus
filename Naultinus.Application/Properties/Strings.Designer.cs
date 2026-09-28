@@ -48,6 +48,8 @@ namespace Naultinus.Properties
         public static string AccountTestFailedFormat => ResourceManager.GetString(nameof(AccountTestFailedFormat)) ?? string.Empty;
         public static string ConfirmTitle => ResourceManager.GetString(nameof(ConfirmTitle)) ?? string.Empty;
         public static string DeleteAccountFormat => ResourceManager.GetString(nameof(DeleteAccountFormat)) ?? string.Empty;
+        public static string DeleteEventConfirmFormat => ResourceManager.GetString(nameof(DeleteEventConfirmFormat)) ?? string.Empty;
+        public static string DeleteEventRefused => ResourceManager.GetString(nameof(DeleteEventRefused)) ?? string.Empty;
         public static string StartupErrorFormat => ResourceManager.GetString(nameof(StartupErrorFormat)) ?? string.Empty;
         public static string NaultinusErrorTitle => ResourceManager.GetString(nameof(NaultinusErrorTitle)) ?? string.Empty;
         public static string UpdateAvailableFormat => ResourceManager.GetString(nameof(UpdateAvailableFormat)) ?? string.Empty;

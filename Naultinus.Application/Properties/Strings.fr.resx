@@ -130,6 +130,12 @@
   <data name="DeleteAccountFormat" xml:space="preserve">
     <value>Supprimer le compte {0} ?</value>
   </data>
+  <data name="DeleteEventConfirmFormat" xml:space="preserve">
+    <value>Supprimer l'événement « {0} » ?</value>
+  </data>
+  <data name="DeleteEventRefused" xml:space="preserve">
+    <value>Suppression refusée : cet élément n'est pas un événement isolé.</value>
+  </data>
   <data name="StartupErrorFormat" xml:space="preserve">
     <value>Erreur au démarrage : {0}{1}{1}{2}</value>
   </data>

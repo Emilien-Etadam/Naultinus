@@ -210,6 +210,16 @@
     "en": "Delete account {0}?"
   },
   {
+    "key": "DeleteEventConfirmFormat",
+    "fr": "Supprimer l'événement « {0} » ?",
+    "en": "Delete event \"{0}\"?"
+  },
+  {
+    "key": "DeleteEventRefused",
+    "fr": "Suppression refusée : cet élément n'est pas un événement isolé.",
+    "en": "Deletion refused: this item is not a single event."
+  },
+  {
     "key": "StartupErrorFormat",
     "fr": "Erreur au démarrage : {0}{1}{1}{2}",
     "en": "Startup error: {0}{1}{1}{2}"
