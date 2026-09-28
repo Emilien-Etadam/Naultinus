@@ -79,12 +79,12 @@
                         <MenuItem Header="{x:Static properties:Strings.MenuCheckForUpdates}" Command="{Binding Path=Data.CheckForUpdatesCommand, Source={StaticResource proxy}}" />
                     </ContextMenu>
                 </Grid.ContextMenu>
-                <Button Grid.Column="0" Style="{StaticResource NaultinusNavButton}" Click="TitleBarMenuButton_Click" ToolTip="{x:Static properties:Strings.TooltipMenu}">
-                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE700;" FontSize="14" VerticalAlignment="Center"/>
+                <Button Grid.Column="0" Style="{StaticResource HeaderActionButton}" Margin="4,0,0,0" Click="TitleBarMenuButton_Click" ToolTip="{x:Static properties:Strings.TooltipMenu}">
+                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE700;" FontSize="12" VerticalAlignment="Center"/>
                 </Button>
                 <TextBlock Grid.Column="1" Text="{Binding Name, Mode=OneWay}" Margin="8,0" Style="{StaticResource NaultinusHeaderText}" HorizontalAlignment="Center"/>
-                <Button Grid.Column="2" Style="{StaticResource NaultinusNavButton}" Click="AddFolderPortalTab_Click" ToolTip="{x:Static properties:Strings.TooltipAddTabBrowseSameGroup}">
-                    <TextBlock Text="+" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource NaultinusTextBrush}" VerticalAlignment="Center"/>
+                <Button Grid.Column="2" Style="{StaticResource HeaderActionButton}" Margin="2,0,8,0" Click="AddFolderPortalTab_Click" ToolTip="{x:Static properties:Strings.TooltipAddTabBrowseSameGroup}">
+                    <TextBlock Text="+" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource NaultinusTextBrush}" VerticalAlignment="Center"/>
                 </Button>
             </Grid>
             <Border x:Name="drag" CornerRadius="0" Background="{DynamicResource NaultinusControlBrush}" AllowDrop="True" Drop="OnExternalFileDrop" DragOver="OnExternalFileDragOver">

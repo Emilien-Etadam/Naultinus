@@ -29,6 +29,7 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/View/Styles/NaultinusStyles.xaml"/>
+                <ResourceDictionary Source="/View/Styles/PanelHeaderActions.xaml"/>
                 <!-- Même dictionnaire qu’en App.xaml : le ContextMenu ne résout pas toujours StaticResource vers Application au chargement. -->
                 <ResourceDictionary Source="/View/Styles/ThemeResources.xaml"/>
             </ResourceDictionary.MergedDictionaries>
@@ -37,6 +38,7 @@
             <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
             <converters:InverseEmptyStringToVisibilityConverter x:Key="InverseEmptyStringToVisibilityConverter" />
             <BooleanToVisibilityConverter x:Key="BoolToVis" />
+            <converters:IsTypeConverter x:Key="IsTypeConverter" />
             <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis" />
             <helpers:BindingProxy x:Key="proxy" Data="{Binding Members[0]}" />
 
@@ -566,10 +568,34 @@
     <Border x:Name="LayoutRoot" CornerRadius="0" ClipToBounds="True">
         <DockPanel>
             <!-- Les boutons d’onglet absorbent le clic (DragMove du Grid ne part pas). Un glissement au-delà du seuil système sur un onglet déplace la fenêtre ; un clic court la sélectionne. La colonne de 12 px reste une poignée pour le vide de la barre. -->
-            <Grid DockPanel.Dock="Top" x:Name="Header" Height="32" MouseLeftButtonDown="Header_MouseLeftButtonDown" PreviewMouseLeftButtonDown="Header_PreviewMouseLeftButtonDown" PreviewMouseMove="Header_PreviewMouseMove" PreviewMouseLeftButtonUp="Header_PreviewMouseLeftButtonUp" IsHitTestVisible="True" Background="{DynamicResource NaultinusWindowBrush}" ColumnDefinitions="Auto, 12, *, Auto">
+            <Grid DockPanel.Dock="Top" x:Name="Header" Height="32" MouseLeftButtonDown="Header_MouseLeftButtonDown" PreviewMouseLeftButtonDown="Header_PreviewMouseLeftButtonDown" PreviewMouseMove="Header_PreviewMouseMove" PreviewMouseLeftButtonUp="Header_PreviewMouseLeftButtonUp" IsHitTestVisible="True" Background="{DynamicResource NaultinusWindowBrush}" ColumnDefinitions="Auto, 12, *, Auto, Auto">
                 <Grid.ContextMenu>
                     <ContextMenu>
-                        <MenuItem Header="{x:Static properties:Strings.MenuEdit}" Command="{x:Static pal:NaultinusWpfCommands.OpenEditSelectedTabCommand}" CommandParameter="{Binding SelectedMember}" />
+                        <MenuItem Header="{x:Static properties:Strings.MenuEdit}" Command="{x:Static pal:NaultinusWpfCommands.OpenEditSelectedTabCommand}" CommandParameter="{Binding SelectedMember}">
+                            <MenuItem.Style>
+                                <Style TargetType="MenuItem" BasedOn="{StaticResource NaultinusMenuItemStyle}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SelectedMember, Converter={StaticResource IsTypeConverter}, ConverterParameter={x:Type viewModel:MailNaultinusViewModel}}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </MenuItem.Style>
+                        </MenuItem>
+                        <MenuItem Header="{x:Static properties:Strings.MenuOpenWebmail}"
+                                  Command="{x:Static pal:NaultinusWpfCommands.OpenWebmailSelectedTabCommand}"
+                                  CommandParameter="{Binding SelectedMember}">
+                            <MenuItem.Style>
+                                <Style TargetType="MenuItem" BasedOn="{StaticResource NaultinusMenuItemStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SelectedMember, Converter={StaticResource IsTypeConverter}, ConverterParameter={x:Type viewModel:MailNaultinusViewModel}}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </MenuItem.Style>
+                        </MenuItem>
                         <MenuItem Header="{x:Static properties:Strings.MenuDelete}" Command="{Binding Path=Data.DeleteNaultinusCommand, Source={StaticResource proxy}}" CommandParameter="{Binding SelectedMember.Identifier}" />
                         <Separator />
                         <MenuItem Header="{x:Static properties:Strings.MenuNewShortcutNaultinus}" Command="{Binding Path=Data.NewNaultinusCommand, Source={StaticResource proxy}}" />
@@ -600,8 +626,8 @@
                         <MenuItem Header="{x:Static properties:Strings.MenuCheckForUpdates}" Command="{Binding Path=Data.CheckForUpdatesCommand, Source={StaticResource proxy}}" />
                     </ContextMenu>
                 </Grid.ContextMenu>
-                <Button Grid.Column="0" x:Name="TitleBarMenuButton" Style="{StaticResource NaultinusNavButton}" Click="TitleBarMenuButton_Click" ToolTip="{x:Static properties:Strings.TooltipMenu}">
-                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE700;" FontSize="14" VerticalAlignment="Center"/>
+                <Button Grid.Column="0" x:Name="TitleBarMenuButton" Style="{StaticResource HeaderActionButton}" Margin="4,0,0,0" Click="TitleBarMenuButton_Click" ToolTip="{x:Static properties:Strings.TooltipMenu}">
+                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE700;" FontSize="12" VerticalAlignment="Center"/>
                 </Button>
                 <Border Grid.Column="1" Background="{DynamicResource NaultinusWindowBrush}" Cursor="SizeAll"/>
                 <ScrollViewer Grid.Column="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
@@ -630,8 +656,11 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </ScrollViewer>
-                <Button Grid.Column="3" Style="{StaticResource NaultinusNavButton}" Click="AddFolderPortalTab_Click" ToolTip="{x:Static properties:Strings.TooltipAddTabBrowseSameGroup}">
-                    <TextBlock Text="+" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource NaultinusTextBrush}" VerticalAlignment="Center"/>
+                <ContentControl Grid.Column="3" Content="{Binding SelectedMember}"
+                                ContentTemplateSelector="{StaticResource PanelHeaderActionsSelector}"
+                                VerticalAlignment="Center" Focusable="False"/>
+                <Button Grid.Column="4" Style="{StaticResource HeaderActionButton}" Margin="2,0,6,0" Click="AddFolderPortalTab_Click" ToolTip="{x:Static properties:Strings.TooltipAddTabBrowseSameGroup}">
+                    <TextBlock Text="+" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource NaultinusTextBrush}" VerticalAlignment="Center"/>
                 </Button>
             </Grid>
             <ContentControl Content="{Binding SelectedMember}" />
