@@ -44,10 +44,10 @@ namespace Naultinus.View
                 _daysToShowCaptured = true;
             }
 
-            var settings = AppSettingsStore.Load();
-            _accountUsable = SharedCalDavAccount.IsUsable(settings);
+            var account = SharedCalDavAccount.GetMarked();
+            _accountUsable = SharedCalDavAccount.IsUsable(account);
             AccountStatusText.Text = _accountUsable
-                ? SharedCalDavAccount.DescribeStatus(settings)
+                ? SharedCalDavAccount.DescribeStatus(account)
                 : Strings.SharedCalDavMissing;
             LoadCalendarsButton.IsEnabled = _accountUsable;
             CalendarsListBox.IsEnabled = _accountUsable;
@@ -67,7 +67,7 @@ namespace Naultinus.View
 
             try
             {
-                if (!SharedCalDavAccount.IsUsable(AppSettingsStore.Load()))
+                if (!SharedCalDavAccount.IsUsable(SharedCalDavAccount.GetMarked()))
                 {
                     ShowAccountMissing();
                     return;
@@ -112,7 +112,7 @@ namespace Naultinus.View
                 Interlocked.Exchange(ref _loadInProgress, 0);
                 if (IsLoaded)
                 {
-                    _accountUsable = SharedCalDavAccount.IsUsable(AppSettingsStore.Load());
+                    _accountUsable = SharedCalDavAccount.IsUsable(SharedCalDavAccount.GetMarked());
                     LoadCalendarsButton.IsEnabled = _accountUsable;
                     CalendarsListBox.IsEnabled = _accountUsable;
                     SaveButton.IsEnabled = true;
@@ -185,7 +185,7 @@ namespace Naultinus.View
 
                 // Sans liste chargée, ou sans compte, on garde CalendarIds.
                 // Une sélection vide n'est écrite que si l'utilisateur l'a vraiment modifiée.
-                if (_calendarsLoaded && SharedCalDavAccount.IsUsable(AppSettingsStore.Load()))
+                if (_calendarsLoaded && SharedCalDavAccount.IsUsable(SharedCalDavAccount.GetMarked()))
                 {
                     var ids = CalendarsListBox.SelectedItems
                         .Cast<CalDAVCalendarInfo>()

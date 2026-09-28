@@ -1,5 +1,4 @@
 using Naultinus.Helpers;
-using Naultinus.Services;
 using Naultinus.ViewModel;
 using System.Windows;
 
@@ -22,7 +21,7 @@ namespace Naultinus.View
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            AccountHintText.Text = SharedCalDavAccount.DescribeStatus(AppSettingsStore.Load())
+            AccountHintText.Text = SharedCalDavAccount.DescribeStatus()
                 + " "
                 + Naultinus.Properties.Strings.SharedCalDavEditHint;
         }

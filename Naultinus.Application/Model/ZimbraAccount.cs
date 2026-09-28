@@ -20,5 +20,8 @@ namespace Naultinus.Model
         public string ImapHost { get; set; } = string.Empty;
         /// <summary>Statut du dernier test (affiché dans ManageAccountsDialog).</summary>
         public string? LastTestStatus { get; set; }
+
+        /// <summary>Ce compte est celui des calendriers et des tâches. Une seule ligne à la fois.</summary>
+        public bool UsedByCalendarsAndTasks { get; set; }
     }
 }

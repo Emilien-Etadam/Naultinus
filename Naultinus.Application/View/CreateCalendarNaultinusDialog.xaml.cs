@@ -37,7 +37,7 @@ namespace Naultinus.View
             InitializeComponent();
             DataContext = this;
             _sharedAccountConfigured = SharedCalDavAccount.IsConfigured();
-            AccountStatusText.Text = SharedCalDavAccount.DescribeStatus(AppSettingsStore.Load());
+            AccountStatusText.Text = SharedCalDavAccount.DescribeStatus();
             if (!_sharedAccountConfigured)
             {
                 LocalOnlyCheckBox.IsChecked = true;
@@ -58,7 +58,7 @@ namespace Naultinus.View
 
         private async void LoadCalendarsButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!SharedCalDavAccount.IsUsable(AppSettingsStore.Load()))
+            if (!SharedCalDavAccount.IsUsable(SharedCalDavAccount.GetMarked()))
             {
                 MessageBox.Show(Strings.SharedCalDavMissing, Strings.CalendarTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;

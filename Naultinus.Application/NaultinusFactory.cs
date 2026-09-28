@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Windows;
 using Naultinus.Helpers;
 using Naultinus.Model;
+using Naultinus.Serialization;
 using Naultinus.Services;
 using Naultinus.View;
 using Naultinus.ViewModel;
@@ -28,14 +30,13 @@ namespace Naultinus
                 return new FolderPortalViewModel(folderModel);
             if (concrete is TaskNaultinusModel taskModel)
             {
-                // Ancienne fenêtre : ses identifiants deviennent le compte partagé s'il n'existe pas encore.
-                AdoptLegacyCalDav(taskModel.ZimbraAccountId, taskModel.CalDAVUrl, taskModel.CalDAVUsername, taskModel.CalDAVPassword);
+                ForgetWindowCalDavSecrets(taskModel);
                 return new TaskNaultinusViewModel(taskModel, new CalDAVService(CreateSharedCalDavClient()));
             }
 
             if (concrete is CalendarNaultinusModel calModel)
             {
-                AdoptLegacyCalDav(calModel.ZimbraAccountId, calModel.CalDAVBaseUrl, calModel.CalDAVUsername, calModel.CalDAVPassword);
+                ForgetWindowCalDavSecrets(calModel);
                 return new CalendarNaultinusViewModel(calModel, new CalendarCalDAVService(CreateSharedCalDavClient()));
             }
 
@@ -47,31 +48,67 @@ namespace Naultinus
         }
 
         /// <summary>
-        /// Si settings.xml n'a pas encore de compte CalDAV, reprend celui d'une fenêtre existante (une seule fois).
-        /// Les fenêtres suivantes lisent ensuite ce compte, pas le leur.
+        /// Une fois le compte de la liste en place, retire les identifiants CalDAV du state.xml.
+        /// Ils ne sont jamais recopiés : retirer le compte ne le fait pas revenir au prochain démarrage.
         /// </summary>
-        private static void AdoptLegacyCalDav(Guid? zimbraAccountId, string? url, string? username, string? encryptedPassword)
+        private static void ForgetWindowCalDavSecrets(TaskNaultinusModel model)
         {
-            var settings = AppSettingsStore.Load();
-            if (SharedCalDavAccount.IsConfigured(settings))
+            if (!SharedCalDavAccount.IsConfigured())
+                return;
+            if (model.ZimbraAccountId == null
+                && string.IsNullOrEmpty(model.CalDAVUrl)
+                && string.IsNullOrEmpty(model.CalDAVUsername)
+                && string.IsNullOrEmpty(model.CalDAVPassword))
                 return;
 
-            var changed = false;
-            if (zimbraAccountId is Guid id)
-                changed = SharedCalDavAccount.TryCopyFromZimbra(settings, ZimbraAccountStore.GetById(id), overwrite: false, out _);
-            if (!changed)
-                changed = SharedCalDavAccount.TryAdoptLegacy(settings, url, username, encryptedPassword);
-            if (changed)
-                AppSettingsStore.Save(settings);
+            model.ZimbraAccountId = null;
+            model.CalDAVUrl = string.Empty;
+            model.CalDAVUsername = string.Empty;
+            model.CalDAVPassword = string.Empty;
+            WriteStateWithoutWindowSecrets(model);
+        }
+
+        private static void ForgetWindowCalDavSecrets(CalendarNaultinusModel model)
+        {
+            if (!SharedCalDavAccount.IsConfigured())
+                return;
+            if (model.ZimbraAccountId == null
+                && string.IsNullOrEmpty(model.CalDAVBaseUrl)
+                && string.IsNullOrEmpty(model.CalDAVUsername)
+                && string.IsNullOrEmpty(model.CalDAVPassword))
+                return;
+
+            model.ZimbraAccountId = null;
+            model.CalDAVBaseUrl = string.Empty;
+            model.CalDAVUsername = string.Empty;
+            model.CalDAVPassword = string.Empty;
+            WriteStateWithoutWindowSecrets(model);
+        }
+
+        private static void WriteStateWithoutWindowSecrets(NaultinusModelBase model)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(model.Identifier))
+                    return;
+                var directory = AppPaths.GetNaultinusDirectory(model.Identifier);
+                if (!Directory.Exists(directory))
+                    return;
+                NaultinusStateFile.Write(directory, model);
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.Log("NaultinusFactory", "Retrait des identifiants CalDAV de fenêtre impossible", ex);
+            }
         }
 
         private static CalDAVClient CreateSharedCalDavClient()
         {
-            var settings = AppSettingsStore.Load();
+            var account = SharedCalDavAccount.GetMarked();
             return new CalDAVClient(
-                settings.CalDavBaseUrl ?? string.Empty,
-                settings.CalDavUsername ?? string.Empty,
-                SharedCalDavAccount.ReadPassword(settings));
+                account?.CalDAVBaseUrl ?? string.Empty,
+                account?.Email ?? string.Empty,
+                SharedCalDavAccount.ReadPassword(account));
         }
 
         private static void ApplySize(NaultinusModelBase model, int? x, int? y, int? width, int? height, int defW, int defH)

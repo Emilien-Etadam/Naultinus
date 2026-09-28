@@ -9,13 +9,16 @@ namespace Naultinus.Model
     {
         public TabStyle DefaultTabStyle { get; set; } = TabStyle.Flat;
 
-        /// <summary>URL HTTPS du compte CalDAV unique (calendriers et tâches). Le courriel ne lit pas ce champ.</summary>
+        /// <summary>
+        /// Ancienne URL CalDAV. Lue une fois pour créer la ligne dans accounts.xml, puis effacée.
+        /// Les calendriers lisent la ligne marquée, pas ce champ.
+        /// </summary>
         public string CalDavBaseUrl { get; set; } = string.Empty;
 
-        /// <summary>Identifiant du compte CalDAV unique.</summary>
+        /// <summary>Ancien identifiant CalDAV, même cycle que <see cref="CalDavBaseUrl"/>.</summary>
         public string CalDavUsername { get; set; } = string.Empty;
 
-        /// <summary>Mot de passe CalDAV chiffré (DPAPI). Jamais le mot de passe en clair.</summary>
+        /// <summary>Ancien blob CalDAV. Copié vers la ligne, jamais déchiffré ici, puis effacé.</summary>
         public string CalDavEncryptedPassword { get; set; } = string.Empty;
     }
 }

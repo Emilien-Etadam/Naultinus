@@ -125,6 +125,11 @@
     "en": "CalDAV URL must start with https://."
   },
   {
+    "key": "CaldavUrlUserInfoNotAllowed",
+    "fr": "L'URL ne doit pas contenir d'identifiant ni de mot de passe.",
+    "en": "The URL must not include a username or password."
+  },
+  {
     "key": "CaldavNoCalendar",
     "fr": "Aucune collection de calendriers à cette URL.",
     "en": "No calendar collection at this URL."

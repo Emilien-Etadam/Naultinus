@@ -38,6 +38,18 @@
                     <StackPanel Orientation="Horizontal" Margin="2">
                         <TextBlock Text="{Binding Email}" FontWeight="SemiBold" Margin="0,0,12,0"/>
                         <TextBlock Text="{Binding Server}" Foreground="{DynamicResource NaultinusSubtleBrush}" Margin="0,0,12,0"/>
+                        <TextBlock Text="{x:Static properties:Strings.SharedCalDavListMark}" Foreground="{DynamicResource NaultinusAccentBrush}" FontSize="11" Margin="0,0,12,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding UsedByCalendarsAndTasks}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                         <TextBlock Text="{Binding LastTestStatus}" Foreground="{DynamicResource NaultinusAccentBrush}" FontSize="11"/>
                     </StackPanel>
                 </DataTemplate>

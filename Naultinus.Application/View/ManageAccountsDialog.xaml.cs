@@ -19,30 +19,31 @@ namespace Naultinus.View
         {
             InitializeComponent();
             LoadAccounts();
-            LoadSharedCalDavAccount();
         }
 
-        private void LoadSharedCalDavAccount()
+        private void ShowAccountInForm(ZimbraAccount? account)
         {
-            var settings = AppSettingsStore.Load();
-            CalDavUrlTextBox.Text = settings.CalDavBaseUrl ?? string.Empty;
-            CalDavUsernameTextBox.Text = settings.CalDavUsername ?? string.Empty;
+            CalDavUrlTextBox.Text = account?.CalDAVBaseUrl ?? string.Empty;
+            CalDavUsernameTextBox.Text = account?.Email ?? string.Empty;
             CalDavPasswordBox.Password = string.Empty;
-            CalDavStatusText.Text = SharedCalDavAccount.DescribeStatus(settings);
+            CalDavStatusText.Text = SharedCalDavAccount.DescribeStatus(SharedCalDavAccount.FindMarked(_accounts));
         }
 
         private void SaveCalDavButton_Click(object sender, RoutedEventArgs e)
         {
-            var settings = AppSettingsStore.Load();
-            if (!SharedCalDavAccount.TryApply(settings, CalDavUrlTextBox.Text, CalDavUsernameTextBox.Text, CalDavPasswordBox.Password, out var error))
+            var selected = AccountsListBox.SelectedItem as ZimbraAccount;
+            var target = selected ?? new ZimbraAccount();
+            if (!SharedCalDavAccount.TryApplyToAccount(target, CalDavUrlTextBox.Text, CalDavUsernameTextBox.Text, CalDavPasswordBox.Password, out var error))
             {
                 MessageBox.Show(SharedCalDavAccount.Describe(error), Strings.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            AppSettingsStore.Save(settings);
-            CalDavPasswordBox.Password = string.Empty;
-            LoadSharedCalDavAccount();
+            if (selected == null)
+                _accounts.Add(target);
+            SharedCalDavAccount.MarkExclusive(_accounts, target.Id);
+            SaveAccounts();
+            LoadAccounts(target.Id);
             MessageBox.Show(Strings.SharedCalDavSaved, Strings.AccountTitle, MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
@@ -51,10 +52,9 @@ namespace Naultinus.View
             if (MessageBox.Show(Strings.ConfirmClearCalDav, Strings.ConfirmTitle, MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
                 return;
 
-            var settings = AppSettingsStore.Load();
-            SharedCalDavAccount.Clear(settings);
-            AppSettingsStore.Save(settings);
-            LoadSharedCalDavAccount();
+            SharedCalDavAccount.UnmarkAll(_accounts);
+            SaveAccounts();
+            LoadAccounts(selectMarked: false);
             MessageBox.Show(Strings.SharedCalDavCleared, Strings.AccountTitle, MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
@@ -62,24 +62,31 @@ namespace Naultinus.View
         {
             if (AccountsListBox.SelectedItem is not ZimbraAccount acc)
                 return;
-
-            var settings = AppSettingsStore.Load();
-            if (!SharedCalDavAccount.TryCopyFromZimbra(settings, acc, overwrite: true, out var error))
+            if (!SharedCalDavAccount.IsUsable(acc, out var error))
             {
                 MessageBox.Show(SharedCalDavAccount.Describe(error), Strings.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            AppSettingsStore.Save(settings);
-            LoadSharedCalDavAccount();
+            SharedCalDavAccount.MarkExclusive(_accounts, acc.Id);
+            SaveAccounts();
+            LoadAccounts(acc.Id);
             MessageBox.Show(Strings.SharedCalDavSaved, Strings.AccountTitle, MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        private void LoadAccounts()
+        private void LoadAccounts(Guid? selectId = null, bool selectMarked = true)
         {
             _accounts = ZimbraAccountStore.Load();
             AccountsListBox.ItemsSource = null;
             AccountsListBox.ItemsSource = _accounts;
+            ZimbraAccount? select = null;
+            if (selectId is Guid id)
+                select = _accounts.Find(a => a.Id == id);
+            else if (selectMarked)
+                select = _accounts.Find(a => a.UsedByCalendarsAndTasks);
+            AccountsListBox.SelectedItem = select;
+            if (AccountsListBox.SelectedItem == null)
+                ShowAccountInForm(null);
         }
 
         private void SaveAccounts()
@@ -95,6 +102,8 @@ namespace Naultinus.View
             CreateNaultinusButton.IsEnabled = hasSelection;
             DeleteButton.IsEnabled = hasSelection;
             UseZimbraForCalDavButton.IsEnabled = hasSelection;
+            if (AccountsListBox.SelectedItem is ZimbraAccount acc)
+                ShowAccountInForm(acc);
         }
 
         private void AddButton_Click(object sender, RoutedEventArgs e)
@@ -104,7 +113,7 @@ namespace Naultinus.View
             {
                 _accounts.Add(dialog.Account);
                 SaveAccounts();
-                LoadAccounts();
+                LoadAccounts(dialog.Account.Id);
             }
         }
 
@@ -115,7 +124,7 @@ namespace Naultinus.View
             if (dialog.ShowDialog() == true && dialog.Account != null)
             {
                 SaveAccounts();
-                LoadAccounts();
+                LoadAccounts(acc.Id);
             }
         }
 
@@ -124,8 +133,6 @@ namespace Naultinus.View
             if (AccountsListBox.SelectedItem is not ZimbraAccount acc) return;
             var password = CredentialEncryptor.Decrypt(acc.EncryptedPassword ?? "");
             acc.LastTestStatus = Strings.AccountTestingStatus;
-            AccountsListBox.ItemsSource = null;
-            AccountsListBox.ItemsSource = _accounts;
 
             try
             {
@@ -152,8 +159,7 @@ namespace Naultinus.View
             }
 
             SaveAccounts();
-            AccountsListBox.ItemsSource = null;
-            AccountsListBox.ItemsSource = _accounts;
+            LoadAccounts(acc.Id);
         }
 
         private void CreateNaultinusButton_Click(object sender, RoutedEventArgs e)

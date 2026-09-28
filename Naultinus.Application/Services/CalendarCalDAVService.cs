@@ -22,14 +22,14 @@ namespace Naultinus.Services
         /// </summary>
         public static async Task<List<CalDAVCalendarInfo>?> DiscoverSharedCalendarsAsync()
         {
-            var settings = AppSettingsStore.Load();
-            if (!SharedCalDavAccount.IsUsable(settings))
+            var account = SharedCalDavAccount.GetMarked();
+            if (!SharedCalDavAccount.IsUsable(account))
                 return null;
 
             using var client = new CalDAVClient(
-                settings.CalDavBaseUrl,
-                settings.CalDavUsername,
-                SharedCalDavAccount.ReadPassword(settings));
+                account!.CalDAVBaseUrl,
+                account.Email ?? string.Empty,
+                SharedCalDavAccount.ReadPassword(account));
             return await client.DiscoverCalendarsAsync().ConfigureAwait(false);
         }
 
