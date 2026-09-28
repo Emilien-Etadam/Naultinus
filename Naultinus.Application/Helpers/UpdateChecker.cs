@@ -15,6 +15,16 @@ namespace Naultinus.Helpers
         private const string ReleasesUrl =
             "https://api.github.com/repos/Emilien-Etadam/Naultinus/releases/latest";
 
+        /// <summary>
+        /// Installateur sans assistant. <c>/CLOSEAPPLICATIONS</c> libère Naultinus.exe
+        /// si ce processus le tient encore. <c>/NORESTARTAPPLICATIONS</c> empêche le
+        /// Restart Manager d'en démarrer une copie : l'entrée [Run] de
+        /// <c>installer/naultinus.iss</c> lance le nouvel exécutable une seule fois,
+        /// une fois les fichiers remplacés.
+        /// </summary>
+        internal const string SilentInstallerArguments =
+            "/SILENT /CLOSEAPPLICATIONS /NORESTARTAPPLICATIONS";
+
         public static string GetCurrentVersion()
         {
             return Assembly.GetExecutingAssembly()
@@ -106,12 +116,18 @@ namespace Naultinus.Helpers
                 throw new InvalidOperationException("Empreinte SHA-256 de l'installateur invalide (fichier corrompu ou altéré).");
             }
 
-            Process.Start(new ProcessStartInfo
+            var installer = Process.Start(new ProcessStartInfo
             {
                 FileName = tempInstaller,
-                Arguments = "/SILENT /RESTARTAPPLICATIONS",
-                UseShellExecute = true
+                Arguments = SilentInstallerArguments,
+                UseShellExecute = true,
             });
+            if (installer == null)
+                throw new InvalidOperationException("Impossible de démarrer l'installateur.");
+
+            NaultinusDiagnostics.Log(
+                "UpdateChecker",
+                "Installateur démarré. Arguments=" + SilentInstallerArguments);
         }
 
         private static bool IsTrustedReleaseAssetUrl(string assetUrl)

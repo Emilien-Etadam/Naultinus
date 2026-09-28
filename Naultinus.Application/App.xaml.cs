@@ -37,6 +37,13 @@ namespace Naultinus
 
             DispatcherUnhandledException += App_DispatcherUnhandledException;
 
+            if (!SingleInstanceGate.TryAcquire())
+            {
+                NaultinusDiagnostics.Log("App", "Instance déjà en cours d'exécution ; fermeture de cette copie.");
+                // Avant Run(), Shutdown() ne termine pas le processus de façon fiable.
+                Environment.Exit(0);
+            }
+
             WriteStartupLog("App() début");
 
             try
@@ -164,6 +171,9 @@ namespace Naultinus
                     });
                 });
                 await UpdateChecker.ApplyUpdateAsync(update, progressHandler);
+                NaultinusDiagnostics.Log(
+                    "Update",
+                    "Installateur lancé. Arrêt de cette instance pour libérer les fichiers ; Inno Setup relance Naultinus.");
                 Current.Dispatcher.Invoke(() => Current.Shutdown());
             }
             catch (Exception ex)
