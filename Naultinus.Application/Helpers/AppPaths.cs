@@ -5,6 +5,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 
 namespace Naultinus.Helpers
 {
@@ -59,25 +60,127 @@ namespace Naultinus.Helpers
             }
         }
 
+        private const int AtomicWriteAttempts = 5;
+        private static readonly TimeSpan AtomicWriteRetryDelay = TimeSpan.FromMilliseconds(40);
+        private static readonly TimeSpan AtomicWriteTurnTimeout = TimeSpan.FromSeconds(2);
+
         /// <summary>
-        /// Écrit un fichier de façon atomique : écriture dans un fichier temporaire puis remplacement
-        /// du fichier cible. Évite de corrompre le fichier existant si l'écriture est interrompue
-        /// (disque plein, plantage). Le contenu est produit par <paramref name="writeContent"/>.
+        /// Écrit un fichier de façon atomique : contenu dans un temporaire unique, puis remplacement
+        /// du fichier cible. Un <c>.tmp</c> laissé par une version antérieure n'est pas réutilisé.
+        /// Les écritures du même chemin s'attendent. Un partage refusé est réessayé brièvement ;
+        /// le fichier déjà en place n'est remplacé qu'une fois le temporaire complet.
         /// </summary>
         internal static void WriteAtomic(string path, Action<Stream> writeContent)
         {
+            ArgumentNullException.ThrowIfNull(writeContent);
             EnsureExists(Path.GetDirectoryName(path)!);
-            string tmp = path + ".tmp";
-            using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
+
+            using var mutex = new Mutex(false, WriteMutexName(path));
+            if (!TryEnterWrite(mutex))
+                throw new IOException("Enregistrement déjà en cours : " + path);
+
+            try
             {
-                writeContent(fs);
-                fs.Flush(true);
+                WriteAtomicExclusive(path, writeContent);
+            }
+            finally
+            {
+                ReleaseWrite(mutex);
+            }
+        }
+
+        private static void WriteAtomicExclusive(string path, Action<Stream> writeContent)
+        {
+            IOException? sharing = null;
+            for (var attempt = 1; attempt <= AtomicWriteAttempts; attempt++)
+            {
+                var tmp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+                try
+                {
+                    using (var stream = new FileStream(tmp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                    {
+                        writeContent(stream);
+                        stream.Flush(true);
+                    }
+
+                    if (File.Exists(path))
+                        File.Replace(tmp, path, null);
+                    else
+                        File.Move(tmp, path);
+                    return;
+                }
+                catch (IOException ex) when (IsSharingViolation(ex))
+                {
+                    sharing = ex;
+                    DeleteIfExists(tmp);
+                    if (attempt == AtomicWriteAttempts)
+                        break;
+                    Thread.Sleep(AtomicWriteRetryDelay);
+                }
+                catch
+                {
+                    DeleteIfExists(tmp);
+                    throw;
+                }
             }
 
-            if (File.Exists(path))
-                File.Replace(tmp, path, null);
-            else
-                File.Move(tmp, path);
+            throw sharing ?? new IOException("Enregistrement impossible : " + path);
+        }
+
+        private static string WriteMutexName(string path)
+        {
+            var full = Path.GetFullPath(path).ToUpperInvariant();
+            return @"Local\Naultinus.Write." + StableHash(full);
+        }
+
+        private static bool TryEnterWrite(Mutex mutex)
+        {
+            try
+            {
+                return mutex.WaitOne(AtomicWriteTurnTimeout);
+            }
+            catch (AbandonedMutexException)
+            {
+                return true;
+            }
+        }
+
+        private static void ReleaseWrite(Mutex mutex)
+        {
+            try
+            {
+                mutex.ReleaseMutex();
+            }
+            catch (ApplicationException)
+            {
+                // Le tour n'est plus détenu.
+            }
+        }
+
+        private static bool IsSharingViolation(Exception ex)
+        {
+            if (IsSharingCode(ex))
+                return true;
+            return ex.InnerException != null && IsSharingCode(ex.InnerException);
+        }
+
+        private static bool IsSharingCode(Exception ex)
+        {
+            var code = ex.HResult & 0xFFFF;
+            return code is 32 or 33;
+        }
+
+        private static void DeleteIfExists(string path)
+        {
+            try
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("AppPaths: fichier temporaire conservé", ex);
+            }
         }
 
         /// <summary>
