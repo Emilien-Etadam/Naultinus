@@ -142,7 +142,15 @@ namespace Naultinus.ViewModel
                 return;
             }
 
-            Dispatch(() => { IsLoading = true; ErrorMessage = ""; });
+            Dispatch(() =>
+            {
+                // Le rafraîchissement met déjà à jour le libellé « aujourd'hui ».
+                // Il doit aussi recaler l'ancre, sinon les jours d'avant restent au-dessus.
+                if (!_disposed)
+                    AlignAgendaWithLocalDay(DateTime.Now, reload: false);
+                IsLoading = true;
+                ErrorMessage = "";
+            });
             try
             {
                 if (!IsRemote)
@@ -172,8 +180,11 @@ namespace Naultinus.ViewModel
                 if (colorsChanged)
                     Save();
                 allEvents = allEvents.Where(e => e.DtEnd > start && e.DtStart < end).ToList();
-                var ordered = allEvents.OrderBy(e => e.DtStart).ToList();
-                DecorateDayHeaders(ordered);
+                var ordered = allEvents
+                    .OrderBy(e => AgendaAnchor.DisplayDay(e.DtStart, start))
+                    .ThenBy(e => e.DtStart)
+                    .ToList();
+                DecorateDayHeaders(ordered, start);
                 Dispatch(() => ShowEvents(ordered));
             }
             catch (Exception ex)
@@ -228,8 +239,10 @@ namespace Naultinus.ViewModel
             var end = start.AddDays(DaysToShow);
             var ordered = LocalPlannerStore.EventsOverlapping(_model, start, end)
                 .Select(LocalPlannerStore.ToCalendarEvent)
+                .OrderBy(e => AgendaAnchor.DisplayDay(e.DtStart, start))
+                .ThenBy(e => e.DtStart)
                 .ToList();
-            DecorateDayHeaders(ordered);
+            DecorateDayHeaders(ordered, start);
             Dispatch(() =>
             {
                 CalendarLegend.Clear();
@@ -238,17 +251,21 @@ namespace Naultinus.ViewModel
             });
         }
 
-        private static void DecorateDayHeaders(List<Model.CalendarEvent> ordered)
+        private static void DecorateDayHeaders(List<Model.CalendarEvent> ordered, DateTime rangeStart)
         {
             DateTime? prevDate = null;
             foreach (var evt in ordered)
             {
-                var evtDate = evt.DtStart.Date;
+                var evtDate = AgendaAnchor.DisplayDay(evt.DtStart, rangeStart);
                 evt.IsToday = evtDate == DateTime.Today;
                 if (evtDate != prevDate)
                 {
-                    evt.DayHeader = evt.DtStart.ToString("ddd dd MMM");
+                    evt.DayHeader = evtDate.ToString("ddd dd MMM");
                     prevDate = evtDate;
+                }
+                else
+                {
+                    evt.DayHeader = string.Empty;
                 }
             }
         }
@@ -352,10 +369,13 @@ namespace Naultinus.ViewModel
         {
             if (_disposed)
                 return;
-            AlignAgendaWithLocalDay(DateTime.Now);
+            AlignAgendaWithLocalDay(DateTime.Now, reload: true);
         }
 
-        private void AlignAgendaWithLocalDay(DateTime localNow)
+        /// <summary>Recale l'ancre agenda sur le jour local. Semaine et jour gardent leur date.</summary>
+        /// <param name="localNow">Instant local observé.</param>
+        /// <param name="reload">Faux quand l'appelant est déjà un chargement : il lira la nouvelle ancre.</param>
+        private void AlignAgendaWithLocalDay(DateTime localNow, bool reload)
         {
             var today = AgendaAnchor.LocalDate(localNow);
             if (!AgendaAnchor.ShouldRealign(ViewMode, _agendaAnchor, _observedLocalDate, localNow))
@@ -373,7 +393,8 @@ namespace Naultinus.ViewModel
             _observedLocalDate = today;
             _agendaAnchor = today;
             OnPropertyChanged(nameof(DateRangeDisplay));
-            _ = LoadEventsAsync();
+            if (reload)
+                _ = LoadEventsAsync();
         }
 
         private void StartDayWatch()
@@ -394,7 +415,7 @@ namespace Naultinus.ViewModel
             {
                 if (_disposed)
                     return;
-                AlignAgendaWithLocalDay(DateTime.Now);
+                AlignAgendaWithLocalDay(DateTime.Now, reload: true);
                 if (!_disposed)
                     StartDayWatch();
             });

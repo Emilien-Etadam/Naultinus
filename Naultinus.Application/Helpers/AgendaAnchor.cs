@@ -22,5 +22,16 @@ namespace Naultinus.Helpers
                 && observedLocalDate.Date != today
                 && anchor.Date != today;
         }
+
+        /// <summary>
+        /// Jour sous lequel l'événement est listé.
+        /// Un début antérieur à la plage est ramené au premier jour affiché : aucun jour plus ancien n'est rendu.
+        /// </summary>
+        public static DateTime DisplayDay(DateTime eventStart, DateTime rangeStart)
+        {
+            var day = eventStart.Date;
+            var start = rangeStart.Date;
+            return day < start ? start : day;
+        }
     }
 }

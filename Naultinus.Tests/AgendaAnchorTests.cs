@@ -47,5 +47,28 @@ namespace Naultinus.Tests
 
             Assert.False(AgendaAnchor.ShouldRealign(mode, hier, hier, Jeudi));
         }
+
+        [Fact]
+        public void DisplayDay_DebutAvantLaPlage_EstLePremierJour_PasLaVeilleNiLeLundi()
+        {
+            var jeudi = new DateTime(2026, 9, 24);
+            var mercredi = new DateTime(2026, 9, 23, 9, 0, 0);
+            var lundi = new DateTime(2026, 9, 21, 8, 0, 0);
+
+            Assert.Equal(jeudi, AgendaAnchor.DisplayDay(mercredi, jeudi));
+            Assert.Equal(jeudi, AgendaAnchor.DisplayDay(lundi, jeudi));
+            Assert.NotEqual(mercredi.Date, AgendaAnchor.DisplayDay(mercredi, jeudi));
+            Assert.NotEqual(DayOfWeek.Monday, AgendaAnchor.DisplayDay(lundi, jeudi).DayOfWeek);
+        }
+
+        [Fact]
+        public void DisplayDay_DebutDansLaPlage_GardeSonJour()
+        {
+            var jeudi = new DateTime(2026, 9, 24);
+            var vendredi = new DateTime(2026, 9, 25, 11, 15, 0);
+
+            Assert.Equal(jeudi, AgendaAnchor.DisplayDay(jeudi.AddHours(18), jeudi));
+            Assert.Equal(vendredi.Date, AgendaAnchor.DisplayDay(vendredi, jeudi));
+        }
     }
 }
