@@ -28,7 +28,8 @@ namespace Naultinus.Tests
                     ["/dav/user@domain/Calendar"] = "#4A90D9",
                     ["/dav/user@domain/Work"] = "#E74C3C",
                 },
-                DaysToShow = 14
+                DaysToShow = 14,
+                AgendaDaysToShow = 90
             };
 
             var serializer = new XmlSerializer(typeof(CalendarNaultinusModel));
@@ -47,6 +48,7 @@ namespace Naultinus.Tests
             Assert.Equal(model.CalendarIds[0], deserialized.CalendarIds[0]);
             Assert.Equal(model.CalendarIds[1], deserialized.CalendarIds[1]);
             Assert.Equal(model.DaysToShow, deserialized.DaysToShow);
+            Assert.Equal(model.AgendaDaysToShow, deserialized.AgendaDaysToShow);
             Assert.Equal(model.CalendarColors.Count, deserialized.CalendarColors.Count);
             Assert.Equal("#4A90D9", deserialized.CalendarColors["/dav/user@domain/Calendar"]);
             Assert.Equal("#E74C3C", deserialized.CalendarColors["/dav/user@domain/Work"]);

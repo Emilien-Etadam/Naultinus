@@ -18,7 +18,7 @@ namespace Naultinus.View
         public string Password { get; set; } = string.Empty;
         public List<string> SelectedCalendarIds { get; private set; } = new List<string>();
         public CalendarViewMode ViewMode { get; set; } = CalendarViewMode.Agenda;
-        public int DaysToShow { get; set; } = 7;
+        public int DaysToShow { get; set; } = CalendarSpan.DefaultAgendaDays;
 
         /// <summary>Le compte n'est plus choisi par fenêtre. Les appelants reçoivent null.</summary>
         public Guid? SelectedZimbraAccountId => null;

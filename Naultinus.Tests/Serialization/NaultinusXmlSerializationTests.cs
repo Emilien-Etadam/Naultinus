@@ -151,6 +151,7 @@ namespace Naultinus.Tests.Serialization
                 CalendarIds = new List<string> { "cal-1", "cal-2" },
                 ViewMode = CalendarViewMode.Week,
                 DaysToShow = 14,
+                AgendaDaysToShow = 90,
             };
 
             var roundTrip = RoundTrip(model);
@@ -170,6 +171,7 @@ namespace Naultinus.Tests.Serialization
             Assert.Equal(model.CalendarIds, roundTrip.CalendarIds);
             Assert.Equal(model.ViewMode, roundTrip.ViewMode);
             Assert.Equal(model.DaysToShow, roundTrip.DaysToShow);
+            Assert.Equal(model.AgendaDaysToShow, roundTrip.AgendaDaysToShow);
             Assert.Equal(NaultinusType.CalendarNaultinus, roundTrip.Type);
         }
 

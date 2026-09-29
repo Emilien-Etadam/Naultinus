@@ -148,7 +148,10 @@ namespace Naultinus
                 Name = title,
                 CalendarIds = calendarIds ?? new List<string>(),
                 ViewMode = viewMode,
-                DaysToShow = daysToShow,
+                DaysToShow = daysToShow > 0 ? daysToShow : CalendarSpan.DefaultAgendaDays,
+                AgendaDaysToShow = viewMode == CalendarViewMode.Agenda
+                    ? CalendarSpan.NormalizeAgendaDays(daysToShow)
+                    : CalendarSpan.DefaultAgendaDays,
             };
             ApplySize(model, x, y, width, height, 500, 400);
             return new CalendarNaultinusViewModel(model, new CalendarCalDAVService(CreateSharedCalDavClient()));
