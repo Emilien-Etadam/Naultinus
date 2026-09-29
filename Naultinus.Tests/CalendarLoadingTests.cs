@@ -103,7 +103,7 @@ namespace Naultinus.Tests
             Assert.True(scope.ViewModel.IsLoading);
 
             first!.SetResult(new List<CalendarEvent>());
-            await WaitUntil(() => scope.Service.Calls >= 2);
+            await WaitUntil(() => second != null);
             Assert.True(scope.ViewModel.IsLoading);
 
             second!.SetResult(new List<CalendarEvent>());
