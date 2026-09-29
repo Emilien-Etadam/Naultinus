@@ -16,8 +16,12 @@ namespace Naultinus.Services
     /// </summary>
     public class CalDAVClient : ICalDAVClient
     {
+        private const int MaxSameOriginRedirects = 5;
+
         private readonly HttpClient _httpClient;
         private readonly Uri _baseUri;
+        private readonly string _username;
+        private readonly string _password;
         private readonly bool _isConfigured;
         private bool _disposed;
 
@@ -31,29 +35,51 @@ namespace Naultinus.Services
 
         public CalDAVClient(string baseUrl, string username, string password)
         {
-            var url = (baseUrl ?? "").Trim();
+            _username = username ?? string.Empty;
+            _password = password ?? string.Empty;
+            var url = (baseUrl ?? string.Empty).Trim();
             if (string.IsNullOrEmpty(url) || url.Equals("https://localhost/", StringComparison.OrdinalIgnoreCase))
             {
                 _isConfigured = false;
                 _baseUri = new Uri("https://localhost/");
-                var handler = new HttpClientHandler();
-                _httpClient = new HttpClient(handler);
+                _httpClient = new HttpClient(new HttpClientHandler());
                 return;
             }
+
             EnsureHttps(url);
             _isConfigured = true;
             _baseUri = new Uri(url.TrimEnd('/') + "/");
 
-            var handler2 = new HttpClientHandler
+            // La redirection automatique efface Authorization et ne réessaie pas le PUT.
+            var handler = new HttpClientHandler
             {
-                Credentials = new NetworkCredential(username ?? "", password ?? ""),
-                PreAuthenticate = true
+                Credentials = new NetworkCredential(_username, _password),
+                PreAuthenticate = true,
+                AllowAutoRedirect = false,
             };
-            _httpClient = new HttpClient(handler2);
+            _httpClient = new HttpClient(handler);
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "Naultinus/1.0");
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/xml"));
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/xml"));
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/calendar"));
+        }
+
+        /// <summary>
+        /// Le handler de test reçoit les requêtes telles qu'elles partent, y compris après redirection.
+        /// </summary>
+        internal CalDAVClient(HttpMessageHandler handler, string baseUrl, string username, string password)
+        {
+            ArgumentNullException.ThrowIfNull(handler);
+            _username = username ?? string.Empty;
+            _password = password ?? string.Empty;
+            var url = (baseUrl ?? string.Empty).Trim();
+            EnsureHttps(url);
+            if (string.IsNullOrEmpty(url))
+                throw new InvalidOperationException("L'URL CalDAV doit utiliser HTTPS. Les connexions non sécurisées sont refusées.");
+
+            _isConfigured = true;
+            _baseUri = new Uri(url.TrimEnd('/') + "/");
+            _httpClient = new HttpClient(handler);
         }
 
         /// <summary>
@@ -74,7 +100,7 @@ namespace Naultinus.Services
             if (!string.IsNullOrEmpty(requestBody))
                 request.Content = new StringContent(requestBody, Encoding.UTF8, "application/xml");
 
-            var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+            var response = await SendPreservingAuthorizationAsync(request).ConfigureAwait(false);
             var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
                 throw HttpFailure("PROPFIND", response, body);
@@ -91,7 +117,7 @@ namespace Naultinus.Services
             request.Headers.Add("Depth", "1");
             request.Content = new StringContent(requestBody, Encoding.UTF8, "application/xml");
 
-            var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+            var response = await SendPreservingAuthorizationAsync(request).ConfigureAwait(false);
             var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
                 throw HttpFailure("REPORT", response, body);
@@ -109,7 +135,7 @@ namespace Naultinus.Services
             if (!string.IsNullOrEmpty(etag))
                 request.Headers.TryAddWithoutValidation("If-Match", "\"" + etag + "\"");
 
-            var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+            var response = await SendPreservingAuthorizationAsync(request).ConfigureAwait(false);
             var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
                 throw HttpFailure("PUT", response, body);
@@ -126,12 +152,94 @@ namespace Naultinus.Services
             if (!string.IsNullOrEmpty(etag))
                 request.Headers.TryAddWithoutValidation("If-Match", "\"" + etag + "\"");
 
-            var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+            var response = await SendPreservingAuthorizationAsync(request).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 throw HttpFailure("DELETE", response, body);
             }
+        }
+
+        /// <summary>
+        /// Basic part tout de suite. Sans cet en-tête, le PUT attend un défi : un 401 sans
+        /// WWW-Authenticate, ou une redirection, revient tel quel et le serveur voit une requête anonyme.
+        /// On ne suit une redirection que vers le même hôte, en HTTPS, sans identifiant dans l'URL.
+        /// </summary>
+        private async Task<HttpResponseMessage> SendPreservingAuthorizationAsync(HttpRequestMessage request)
+        {
+            ApplyBasicAuthorization(request);
+            var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+            for (var hop = 0; hop < MaxSameOriginRedirects; hop++)
+            {
+                if (!TryGetSameOriginHttpsRedirect(request.RequestUri, response, out var next))
+                    return response;
+
+                var status = response.StatusCode;
+                response.Dispose();
+                request = FollowRedirect(request, next, status);
+                response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+            }
+
+            return response;
+        }
+
+        private void ApplyBasicAuthorization(HttpRequestMessage request)
+        {
+            if (_username.Length == 0)
+                return;
+
+            var token = Convert.ToBase64String(Encoding.UTF8.GetBytes(_username + ":" + _password));
+            request.Headers.Authorization = new AuthenticationHeaderValue("Basic", token);
+        }
+
+        private HttpRequestMessage FollowRedirect(HttpRequestMessage original, Uri next, HttpStatusCode status)
+        {
+            var method = status == HttpStatusCode.SeeOther ? HttpMethod.Get : original.Method;
+            var clone = new HttpRequestMessage(method, next);
+            foreach (var header in original.Headers)
+            {
+                if (string.Equals(header.Key, "Authorization", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+
+            if (status != HttpStatusCode.SeeOther)
+                clone.Content = original.Content;
+
+            ApplyBasicAuthorization(clone);
+            return clone;
+        }
+
+        private static bool TryGetSameOriginHttpsRedirect(Uri? current, HttpResponseMessage response, out Uri next)
+        {
+            next = null!;
+            if (current == null || !IsRedirectStatus(response.StatusCode))
+                return false;
+
+            var location = response.Headers.Location;
+            if (location == null)
+                return false;
+            if (!location.IsAbsoluteUri)
+                location = new Uri(current, location);
+            if (!string.Equals(location.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+                return false;
+            if (!string.IsNullOrEmpty(location.UserInfo))
+                return false;
+            if (!string.Equals(location.Host, current.Host, StringComparison.OrdinalIgnoreCase) || location.Port != current.Port)
+                return false;
+
+            next = location;
+            return true;
+        }
+
+        private static bool IsRedirectStatus(HttpStatusCode status)
+        {
+            return status is HttpStatusCode.MultipleChoices
+                or HttpStatusCode.Moved
+                or HttpStatusCode.Found
+                or HttpStatusCode.SeeOther
+                or HttpStatusCode.TemporaryRedirect
+                or HttpStatusCode.PermanentRedirect;
         }
 
         private static InvalidOperationException HttpFailure(string method, HttpResponseMessage response, string body)
