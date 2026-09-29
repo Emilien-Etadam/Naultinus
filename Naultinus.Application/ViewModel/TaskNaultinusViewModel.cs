@@ -31,8 +31,9 @@ namespace Naultinus.ViewModel
         private int _syncInProgress;
         private bool _disposed;
         private readonly CollectionViewSource _visibleTasksView = new();
-        private readonly bool _sharedAccountConfigured = SharedCalDavAccount.IsConfigured();
+        private readonly bool _sharedAccountConfigured;
         private bool _suppressTaskPersistence;
+        private string _quickAddTitle = string.Empty;
 
         public string CalDAVUrl
         {
@@ -181,13 +182,40 @@ namespace Naultinus.ViewModel
             set { _syncStatus = value; OnPropertyChanged(); }
         }
 
+        /// <summary>Titre en cours de saisie dans le champ en bas de la liste. Entrée le confirme.</summary>
+        public string QuickAddTitle
+        {
+            get => _quickAddTitle;
+            set
+            {
+                var next = value ?? string.Empty;
+                if (_quickAddTitle == next)
+                    return;
+                _quickAddTitle = next;
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>Le bouton « + Tâche » demande le focus du champ, sans créer de tâche.</summary>
+        public event EventHandler? QuickAddFocusRequested;
+
         public TaskNaultinusViewModel() : this(new TaskNaultinusModel { Name = Strings.TaskDefaultName, Width = 600, Height = 400 }, new CalDAVService(new CalDAVClient("https://localhost/", "", "")))
         { }
 
-        public TaskNaultinusViewModel(TaskNaultinusModel model, ICalDAVService caldavService) : base(model)
+        public TaskNaultinusViewModel(TaskNaultinusModel model, ICalDAVService caldavService)
+            : this(model, caldavService, SharedCalDavAccount.IsConfigured(), startBackgroundWork: true)
+        {
+        }
+
+        /// <summary>
+        /// Constructeur de test : le compte partagé et le chargement réseau sont injectés,
+        /// pour exercer la création rapide sans CalDAV réel.
+        /// </summary>
+        internal TaskNaultinusViewModel(TaskNaultinusModel model, ICalDAVService caldavService, bool sharedAccountConfigured, bool startBackgroundWork) : base(model)
         {
             _model = model;
             _caldavService = caldavService;
+            _sharedAccountConfigured = sharedAccountConfigured;
 
             Tasks.CollectionChanged += Tasks_CollectionChanged;
             _visibleTasksView.Filter += (_, e) =>
@@ -200,29 +228,8 @@ namespace Naultinus.ViewModel
 
             SelectTabCommand = new RelayCommand<TaskTabItem>(tab => { if (tab != null) SelectedTaskTab = tab; });
             ForceSyncCommand = new AsyncRelayCommand(() => SyncWithCalDAVAsync());
-            AddTaskCommand = new RelayCommand(() =>
-            {
-                if (IsLocalMode)
-                {
-                    AddLocalTask();
-                    return;
-                }
-
-                var newTask = new CalDAVTask(Strings.TaskNewTaskName)
-                {
-                    Description = Strings.TaskNewTaskDescription,
-                    DueDate = DateTime.Today.AddDays(1)
-                };
-                if (HasMultipleLists && SelectedTaskTab != null)
-                {
-                    SelectedTaskTab.Tasks.Add(newTask);
-                }
-                else
-                {
-                    Tasks.Add(newTask);
-                }
-                SelectedTask = newTask;
-            });
+            AddTaskCommand = new RelayCommand(RequestQuickAddFocus);
+            ConfirmQuickAddCommand = new RelayCommand(ConfirmQuickAdd);
             EditTaskCommand = new RelayCommand<CalDAVTask>(task => EditLocalTask(task ?? SelectedTask));
             HideTaskCommand = new RelayCommand<CalDAVTask>(task =>
             {
@@ -301,8 +308,11 @@ namespace Naultinus.ViewModel
 
             if (IsRemote)
             {
-                _ = LoadTasksAsync();
-                StartSyncTimer();
+                if (startBackgroundWork)
+                {
+                    _ = LoadTasksAsync();
+                    StartSyncTimer();
+                }
             }
             else
             {
@@ -336,22 +346,52 @@ namespace Naultinus.ViewModel
             OnPropertyChanged(nameof(HasNoTasks));
         }
 
-        private void AddLocalTask()
+        private void RequestQuickAddFocus()
         {
-            var dialog = new EditLocalTaskDialog(null);
-            try { dialog.Owner = NaultinusManager.GetWindow(Identifier); }
-            catch (KeyNotFoundException) { /* fenêtre non enregistrée : dialogue sans owner */ }
-            if (dialog.ShowDialog() != true || dialog.Result == null)
+            QuickAddFocusRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Crée une tâche dont le titre est le texte saisi. Une saisie vide ou blanche ne fait rien.
+        /// Le mode local enregistre tout de suite ; le mode CalDAV laisse le bouton d'enregistrement
+        /// pousser la tâche, comme pour une tâche déjà présente sans identifiant serveur.
+        /// </summary>
+        private void ConfirmQuickAdd()
+        {
+            if (string.IsNullOrWhiteSpace(_quickAddTitle))
                 return;
-            if (!LocalPlannerStore.TryAddTask(_model, dialog.Result, out var error))
+
+            if (!LocalPlannerStore.TryBuildTask(_quickAddTitle, string.Empty, null, null, default, false, null, out var built, out var error) || built == null)
             {
                 ErrorMessage = LocalPlannerStore.Describe(error);
                 return;
             }
 
-            Save();
-            ReloadLocalTasks();
-            SelectedTask = Tasks.FirstOrDefault(t => t.Id == dialog.Result.Id);
+            if (IsLocalMode)
+            {
+                if (!LocalPlannerStore.TryAddTask(_model, built, out error))
+                {
+                    ErrorMessage = LocalPlannerStore.Describe(error);
+                    return;
+                }
+
+                QuickAddTitle = string.Empty;
+                ErrorMessage = string.Empty;
+                Save();
+                ReloadLocalTasks();
+                SelectedTask = Tasks.FirstOrDefault(t => t.Id == built.Id);
+                return;
+            }
+
+            var created = new CalDAVTask(built.Title);
+            if (HasMultipleLists && SelectedTaskTab != null)
+                SelectedTaskTab.Tasks.Add(created);
+            else
+                Tasks.Add(created);
+
+            QuickAddTitle = string.Empty;
+            ErrorMessage = string.Empty;
+            SelectedTask = created;
         }
 
         private void EditLocalTask(CalDAVTask? task)
@@ -636,6 +676,7 @@ namespace Naultinus.ViewModel
         public ICommand SelectTabCommand { get; }
         public ICommand ForceSyncCommand { get; }
         public ICommand AddTaskCommand { get; }
+        public ICommand ConfirmQuickAddCommand { get; }
         public ICommand EditTaskCommand { get; }
         public ICommand HideTaskCommand { get; }
         public ICommand ToggleTaskCompletedCommand { get; }

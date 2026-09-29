@@ -1,0 +1,41 @@
+<UserControl x:Class="Naultinus.View.TaskQuickAddBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:Naultinus.Converters"
+             xmlns:properties="clr-namespace:Naultinus.Properties"
+             Focusable="False"
+             IsTabStop="False">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/View/Styles/NaultinusStyles.xaml"/>
+                <ResourceDictionary Source="/View/Styles/ThemeResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <converters:InverseEmptyStringToVisibilityConverter x:Key="InverseEmptyStringToVisibilityConverter"/>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Grid Margin="0,8,0,0" ColumnDefinitions="*,Auto">
+        <Grid>
+            <TextBox x:Name="TitleBox"
+                     Style="{StaticResource NaultinusDialogTextBox}"
+                     Height="28"
+                     VerticalContentAlignment="Center"
+                     AutomationProperties.Name="{x:Static properties:Strings.TaskQuickAddPlaceholder}"
+                     Text="{Binding QuickAddTitle, UpdateSourceTrigger=PropertyChanged}"
+                     PreviewKeyDown="TitleBox_PreviewKeyDown"/>
+            <TextBlock Text="{x:Static properties:Strings.TaskQuickAddPlaceholder}"
+                       IsHitTestVisible="False"
+                       Margin="9,0,8,0"
+                       VerticalAlignment="Center"
+                       FontSize="12"
+                       Foreground="{DynamicResource NaultinusSubtleBrush}"
+                       Visibility="{Binding QuickAddTitle, Converter={StaticResource InverseEmptyStringToVisibilityConverter}}"/>
+        </Grid>
+        <Button Grid.Column="1"
+                Content="{x:Static properties:Strings.EventButtonAddTask}"
+                Command="{Binding AddTaskCommand}"
+                Style="{StaticResource NaultinusActionButton}"
+                Margin="8,0,0,0"
+                VerticalAlignment="Center"/>
+    </Grid>
+</UserControl>

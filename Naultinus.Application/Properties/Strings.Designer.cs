@@ -166,6 +166,7 @@ namespace Naultinus.Properties
         public static string EmptyNoTasks => ResourceManager.GetString(nameof(EmptyNoTasks)) ?? string.Empty;
         public static string EventButtonAdd => ResourceManager.GetString(nameof(EventButtonAdd)) ?? string.Empty;
         public static string EventButtonAddTask => ResourceManager.GetString(nameof(EventButtonAddTask)) ?? string.Empty;
+        public static string TaskQuickAddPlaceholder => ResourceManager.GetString(nameof(TaskQuickAddPlaceholder)) ?? string.Empty;
         public static string LabelCaldavBaseUrl => ResourceManager.GetString(nameof(LabelCaldavBaseUrl)) ?? string.Empty;
         public static string LabelCaldavServerUrl => ResourceManager.GetString(nameof(LabelCaldavServerUrl)) ?? string.Empty;
         public static string LabelCalendarsToShow => ResourceManager.GetString(nameof(LabelCalendarsToShow)) ?? string.Empty;

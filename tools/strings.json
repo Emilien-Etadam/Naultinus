@@ -800,6 +800,11 @@
     "en": "+ Task"
   },
   {
+    "key": "TaskQuickAddPlaceholder",
+    "fr": "Écrire une tâche…",
+    "en": "Type a task…"
+  },
+  {
     "key": "LabelCaldavBaseUrl",
     "fr": "URL de base CalDAV",
     "en": "CalDAV base URL"

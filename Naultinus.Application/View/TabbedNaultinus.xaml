@@ -9,6 +9,7 @@
         xmlns:model="clr-namespace:Naultinus.Model"
         xmlns:pal="clr-namespace:Naultinus"
         xmlns:properties="clr-namespace:Naultinus.Properties"
+        xmlns:view="clr-namespace:Naultinus.View"
         helpers:WindowBackdrop.IsEnabled="True"
         helpers:WindowSinker.AlwaysOnBottom="True"
         ShowInTaskbar="False"
@@ -387,8 +388,7 @@
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
-                    <Button Grid.Row="2" Content="{x:Static properties:Strings.EventButtonAddTask}" Command="{Binding AddTaskCommand}"
-                            Style="{StaticResource NaultinusActionButton}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                    <view:TaskQuickAddBar Grid.Row="2"/>
                 </Grid>
                 </Border>
             </DockPanel>
