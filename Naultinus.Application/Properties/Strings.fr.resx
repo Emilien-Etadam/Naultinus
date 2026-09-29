@@ -484,6 +484,9 @@
   <data name="EventButtonAddTask" xml:space="preserve">
     <value>+ Tâche</value>
   </data>
+  <data name="TaskQuickAddPlaceholder" xml:space="preserve">
+    <value>Écrire une tâche…</value>
+  </data>
   <data name="LabelCaldavBaseUrl" xml:space="preserve">
     <value>URL de base CalDAV</value>
   </data>

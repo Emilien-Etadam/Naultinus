@@ -4,6 +4,7 @@
         xmlns:helpers="clr-namespace:Naultinus.Helpers"
         xmlns:properties="clr-namespace:Naultinus.Properties"
         xmlns:converters="clr-namespace:Naultinus.Converters"
+        xmlns:view="clr-namespace:Naultinus.View"
         Title="{x:Static properties:Strings.AddTabTaskNaultinus}"
         helpers:WindowBackdrop.IsEnabled="True"
         helpers:WindowSinker.AlwaysOnBottom="True"
@@ -229,9 +230,8 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
 
-                <!-- Row 2 : Add task button (same style as calendar) -->
-                <Button Grid.Row="2" Content="{x:Static properties:Strings.EventButtonAddTask}" Command="{Binding AddTaskCommand}"
-                        Style="{StaticResource NaultinusActionButton}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                <!-- Row 2 : saisie rapide. Entrée crée la tâche ; « + Tâche » donne le focus. -->
+                <view:TaskQuickAddBar Grid.Row="2"/>
             </Grid>
         </Border>
     </DockPanel>
