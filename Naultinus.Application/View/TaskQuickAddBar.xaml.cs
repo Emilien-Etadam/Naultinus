@@ -8,7 +8,8 @@ using System.Windows.Threading;
 namespace Naultinus.View
 {
     /// <summary>
-    /// Champ en bas de la liste de tâches : le titre saisi est créé avec Entrée.
+    /// Champ en bas de la liste de tâches. Entrée crée la tâche : en local seulement,
+    /// ou en l'envoyant tout de suite quand la liste est CalDAV.
     /// Le bouton « + Tâche » donne le focus à ce champ et n'insère pas de tâche.
     /// </summary>
     public partial class TaskQuickAddBar : UserControl

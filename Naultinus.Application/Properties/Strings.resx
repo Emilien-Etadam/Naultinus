@@ -674,7 +674,7 @@
     <value>Refresh</value>
   </data>
   <data name="TooltipSave" xml:space="preserve">
-    <value>Save</value>
+    <value>Send to the server</value>
   </data>
   <data name="TooltipDelete" xml:space="preserve">
     <value>Delete</value>

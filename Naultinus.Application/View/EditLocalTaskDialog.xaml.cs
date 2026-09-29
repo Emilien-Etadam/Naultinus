@@ -6,7 +6,10 @@ using System.Windows;
 
 namespace Naultinus.View
 {
-    /// <summary>Saisie d'une tâche locale (titre, description, échéance). Aucun appel réseau.</summary>
+    /// <summary>
+    /// Saisie du titre, de la description et de l'échéance. Le dialogue n'appelle pas le réseau :
+    /// l'appelant enregistre en local, ou met à jour la tâche déjà présente sur le serveur.
+    /// </summary>
     public partial class EditLocalTaskDialog : Window
     {
         private readonly CalDAVTask? _existing;
