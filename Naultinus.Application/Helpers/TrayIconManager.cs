@@ -1,6 +1,5 @@
 using System;
 using System.Drawing;
-using System.IO;
 using System.Windows;
 using System.Windows.Forms;
 using Naultinus.Properties;
@@ -12,24 +11,24 @@ namespace Naultinus.Helpers
     internal sealed class TrayIconManager : IDisposable
     {
         private readonly NotifyIcon _notifyIcon;
+        private Icon? _ownedIcon;
 
         public TrayIconManager()
         {
             _notifyIcon = new NotifyIcon();
 
-            Icon? icon = null;
-            var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Ressources", "icon.ico");
-            try
+            _ownedIcon = ApplicationIconLoader.TryCreateOwnedIcon();
+            if (_ownedIcon == null)
             {
-                if (File.Exists(iconPath))
-                    icon = new Icon(iconPath);
+                NaultinusDiagnostics.Log(
+                    "TrayIcon",
+                    "Aucun handle d'icône utilisable ; la zone de notification restera vide.");
             }
-            catch (Exception ex) { NaultinusDiagnostics.LogDebug("TrayIcon: chargement de l'icône", ex); }
+            else
+            {
+                _notifyIcon.Icon = _ownedIcon;
+            }
 
-            if (icon == null)
-                icon = SystemIcons.Application;
-
-            _notifyIcon.Icon = icon;
             _notifyIcon.Text = Strings.AppNameNaultinus;
             _notifyIcon.Visible = true;
 
@@ -87,7 +86,10 @@ namespace Naultinus.Helpers
         public void Dispose()
         {
             _notifyIcon.Visible = false;
+            _notifyIcon.Icon = null;
             _notifyIcon.Dispose();
+            _ownedIcon?.Dispose();
+            _ownedIcon = null;
         }
     }
 }
