@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using System.Windows;
+using Naultinus.Converters;
 using Naultinus.Helpers;
 using Naultinus.Model;
 using Naultinus.Properties;
@@ -14,6 +16,7 @@ namespace Naultinus.Tests
     /// <summary>
     /// Création rapide : Entrée crée le titre saisi, une saisie vide ne fait rien,
     /// et « + Tâche » ne pose pas de tâche « Nouvelle tâche ».
+    /// Sur une liste CalDAV, Entrée envoie aussi la tâche ; l'échec laisse CalDAVId vide.
     /// </summary>
     public class TaskQuickAddTests
     {
@@ -91,7 +94,20 @@ namespace Naultinus.Tests
         }
 
         [Fact]
-        public void Enter_Remote_AddsTheTypedTitle_WithoutCallingCalDav()
+        public void Enter_Local_DoesNotUpload()
+        {
+            using var scope = NewScope(remote: false);
+            scope.ViewModel.QuickAddTitle = "Local seulement";
+
+            scope.ViewModel.ConfirmQuickAddCommand.Execute(null);
+
+            Assert.Equal(0, scope.Service.CreateCalls);
+            Assert.True(scope.ViewModel.IsLocalMode);
+            Assert.Equal(string.Empty, Assert.Single(scope.ViewModel.Tasks).CalDAVId);
+        }
+
+        [Fact]
+        public void Enter_Remote_UploadsTheTypedTitle()
         {
             using var scope = NewScope(remote: true);
             scope.ViewModel.QuickAddTitle = "  Rappeler Léa  ";
@@ -102,14 +118,61 @@ namespace Naultinus.Tests
             Assert.Equal("Rappeler Léa", created.Title);
             Assert.Equal(string.Empty, created.Description);
             Assert.Null(created.DueDate);
-            Assert.Equal(string.Empty, created.CalDAVId);
-            Assert.Equal(0, scope.Service.CreateCalls);
+            Assert.Equal("server.ics", created.CalDAVId);
+            Assert.Equal("server-uid", created.Uid);
+            Assert.Equal(1, scope.Service.CreateCalls);
+            Assert.Equal(0, scope.Service.UpdateCalls);
+            Assert.Equal("tasks", scope.Service.LastCreateHref);
             Assert.Empty(scope.Model.LocalTasks);
             Assert.Equal(string.Empty, scope.ViewModel.QuickAddTitle);
+            Assert.Equal(string.Empty, scope.ViewModel.ErrorMessage);
+            Assert.False(scope.ViewModel.IsLocalMode);
+            Assert.Equal(Visibility.Collapsed, SaveButtonVisibility(created.CalDAVId));
         }
 
         [Fact]
-        public void Enter_RemoteMultipleLists_AddsOnlyToTheSelectedTab()
+        public void Enter_Remote_UploadFailure_KeepsTheTaskWithoutCalDavId()
+        {
+            using var scope = NewScope(remote: true);
+            scope.Service.FailCreate = true;
+            scope.ViewModel.QuickAddTitle = "À renvoyer";
+
+            scope.ViewModel.ConfirmQuickAddCommand.Execute(null);
+
+            var created = Assert.Single(scope.ViewModel.Tasks);
+            Assert.Equal("À renvoyer", created.Title);
+            Assert.Equal(string.Empty, created.CalDAVId);
+            Assert.Equal(1, scope.Service.CreateCalls);
+            Assert.Equal(0, scope.Service.UpdateCalls);
+            Assert.Equal(string.Empty, scope.ViewModel.QuickAddTitle);
+            Assert.Equal(
+                string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.TaskSaveFailedFormat, "échec réseau"),
+                scope.ViewModel.ErrorMessage);
+            Assert.False(scope.ViewModel.IsLocalMode);
+            Assert.Equal(Visibility.Visible, SaveButtonVisibility(created.CalDAVId));
+        }
+
+        [Fact]
+        public void SaveButton_RetriesUpload_AfterFailure()
+        {
+            using var scope = NewScope(remote: true);
+            scope.Service.FailCreate = true;
+            scope.ViewModel.QuickAddTitle = "Reprise";
+            scope.ViewModel.ConfirmQuickAddCommand.Execute(null);
+            var created = Assert.Single(scope.ViewModel.Tasks);
+            Assert.Equal(string.Empty, created.CalDAVId);
+
+            scope.Service.FailCreate = false;
+            scope.ViewModel.SaveTaskCommand.Execute(created);
+
+            Assert.Equal("server.ics", created.CalDAVId);
+            Assert.Equal(2, scope.Service.CreateCalls);
+            Assert.Equal(0, scope.Service.UpdateCalls);
+            Assert.Equal(string.Empty, scope.ViewModel.ErrorMessage);
+        }
+
+        [Fact]
+        public void Enter_RemoteMultipleLists_UploadsOnlyTheSelectedTab()
         {
             using var scope = NewScope(remote: true);
             var first = new TaskTabItem { ListId = "list-a", DisplayName = "A" };
@@ -123,8 +186,17 @@ namespace Naultinus.Tests
 
             Assert.Empty(scope.ViewModel.Tasks);
             Assert.Empty(first.Tasks);
-            Assert.Equal("Dans B", Assert.Single(second.Tasks).Title);
-            Assert.Equal(0, scope.Service.CreateCalls);
+            var created = Assert.Single(second.Tasks);
+            Assert.Equal("Dans B", created.Title);
+            Assert.Equal("server.ics", created.CalDAVId);
+            Assert.Equal(1, scope.Service.CreateCalls);
+            Assert.Equal("list-b", scope.Service.LastCreateHref);
+        }
+
+        private static Visibility SaveButtonVisibility(string calDavId)
+        {
+            var converter = new InverseEmptyStringToVisibilityConverter();
+            return (Visibility)converter.Convert(calDavId, typeof(Visibility), null, System.Globalization.CultureInfo.InvariantCulture);
         }
 
         private static Scope NewScope(bool remote)
@@ -167,6 +239,9 @@ namespace Naultinus.Tests
         private sealed class CountingCalDavService : ICalDAVService
         {
             public int CreateCalls { get; private set; }
+            public int UpdateCalls { get; private set; }
+            public string? LastCreateHref { get; private set; }
+            public bool FailCreate { get; set; }
 
             public Task<List<CalDAVTaskList>> GetTaskListsAsync() => Task.FromResult(new List<CalDAVTaskList>());
 
@@ -175,10 +250,23 @@ namespace Naultinus.Tests
             public Task<CalDAVTask> CreateTaskAsync(string taskListHref, CalDAVTask task)
             {
                 CreateCalls++;
-                return Task.FromResult(task);
+                LastCreateHref = taskListHref;
+                if (FailCreate)
+                    return Task.FromException<CalDAVTask>(new InvalidOperationException("échec réseau"));
+
+                return Task.FromResult(new CalDAVTask(task.Title)
+                {
+                    CalDAVId = "server.ics",
+                    Uid = "server-uid",
+                    CalDAVEtag = "etag-1",
+                });
             }
 
-            public Task UpdateTaskAsync(string taskListHref, CalDAVTask task) => Task.CompletedTask;
+            public Task UpdateTaskAsync(string taskListHref, CalDAVTask task)
+            {
+                UpdateCalls++;
+                return Task.CompletedTask;
+            }
 
             public Task DeleteTaskAsync(string taskListHref, string taskId) => Task.CompletedTask;
 

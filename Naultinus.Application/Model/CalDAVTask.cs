@@ -9,9 +9,49 @@ namespace Naultinus.Model
     public class CalDAVTask : INotifyPropertyChanged
     {
         public string Id { get; set; } = Guid.NewGuid().ToString();
-        public string Title { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public DateTime? DueDate { get; set; }
+
+        private string _title = string.Empty;
+        public string Title
+        {
+            get => _title;
+            set
+            {
+                var next = value ?? string.Empty;
+                if (_title == next)
+                    return;
+                _title = next;
+                OnPropertyChanged();
+            }
+        }
+
+        private string _description = string.Empty;
+        public string Description
+        {
+            get => _description;
+            set
+            {
+                var next = value ?? string.Empty;
+                if (_description == next)
+                    return;
+                _description = next;
+                OnPropertyChanged();
+            }
+        }
+
+        private DateTime? _dueDate;
+        public DateTime? DueDate
+        {
+            get => _dueDate;
+            set
+            {
+                if (_dueDate == value)
+                    return;
+                _dueDate = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(DueDateDisplay));
+                OnPropertyChanged(nameof(DueDateColor));
+            }
+        }
         public bool Completed { get; set; }
         public DateTime? CompletedDate { get; set; }
         public DateTime CreatedDate { get; set; } = DateTime.Now;

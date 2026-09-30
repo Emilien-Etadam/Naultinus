@@ -34,6 +34,7 @@ namespace Naultinus.ViewModel
         private readonly bool _sharedAccountConfigured;
         private bool _suppressTaskPersistence;
         private string _quickAddTitle = string.Empty;
+        private readonly HashSet<CalDAVTask> _uploadsInFlight = new();
 
         public string CalDAVUrl
         {
@@ -229,8 +230,8 @@ namespace Naultinus.ViewModel
             SelectTabCommand = new RelayCommand<TaskTabItem>(tab => { if (tab != null) SelectedTaskTab = tab; });
             ForceSyncCommand = new AsyncRelayCommand(() => SyncWithCalDAVAsync());
             AddTaskCommand = new RelayCommand(RequestQuickAddFocus);
-            ConfirmQuickAddCommand = new RelayCommand(ConfirmQuickAdd);
-            EditTaskCommand = new RelayCommand<CalDAVTask>(task => EditLocalTask(task ?? SelectedTask));
+            ConfirmQuickAddCommand = new AsyncRelayCommand(ConfirmQuickAddAsync);
+            EditTaskCommand = new RelayCommand<CalDAVTask>(task => EditTask(task ?? SelectedTask));
             HideTaskCommand = new RelayCommand<CalDAVTask>(task =>
             {
                 var t = task ?? SelectedTask;
@@ -281,26 +282,9 @@ namespace Naultinus.ViewModel
             SaveTaskCommand = new AsyncRelayCommand<CalDAVTask>(async task =>
             {
                 var t = task ?? SelectedTask;
-                if (t == null) return;
-                if (IsLocalMode)
+                if (t == null)
                     return;
-                if (!string.IsNullOrEmpty(t.CalDAVId))
-                    return;
-                var listId = GetListIdForTask(t);
-                try
-                {
-                    t.LastModified = DateTime.Now;
-                    var createdTask = await _caldavService.CreateTaskAsync(listId, t);
-                    t.CalDAVId = createdTask.CalDAVId;
-                    t.CalDAVEtag = createdTask.CalDAVEtag;
-                    if (!string.IsNullOrEmpty(createdTask.Uid))
-                        t.Uid = createdTask.Uid;
-                    SyncStatus = Strings.TaskSavedSuccess;
-                }
-                catch (Exception ex)
-                {
-                    ErrorMessage = string.Format(CultureInfo.CurrentCulture, Strings.TaskSaveFailedFormat, ex.Message);
-                }
+                await UploadNewTaskAsync(t);
             });
 
             _visibleTasksView.Source = Tasks;
@@ -353,10 +337,10 @@ namespace Naultinus.ViewModel
 
         /// <summary>
         /// Crée une tâche dont le titre est le texte saisi. Une saisie vide ou blanche ne fait rien.
-        /// Le mode local enregistre tout de suite ; le mode CalDAV laisse le bouton d'enregistrement
-        /// pousser la tâche, comme pour une tâche déjà présente sans identifiant serveur.
+        /// Le mode local l'enregistre dans le state.xml. Une liste CalDAV l'envoie dans la foulée
+        /// (CreateTaskAsync). Si cet envoi échoue, la ligne reste et le bouton 💾 permet de réessayer.
         /// </summary>
-        private void ConfirmQuickAdd()
+        private async Task ConfirmQuickAddAsync()
         {
             if (string.IsNullOrWhiteSpace(_quickAddTitle))
                 return;
@@ -392,24 +376,84 @@ namespace Naultinus.ViewModel
             QuickAddTitle = string.Empty;
             ErrorMessage = string.Empty;
             SelectedTask = created;
+            await UploadNewTaskAsync(created);
         }
 
-        private void EditLocalTask(CalDAVTask? task)
+        /// <summary>
+        /// Envoie une tâche encore sans identifiant serveur. Le bouton 💾 et Entrée partagent ce chemin.
+        /// Un second appel pendant l'envoi ne crée pas une autre tâche. L'échec laisse CalDAVId vide.
+        /// </summary>
+        private async Task UploadNewTaskAsync(CalDAVTask task)
         {
-            if (task == null || !IsLocalMode)
+            if (IsLocalMode || !string.IsNullOrEmpty(task.CalDAVId))
+                return;
+            if (!_uploadsInFlight.Add(task))
+                return;
+
+            try
+            {
+                var listId = GetListIdForTask(task);
+                task.LastModified = DateTime.Now;
+                var createdTask = await _caldavService.CreateTaskAsync(listId, task);
+                task.CalDAVId = createdTask.CalDAVId;
+                task.CalDAVEtag = createdTask.CalDAVEtag;
+                if (!string.IsNullOrEmpty(createdTask.Uid))
+                    task.Uid = createdTask.Uid;
+                ErrorMessage = string.Empty;
+                SyncStatus = Strings.TaskSavedSuccess;
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = string.Format(CultureInfo.CurrentCulture, Strings.TaskSaveFailedFormat, ex.Message);
+            }
+            finally
+            {
+                _uploadsInFlight.Remove(task);
+            }
+        }
+
+        /// <summary>
+        /// Ouvre le même dialogue pour une tâche locale ou CalDAV. Annuler ne change rien.
+        /// Confirmer enregistre en local, ou met à jour cette tâche sur le serveur.
+        /// </summary>
+        private void EditTask(CalDAVTask? task)
+        {
+            if (task == null)
                 return;
             var dialog = new EditLocalTaskDialog(task);
             try { dialog.Owner = NaultinusManager.GetWindow(Identifier); }
             catch (KeyNotFoundException) { /* fenêtre non enregistrée : dialogue sans owner */ }
             if (dialog.ShowDialog() != true || dialog.Result == null)
                 return;
-            if (!LocalPlannerStore.TryUpdateTask(_model, dialog.Result, out var error))
+            _ = CommitTaskEditAsync(task, dialog.Result);
+        }
+
+        /// <summary>
+        /// Applique une édition déjà confirmée. Le dialogue n'est pas rouvert ici :
+        /// une annulation ne doit pas appeler cette méthode.
+        /// </summary>
+        internal Task CommitTaskEditAsync(CalDAVTask task, StoredLocalTask edited)
+        {
+            ArgumentNullException.ThrowIfNull(task);
+            ArgumentNullException.ThrowIfNull(edited);
+            if (IsLocalMode)
+            {
+                ApplyLocalTaskEdit(task, edited);
+                return Task.CompletedTask;
+            }
+
+            return ApplyRemoteTaskEditAsync(task, edited);
+        }
+
+        private void ApplyLocalTaskEdit(CalDAVTask task, StoredLocalTask edited)
+        {
+            if (!LocalPlannerStore.TryUpdateTask(_model, edited, out var error))
             {
                 ErrorMessage = LocalPlannerStore.Describe(error);
                 return;
             }
 
-            var updated = LocalPlannerStore.ToUiTask(dialog.Result);
+            var updated = LocalPlannerStore.ToUiTask(edited);
             var index = Tasks.IndexOf(task);
             if (index >= 0)
                 Tasks[index] = updated;
@@ -417,6 +461,41 @@ namespace Naultinus.ViewModel
                 SelectedTask = updated;
             Save();
             RefreshVisibleTasksFilter();
+        }
+
+        /// <summary>
+        /// Met à jour cette tâche sur le serveur (UpdateTaskAsync), sans la recréer.
+        /// Une tâche pas encore envoyée (CalDAVId vide) garde seulement les champs saisis :
+        /// le bouton 💾 reste le chemin de création.
+        /// </summary>
+        private async Task ApplyRemoteTaskEditAsync(CalDAVTask task, StoredLocalTask edited)
+        {
+            var previousTitle = task.Title;
+            var previousDescription = task.Description;
+            var previousDue = task.DueDate;
+            var previousModified = task.LastModified;
+
+            task.Title = edited.Title ?? string.Empty;
+            task.Description = edited.Description ?? string.Empty;
+            task.DueDate = edited.DueDate;
+            task.LastModified = edited.LastModified == default ? DateTime.Now : edited.LastModified;
+
+            if (string.IsNullOrEmpty(task.CalDAVId))
+                return;
+
+            try
+            {
+                await _caldavService.UpdateTaskAsync(GetListIdForTask(task), task);
+                ErrorMessage = string.Empty;
+            }
+            catch (Exception ex)
+            {
+                task.Title = previousTitle;
+                task.Description = previousDescription;
+                task.DueDate = previousDue;
+                task.LastModified = previousModified;
+                ErrorMessage = string.Format(CultureInfo.CurrentCulture, Strings.TaskUpdateFailedFormat, ex.Message);
+            }
         }
 
         private void DeleteLocalTask(CalDAVTask task)
