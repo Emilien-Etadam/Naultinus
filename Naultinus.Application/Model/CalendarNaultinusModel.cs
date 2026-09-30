@@ -55,7 +55,16 @@ namespace Naultinus.Model
         }
 
         public CalendarViewMode ViewMode { get; set; } = CalendarViewMode.Agenda;
-        public int DaysToShow { get; set; } = 7;
+
+        /// <summary>Jours affichés par le mode courant : 1 en jour, 7 en semaine, la préférence agenda sinon.</summary>
+        public int DaysToShow { get; set; } = CalendarSpan.DefaultAgendaDays;
+
+        /// <summary>
+        /// Nombre de jours de l'agenda, conservé dans state.xml quand on passe en jour ou en semaine.
+        /// Un ancien fichier sans cet élément vaut 0 : le view-model reprend alors <see cref="DaysToShow"/>
+        /// si le mode enregistré est l'agenda, sinon <see cref="CalendarSpan.DefaultAgendaDays"/>.
+        /// </summary>
+        public int AgendaDaysToShow { get; set; } = CalendarSpan.DefaultAgendaDays;
 
         /// <summary>Événements locaux, enregistrés dans state.xml quand la fenêtre n'est pas synchronisée.</summary>
         public List<StoredCalendarEvent> LocalEvents { get; set; } = new List<StoredCalendarEvent>();

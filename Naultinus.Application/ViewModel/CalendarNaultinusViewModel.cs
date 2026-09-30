@@ -39,7 +39,7 @@ namespace Naultinus.ViewModel
         private static readonly CalendarSerializer _calendarSerializer = new CalendarSerializer();
 
         /// <summary>Figé à l'ouverture : le client CalDAV a été construit avec le compte partagé de ce moment-là.</summary>
-        private readonly bool _sharedAccountConfigured = SharedCalDavAccount.IsConfigured();
+        private readonly bool _sharedAccountConfigured;
 
         public CalendarNaultinusViewModel() : this(
             new CalendarNaultinusModel { Name = Strings.CalendarDefaultName, Width = 500, Height = 400 },
@@ -47,10 +47,24 @@ namespace Naultinus.ViewModel
         { }
 
         public CalendarNaultinusViewModel(CalendarNaultinusModel model, ICalendarCalDAVService calendarService)
+            : this(model, calendarService, SharedCalDavAccount.IsConfigured(), startBackgroundWork: true)
+        {
+        }
+
+        /// <summary>
+        /// Constructeur de test : le compte partagé et le chargement initial sont injectés.
+        /// </summary>
+        internal CalendarNaultinusViewModel(
+            CalendarNaultinusModel model,
+            ICalendarCalDAVService calendarService,
+            bool sharedAccountConfigured,
+            bool startBackgroundWork)
             : base(model)
         {
             _model = model;
             _calendarService = calendarService;
+            _sharedAccountConfigured = sharedAccountConfigured;
+            EnsureAgendaSpan();
             Events = new ObservableCollection<Model.CalendarEvent>();
             PreviousDayCommand = new RelayCommand(() => SetVisibleStart(VisibleStart.AddDays(-DaysToShow)));
             NextDayCommand = new RelayCommand(() => SetVisibleStart(VisibleStart.AddDays(DaysToShow)));
@@ -58,6 +72,9 @@ namespace Naultinus.ViewModel
             AddEventCommand = new RelayCommand(() => ShowAddEventDialog());
             EditEventCommand = new RelayCommand<Model.CalendarEvent>(ShowEditEventDialog);
             DeleteEventCommand = new AsyncRelayCommand<Model.CalendarEvent>(DeleteEventAsync);
+            if (!startBackgroundWork)
+                return;
+
             _ = LoadEventsAsync();
             StartDayWatch();
             if (IsRemote)
@@ -98,20 +115,17 @@ namespace Naultinus.ViewModel
             set
             {
                 // Réassigner le mode déjà actif (Enregistrer du dialogue) ne doit pas
-                // écraser un DaysToShow saisi : Agenda forçait 14 ici.
+                // réécrire le nombre de jours. Changer de mode non plus : l'agenda
+                // retrouve AgendaDaysToShow, le jour et la semaine gardent leur date.
                 if (_model.ViewMode == value)
                     return;
 
+                if (_model.ViewMode == CalendarViewMode.Agenda)
+                    _model.AgendaDaysToShow = CalendarSpan.NormalizeAgendaDays(_model.DaysToShow);
+
                 _model.ViewMode = value;
                 OnPropertyChanged();
-                Save();
-                DaysToShow = value switch
-                {
-                    CalendarViewMode.Day => 1,
-                    CalendarViewMode.Week => 7,
-                    CalendarViewMode.Agenda => 14,
-                    _ => 7
-                };
+                SetDaysToShow(CalendarSpan.DaysForMode(value, _model.AgendaDaysToShow), fromModeSwitch: true);
             }
         }
 
@@ -124,7 +138,7 @@ namespace Naultinus.ViewModel
         public int DaysToShow
         {
             get => _model.DaysToShow;
-            set { _model.DaysToShow = value; OnPropertyChanged(); Save(); OnPropertyChanged(nameof(DateRangeDisplay)); _ = LoadEventsAsync(); }
+            set => SetDaysToShow(value, fromModeSwitch: false);
         }
 
         /// <summary>Ancre affichée : aujourd'hui en agenda, la date naviguée pour les autres modes.</summary>
@@ -143,7 +157,14 @@ namespace Naultinus.ViewModel
         public bool IsLoading
         {
             get => _isLoading;
-            set { _isLoading = value; OnPropertyChanged(); }
+            set
+            {
+                if (_isLoading == value)
+                    return;
+                _isLoading = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasNoEvents));
+            }
         }
 
         public bool HasNoEvents => !IsLoading && Events.Count == 0;
@@ -158,29 +179,58 @@ namespace Naultinus.ViewModel
                 return;
             }
 
-            Dispatch(() =>
-            {
-                // Le rafraîchissement met déjà à jour le libellé « aujourd'hui ».
-                // Il doit aussi recaler l'ancre, sinon les jours d'avant restent au-dessus.
-                if (!_disposed)
-                    AlignAgendaWithLocalDay(DateTime.Now, reload: false);
-                IsLoading = true;
-                ErrorMessage = "";
-            });
             try
             {
+                do
+                {
+                    Interlocked.Exchange(ref _reloadRequested, 0);
+                    if (_disposed)
+                        return;
+                    await LoadEventsCoreAsync();
+                }
+                while (!_disposed && Volatile.Read(ref _reloadRequested) == 1);
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _loadEventsInProgress, 0);
+                if (!_disposed && Interlocked.Exchange(ref _reloadRequested, 0) == 1)
+                    _ = LoadEventsAsync();
+            }
+        }
+
+        /// <summary>
+        /// La barre « Chargement… » n'est allumée que le temps d'un REPORT CalDAV.
+        /// Un agenda local ne fait pas de requête : la barre reste cachée.
+        /// Succès, erreur ou abandon : le finally l'éteint, y compris si l'allumage a eu lieu.
+        /// </summary>
+        private async Task LoadEventsCoreAsync()
+        {
+            try
+            {
+                Dispatch(() =>
+                {
+                    // Le rafraîchissement met déjà à jour le libellé « aujourd'hui ».
+                    // Il doit aussi recaler l'ancre, sinon les jours d'avant restent au-dessus.
+                    if (!_disposed)
+                        AlignAgendaWithLocalDay(DateTime.Now, reload: false);
+                    if (!_disposed)
+                        ErrorMessage = string.Empty;
+                });
+
                 if (!IsRemote)
                 {
                     // Sans compte, ou sans calendrier distant : afficher les événements du state.xml, sans réseau.
                     PublishLocalEvents();
                     if (_sharedAccountConfigured == false && _model.CalendarIds != null && _model.CalendarIds.Count > 0)
                         Dispatch(() => ErrorMessage = Strings.SharedCalDavMissing);
-                    Dispatch(() => OnPropertyChanged(nameof(HasNoEvents)));
                     return;
                 }
 
-                IsLoading = true;
-                ErrorMessage = "";
+                Dispatch(() =>
+                {
+                    if (!_disposed)
+                        IsLoading = true;
+                });
                 var start = VisibleStart.Date;
                 var end = start.AddDays(DaysToShow);
                 var allEvents = new List<Model.CalendarEvent>();
@@ -193,6 +243,7 @@ namespace Naultinus.ViewModel
                     var list = await _calendarService.GetEventsAsync(calId, start, end, color);
                     allEvents.AddRange(list);
                 }
+
                 if (colorsChanged)
                     Save();
                 allEvents = allEvents.Where(e => e.DtEnd > start && e.DtStart < end).ToList();
@@ -209,11 +260,46 @@ namespace Naultinus.ViewModel
             }
             finally
             {
-                Dispatch(() => { IsLoading = false; OnPropertyChanged(nameof(HasNoEvents)); });
-                Interlocked.Exchange(ref _loadEventsInProgress, 0);
-                if (!_disposed && Interlocked.Exchange(ref _reloadRequested, 0) == 1)
-                    _ = LoadEventsAsync();
+                Dispatch(() => IsLoading = false);
             }
+        }
+
+        /// <summary>
+        /// Un ancien state.xml n'a pas AgendaDaysToShow. En agenda, le nombre enregistré
+        /// dans DaysToShow est cette préférence. Sinon un nouvel agenda part de 30 jours.
+        /// </summary>
+        private void EnsureAgendaSpan()
+        {
+            if (_model.AgendaDaysToShow <= 0)
+            {
+                _model.AgendaDaysToShow = _model.ViewMode == CalendarViewMode.Agenda && _model.DaysToShow > 0
+                    ? _model.DaysToShow
+                    : CalendarSpan.DefaultAgendaDays;
+            }
+
+            if (_model.ViewMode != CalendarViewMode.Agenda)
+                return;
+
+            var shown = _model.DaysToShow > 0 ? _model.DaysToShow : _model.AgendaDaysToShow;
+            _model.AgendaDaysToShow = CalendarSpan.NormalizeAgendaDays(shown);
+            _model.DaysToShow = _model.AgendaDaysToShow;
+        }
+
+        private void SetDaysToShow(int value, bool fromModeSwitch)
+        {
+            var requested = CalendarSpan.NormalizeAgendaDays(value);
+            if (!fromModeSwitch && CalendarSpan.IsAgendaPreference(ViewMode, value))
+                _model.AgendaDaysToShow = requested;
+
+            _model.DaysToShow = fromModeSwitch
+                ? value
+                : ViewMode == CalendarViewMode.Agenda
+                    ? _model.AgendaDaysToShow
+                    : requested;
+            OnPropertyChanged(nameof(DaysToShow));
+            Save();
+            OnPropertyChanged(nameof(DateRangeDisplay));
+            _ = LoadEventsAsync();
         }
 
         /// <summary>Remplace les calendriers affichés et recharge le panneau.</summary>
