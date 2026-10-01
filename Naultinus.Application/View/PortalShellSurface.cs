@@ -13,8 +13,10 @@ namespace Naultinus.View
     /// <summary>
     /// Fenêtre non stratifiée qui porte <see cref="ExplorerBrowserHost"/>.
     /// Le portail est une fenêtre WPF <c>AllowsTransparency</c> (WS_EX_LAYERED) : un HWND enfant
-    /// n'y est pas composé, donc la vue Explorateur resterait vide. Cette surface est un popup
-    /// calé sur la zone sous le bandeau, au-dessus de sa fenêtre propriétaire et pas au-dessus des autres.
+    /// n'y est pas composé, donc la vue Explorateur resterait vide. Cette surface est un popup possédé.
+    /// Windows le garde au-dessus de son propriétaire : on ne peut pas le passer dessous, sinon les fichiers
+    /// disparaissent derrière le fond opaque. Il est donc limité à la zone sous le bandeau, sa région retire
+    /// le bandeau, et <c>WM_NCHITTEST</c> renvoie <c>HTTRANSPARENT</c> pour ces pixels.
     /// </summary>
     internal sealed class PortalShellSurface : IDisposable
     {
@@ -29,6 +31,7 @@ namespace Naultinus.View
         private int _ownerMoveDepth;
         private IntPtr _fillBrush;
         private PortalShellPlacement.PixelRect _last;
+        private PortalShellPlacement.PixelRect _banner;
 
         internal static bool TryGetClientOnScreen(IntPtr window, out PortalShellPlacement.PixelRect rect)
         {
@@ -81,8 +84,21 @@ namespace Naultinus.View
 
         internal ExplorerBrowserHost Browser => _browser;
 
-        internal void Show(PortalShellPlacement.PixelRect rect, IntPtr ownerHwnd, bool forceStack)
+        internal void Show(PortalShellPlacement.PixelRect rect, PortalShellPlacement.PixelRect banner, IntPtr ownerHwnd, bool forceStack)
         {
+            if (banner.Height > 0 && PortalShellPlacement.Overlaps(rect, banner))
+            {
+                int bannerBottom = banner.Y + banner.Height;
+                if (PortalShellPlacement.BelowBanner(rect, bannerBottom) is not PortalShellPlacement.PixelRect cut
+                    || PortalShellPlacement.Overlaps(cut, banner))
+                {
+                    Hide();
+                    return;
+                }
+
+                rect = cut;
+            }
+
             if (_disposed || ownerHwnd == IntPtr.Zero || rect.Width <= 1 || rect.Height <= 1)
             {
                 Hide();
@@ -94,14 +110,18 @@ namespace Naultinus.View
                 return;
 
             bool deferFit = !_visible || _last.Width != rect.Width || _last.Height != rect.Height;
-            if (!forceStack && _visible && rect.SamePlace(_last))
+            bool unchanged = !forceStack && _visible && rect.SamePlace(_last) && banner.SamePlace(_banner);
+            if (unchanged)
                 return;
 
             _last = rect;
+            _banner = banner;
             _visible = true;
             _placing = true;
             try
             {
+                // Juste au-dessus du propriétaire, jamais HWND_TOP : une fenêtre possédée reste
+                // au-dessus de son propriétaire, et le rectangle ne contient pas le bandeau.
                 ExplorerBrowserInterop.SetWindowPos(
                     _source.Handle,
                     ownerHwnd,
@@ -110,6 +130,7 @@ namespace Naultinus.View
                     rect.Width,
                     rect.Height,
                     ExplorerBrowserInterop.SwpNoActivate | ExplorerBrowserInterop.SwpShowWindow | ExplorerBrowserInterop.SwpNoCopyBits);
+                ExcludeBannerFromWindow();
             }
             finally
             {
@@ -204,7 +225,7 @@ namespace Naultinus.View
                 _ownerMoveDepth++;
                 try
                 {
-                    Show(_last, _ownerHwnd, forceStack: true);
+                    Show(_last, _banner, _ownerHwnd, forceStack: true);
                 }
                 finally
                 {
@@ -236,8 +257,38 @@ namespace Naultinus.View
             PortalShellChrome.DeleteFill(previous);
         }
 
+        private void ExcludeBannerFromWindow()
+        {
+            if (_source == null)
+                return;
+
+            var window = _last;
+            if (ExplorerBrowserInterop.GetWindowRect(_source.Handle, out ExplorerBrowserInterop.NativeRect actual))
+            {
+                int width = actual.Right - actual.Left;
+                int height = actual.Bottom - actual.Top;
+                if (width > 0 && height > 0)
+                    window = new PortalShellPlacement.PixelRect(actual.Left, actual.Top, width, height);
+            }
+
+            if (PortalShellPlacement.RegionExcludingBanner(window, _banner) is not PortalShellPlacement.PixelRect clip)
+                return;
+
+            IntPtr region = ExplorerBrowserInterop.CreateRectRgn(clip.X, clip.Y, clip.X + clip.Width, clip.Y + clip.Height);
+            if (region == IntPtr.Zero)
+                return;
+            if (ExplorerBrowserInterop.SetWindowRgn(_source.Handle, region, true) == 0)
+                ExplorerBrowserInterop.DeleteObject(region);
+        }
+
         private IntPtr OnSurfaceMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
+            if (msg == ExplorerBrowserInterop.NcHitTest && PortalShellPlacement.BannerHit(lParam.ToInt64(), _banner))
+            {
+                handled = true;
+                return (IntPtr)ExplorerBrowserInterop.HtTransparent;
+            }
+
             if (msg == 0x0014 && _fillBrush != IntPtr.Zero)
             {
                 PortalShellChrome.Fill(wParam, hwnd, _fillBrush);
@@ -245,11 +296,12 @@ namespace Naultinus.View
                 return (IntPtr)1;
             }
 
-            if (msg != ExplorerBrowserInterop.WindowPosChanging || _placing)
+            if (msg != ExplorerBrowserInterop.WindowPosChanging)
                 return IntPtr.Zero;
 
             var pos = Marshal.PtrToStructure<ExplorerBrowserInterop.WindowPos>(lParam);
-            pos.Flags |= ExplorerBrowserInterop.SwpNoZOrder;
+            if (!_placing)
+                pos.Flags |= ExplorerBrowserInterop.SwpNoZOrder;
             if (_visible && _last.Width > 1 && _last.Height > 1 && (pos.Flags & ExplorerBrowserInterop.SwpHideWindow) == 0)
             {
                 pos.X = _last.X;

@@ -249,29 +249,17 @@ namespace Naultinus.View
                 return;
             }
 
-            if (TryGetBannerBottom(out int bannerBottom))
-            {
-                if (PortalShellPlacement.BelowBanner(slot, bannerBottom) is not PortalShellPlacement.PixelRect underBanner)
-                {
-                    _surface.Hide();
-                    return;
-                }
-
-                slot = underBanner;
-            }
-
             IntPtr ownerHwnd = new WindowInteropHelper(_owner).Handle;
-            if (!PortalShellSurface.TryGetClientOnScreen(ownerHwnd, out PortalShellPlacement.PixelRect ownerClient))
+            if (!TryGetBannerBottom(out int bannerBottom)
+                || !PortalShellSurface.TryGetClientOnScreen(ownerHwnd, out PortalShellPlacement.PixelRect ownerClient)
+                || PortalShellPlacement.TopBar(ownerClient, bannerBottom) is not PortalShellPlacement.PixelRect banner
+                || PortalShellPlacement.ContentBelowBanner(slot, ownerClient, bannerBottom) is not PortalShellPlacement.PixelRect rect)
             {
                 _surface.Hide();
                 return;
             }
 
-            PortalShellPlacement.PixelRect? visible = PortalShellPlacement.Intersection(slot, ownerClient);
-            if (visible is not PortalShellPlacement.PixelRect rect)
-                _surface.Hide();
-            else
-                _surface.Show(rect, ownerHwnd, forceStack);
+            _surface.Show(rect, banner, ownerHwnd, forceStack);
         }
 
         private bool ShouldShowShell()

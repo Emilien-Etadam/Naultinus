@@ -69,5 +69,99 @@ namespace Naultinus.Helpers
 
             return new PixelRect(slot.X, bannerBottom, slot.Width, height);
         }
+
+        /// <summary>
+        /// Bande du bandeau, sur toute la largeur du client, du haut de la fenêtre jusqu'à son bord inférieur.
+        /// </summary>
+        internal static PixelRect? TopBar(PixelRect owner, int bannerBottom)
+        {
+            int height = bannerBottom - owner.Y;
+            if (height <= 0 || owner.Width <= 0 || owner.Height <= 0)
+                return null;
+            if (height > owner.Height)
+                height = owner.Height;
+
+            return new PixelRect(owner.X, owner.Y, owner.Width, height);
+        }
+
+        /// <summary>
+        /// Vrai si les deux rectangles ont une surface commune. Un bord partagé n'est pas un recouvrement.
+        /// </summary>
+        internal static bool Overlaps(PixelRect first, PixelRect second)
+        {
+            if (first.Width <= 0 || first.Height <= 0 || second.Width <= 0 || second.Height <= 0)
+                return false;
+
+            return first.X < second.X + second.Width
+                && second.X < first.X + first.Width
+                && first.Y < second.Y + second.Height
+                && second.Y < first.Y + first.Height;
+        }
+
+        /// <summary>
+        /// Zone de la vue shell : sous le bandeau, dans le client, sans pixel commun avec le bandeau.
+        /// Null si le bandeau n'est pas mesuré ou s'il ne reste aucune surface : on n'affiche pas plutôt que de couvrir.
+        /// </summary>
+        internal static PixelRect? ContentBelowBanner(PixelRect slot, PixelRect owner, int bannerBottom)
+        {
+            if (TopBar(owner, bannerBottom) is not PixelRect banner)
+                return null;
+            if (BelowBanner(slot, bannerBottom) is not PixelRect below)
+                return null;
+            if (Intersection(below, owner) is not PixelRect visible)
+                return null;
+            if (Overlaps(visible, banner))
+                return null;
+
+            return visible;
+        }
+
+        /// <summary>
+        /// Région fenêtre (origine en haut à gauche de la fenêtre) qui retire le bandeau.
+        /// La fenêtre peut rester au-dessus du propriétaire : cette région l'empêche de peindre et de recevoir les clics du bandeau.
+        /// </summary>
+        internal static PixelRect? RegionExcludingBanner(PixelRect window, PixelRect banner)
+        {
+            if (window.Width <= 0 || window.Height <= 0)
+                return null;
+
+            int top = 0;
+            if (Overlaps(window, banner) && window.Y < banner.Y + banner.Height)
+                top = Math.Min(window.Height, banner.Y + banner.Height - window.Y);
+
+            int height = window.Height - top;
+            if (height <= 0)
+                return null;
+
+            return new PixelRect(0, top, window.Width, height);
+        }
+
+        internal static bool Contains(PixelRect rect, int x, int y)
+        {
+            return rect.Width > 0
+                && rect.Height > 0
+                && x >= rect.X
+                && x < rect.X + rect.Width
+                && y >= rect.Y
+                && y < rect.Y + rect.Height;
+        }
+
+        /// <summary>
+        /// Dépaquette le <c>lParam</c> de <c>WM_NCHITTEST</c> (coordonnées d'écran signées).
+        /// </summary>
+        internal static void UnpackScreenPoint(long packed, out int x, out int y)
+        {
+            x = unchecked((short)(packed & 0xFFFF));
+            y = unchecked((short)((packed >> 16) & 0xFFFF));
+        }
+
+        /// <summary>
+        /// Vrai si le point d'écran appartient au bandeau : le popup doit le laisser passer.
+        /// </summary>
+        internal static bool BannerHit(long packedPoint, PixelRect banner)
+        {
+            UnpackScreenPoint(packedPoint, out int x, out int y);
+            return Contains(banner, x, y);
+        }
     }
 }

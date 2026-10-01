@@ -31,6 +31,10 @@ namespace Naultinus.View
         internal const int OwnerWindowIndex = -8;
         internal const int WindowPosChanging = 0x0046;
         internal const int WindowPosChanged = 0x0047;
+        internal const int NcHitTest = 0x0084;
+
+        /// <summary>HTTRANSPARENT : le point n'appartient pas à cette fenêtre, le hit-test continue en dessous.</summary>
+        internal const int HtTransparent = -1;
         internal const uint SwpNoSize = 0x0001;
         internal const uint SwpNoMove = 0x0002;
         internal const uint SwpNoZOrder = 0x0004;
@@ -360,6 +364,19 @@ namespace Naultinus.View
 
         [DllImport("user32.dll", SetLastError = true)]
         internal static extern bool ClientToScreen(IntPtr window, ref NativePoint point);
+
+        [DllImport("user32.dll")]
+        internal static extern bool GetWindowRect(IntPtr window, out NativeRect rect);
+
+        /// <summary>Le système devient propriétaire de la région si l'appel réussit.</summary>
+        [DllImport("user32.dll")]
+        internal static extern int SetWindowRgn(IntPtr window, IntPtr region, bool redraw);
+
+        [DllImport("gdi32.dll")]
+        internal static extern IntPtr CreateRectRgn(int left, int top, int right, int bottom);
+
+        [DllImport("gdi32.dll")]
+        internal static extern bool DeleteObject(IntPtr obj);
 
         internal static void SetOwner(IntPtr window, IntPtr owner)
         {
