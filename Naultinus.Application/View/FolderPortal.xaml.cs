@@ -16,6 +16,11 @@ namespace Naultinus.View
             InitializeComponent();
             DataContext = defaultModel;
             viewModel = defaultModel;
+            PreviewKeyDown += (_, e) =>
+            {
+                if (PortalFolderInput.TryHandle(viewModel, this, e))
+                    e.Handled = true;
+            };
             Show();
         }
 

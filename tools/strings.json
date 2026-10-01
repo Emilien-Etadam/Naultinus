@@ -1055,9 +1055,44 @@
     "en": "Save current layout…"
   },
   {
+    "key": "MenuSortByDate",
+    "fr": "Trier par date",
+    "en": "Sort by date"
+  },
+  {
     "key": "MenuSortByName",
     "fr": "Trier par nom",
     "en": "Sort by name"
+  },
+  {
+    "key": "MenuSortByType",
+    "fr": "Trier par type",
+    "en": "Sort by type"
+  },
+  {
+    "key": "PortalRecycleConfirmFormat",
+    "fr": "Envoyer {0} élément(s) vers la corbeille ?",
+    "en": "Send {0} item(s) to the Recycle Bin?"
+  },
+  {
+    "key": "PortalRecycleTitle",
+    "fr": "Corbeille",
+    "en": "Recycle Bin"
+  },
+  {
+    "key": "PortalRenameFailedFormat",
+    "fr": "Impossible de renommer {0} : {1}",
+    "en": "Cannot rename {0}: {1}"
+  },
+  {
+    "key": "PortalRenamePrompt",
+    "fr": "Nouveau nom",
+    "en": "New name"
+  },
+  {
+    "key": "PortalRenameTitle",
+    "fr": "Renommer",
+    "en": "Rename"
   },
   {
     "key": "ScreenDimensionsSeparator",

@@ -217,7 +217,21 @@ namespace Naultinus.Properties
         public static string MenuPaste => ResourceManager.GetString(nameof(MenuPaste)) ?? string.Empty;
         public static string MenuRefresh => ResourceManager.GetString(nameof(MenuRefresh)) ?? string.Empty;
         public static string MenuSaveCurrentLayout => ResourceManager.GetString(nameof(MenuSaveCurrentLayout)) ?? string.Empty;
+        public static string MenuSortByDate => ResourceManager.GetString(nameof(MenuSortByDate)) ?? string.Empty;
+
         public static string MenuSortByName => ResourceManager.GetString(nameof(MenuSortByName)) ?? string.Empty;
+
+        public static string MenuSortByType => ResourceManager.GetString(nameof(MenuSortByType)) ?? string.Empty;
+        public static string PortalRecycleConfirmFormat => ResourceManager.GetString(nameof(PortalRecycleConfirmFormat)) ?? string.Empty;
+
+        public static string PortalRecycleTitle => ResourceManager.GetString(nameof(PortalRecycleTitle)) ?? string.Empty;
+
+        public static string PortalRenameFailedFormat => ResourceManager.GetString(nameof(PortalRenameFailedFormat)) ?? string.Empty;
+
+        public static string PortalRenamePrompt => ResourceManager.GetString(nameof(PortalRenamePrompt)) ?? string.Empty;
+
+        public static string PortalRenameTitle => ResourceManager.GetString(nameof(PortalRenameTitle)) ?? string.Empty;
+
         public static string ScreenDimensionsSeparator => ResourceManager.GetString(nameof(ScreenDimensionsSeparator)) ?? string.Empty;
         public static string TaskLoadingEllipsis => ResourceManager.GetString(nameof(TaskLoadingEllipsis)) ?? string.Empty;
         public static string TooltipAddTabBrowseSameGroup => ResourceManager.GetString(nameof(TooltipAddTabBrowseSameGroup)) ?? string.Empty;

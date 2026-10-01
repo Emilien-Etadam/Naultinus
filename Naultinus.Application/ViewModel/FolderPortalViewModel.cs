@@ -30,6 +30,8 @@ namespace Naultinus.ViewModel
         private System.Threading.Timer? _fsDebounceTimer;
         private readonly object _fsTimerLock = new object();
         private bool _disposed;
+        private PortalSortField _sortField = PortalSortField.Name;
+        private FolderPortalItem? _selectionAnchor;
         /// <summary>Dispatcher UI capturé à la construction : le debounce timer s’exécute sur le pool de threads,
         /// où <see cref="Dispatcher.CurrentDispatcher"/> n’est pas le dispatcher WPF de l’application.</summary>
         private readonly Dispatcher _uiDispatcher;
@@ -153,29 +155,11 @@ namespace Naultinus.ViewModel
                 RefreshCommand.Execute(null);
             });
 
-            PasteFromClipboardCommand = new RelayCommand(() =>
-            {
-                var currentPath = CurrentPath;
-                if (string.IsNullOrEmpty(currentPath) || !PortalPathGuard.IsAllowed(RootPath, currentPath)) return;
-                if (!Clipboard.ContainsFileDropList()) return;
-                var files = Clipboard.GetFileDropList();
-                if (files == null) return;
-                foreach (string? source in files)
-                {
-                    if (string.IsNullOrEmpty(source)) continue;
-                    var destName = Path.GetFileName(source);
-                    var dest = Path.Combine(currentPath, destName);
-                    try
-                    {
-                        if (File.Exists(source))
-                            File.Copy(source, dest, false);
-                        else if (Directory.Exists(source))
-                            AppPaths.CopyDirectory(source, dest);
-                    }
-                    catch (Exception ex) { NaultinusDiagnostics.Log("FolderPortal", "Collage depuis le presse-papiers impossible : " + source, ex); }
-                }
-                RefreshCommand.Execute(null);
-            });
+            PasteFromClipboardCommand = new RelayCommand(PasteClipboard);
+
+            SortByNameCommand = new RelayCommand(() => SortBy(PortalSortField.Name));
+            SortByTypeCommand = new RelayCommand(() => SortBy(PortalSortField.Type));
+            SortByDateCommand = new RelayCommand(() => SortBy(PortalSortField.Date));
 
             NavigateIntoFolderCommand = new RelayCommand<FolderPortalItem>(item =>
             {
@@ -239,24 +223,6 @@ namespace Naultinus.ViewModel
             return true;
         }
 
-        /// <summary>
-        /// Aligne le bandeau sur le dossier que la vue shell vient d'ouvrir, sans relister les fichiers.
-        /// </summary>
-        public void ShowNavigatedFolder(string path)
-        {
-            if (string.IsNullOrEmpty(path) || !PortalPathGuard.IsAllowed(RootPath, path) || !Directory.Exists(path))
-                return;
-
-            ErrorMessage = "";
-            if (PortalPathGuard.AreSame(CurrentPath, path))
-            {
-                UpdateBreadcrumb();
-                return;
-            }
-
-            CurrentPath = path;
-        }
-
         public void LoadFolder(string path)
         {
             ErrorMessage = "";
@@ -276,25 +242,29 @@ namespace Naultinus.ViewModel
 
             try
             {
-                var newItems = new ObservableCollection<FolderPortalItem>();
+                var found = new List<FolderPortalItem>();
+                string iconsDir = AppPaths.GetNaultinusIconsDirectory(Identifier);
 
-                foreach (string dir in Directory.GetDirectories(path).OrderBy(d => Path.GetFileName(d), StringComparer.OrdinalIgnoreCase))
+                foreach (string dir in Directory.GetDirectories(path))
                 {
                     if (IsHiddenOrSystemEntry(dir))
                         continue;
                     string dirName = Path.GetFileName(dir);
-                    newItems.Add(new FolderPortalItem(dirName, dir, true, string.Empty));
+                    string iconPath = AppPaths.GetOrCreateIcon(dir, "folder_", iconsDir);
+                    found.Add(new FolderPortalItem(dirName, dir, true, iconPath) { LastWriteUtc = LastWriteUtc(dir) });
                 }
 
-                foreach (string file in Directory.GetFiles(path).OrderBy(f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase))
+                foreach (string file in Directory.GetFiles(path))
                 {
                     string fileName = Path.GetFileName(file);
                     if (fileName.StartsWith("~$", StringComparison.Ordinal) || IsHiddenOrSystemEntry(file))
                         continue;
-                    newItems.Add(new FolderPortalItem(fileName, file, false, string.Empty));
+                    string iconPath = AppPaths.GetOrCreateIcon(file, "file_", iconsDir);
+                    found.Add(new FolderPortalItem(fileName, file, false, iconPath) { LastWriteUtc = LastWriteUtc(file) });
                 }
 
-                Items = newItems;
+                _selectionAnchor = null;
+                Items = new ObservableCollection<FolderPortalItem>(PortalItemSort.Order(found, _sortField));
                 CurrentPath = path;
                 OnPropertyChanged(nameof(CanNavigateBack));
             }
@@ -306,6 +276,93 @@ namespace Naultinus.ViewModel
             {
                 ErrorMessage = string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.ErrorGenericFormat, ex.Message);
             }
+        }
+
+        public IReadOnlyList<FolderPortalItem> SelectedItems => Items.Where(item => item.IsSelected).ToList();
+
+        public void ClearSelection()
+        {
+            foreach (FolderPortalItem item in Items)
+                item.IsSelected = false;
+            _selectionAnchor = null;
+        }
+
+        public void SelectItem(FolderPortalItem item, bool control, bool shift)
+        {
+            int index = Items.IndexOf(item);
+            if (index < 0)
+                return;
+
+            int anchor = _selectionAnchor == null ? -1 : Items.IndexOf(_selectionAnchor);
+            int[] current = Items.Select((entry, position) => entry.IsSelected ? position : -1).Where(position => position >= 0).ToArray();
+            PortalSelection.Result result = PortalSelection.Click(Items.Count, current, anchor, index, control, shift);
+            for (int i = 0; i < Items.Count; i++)
+                Items[i].IsSelected = result.Contains(i);
+            _selectionAnchor = result.Anchor >= 0 && result.Anchor < Items.Count ? Items[result.Anchor] : null;
+        }
+
+        public void OpenSelection()
+        {
+            List<FolderPortalItem> selected = SelectedItems.ToList();
+            if (selected.Count == 1 && selected[0].IsDirectory)
+            {
+                LoadFolder(selected[0].FullPath);
+                return;
+            }
+
+            foreach (FolderPortalItem item in selected)
+            {
+                if (item.IsDirectory || string.IsNullOrEmpty(item.FullPath))
+                    continue;
+                try
+                {
+                    Process.Start(new ProcessStartInfo { FileName = item.FullPath, UseShellExecute = true });
+                }
+                catch (Exception ex)
+                {
+                    ErrorMessage = string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.CannotOpenFileFormat, ex.Message);
+                }
+            }
+        }
+
+        public void CopySelection() => PlaceSelectionOnClipboard(move: false);
+
+        public void CutSelection() => PlaceSelectionOnClipboard(move: true);
+
+        public bool TryRename(FolderPortalItem item, string requestedName)
+        {
+            if (item == null || string.IsNullOrEmpty(CurrentPath) || !PortalPathGuard.IsAllowed(RootPath, item.FullPath))
+                return false;
+
+            string? target = PortalRename.Target(CurrentPath, item.Name, requestedName, path => File.Exists(path) || Directory.Exists(path));
+            if (target == null)
+                return false;
+
+            try
+            {
+                if (item.IsDirectory)
+                    Directory.Move(item.FullPath, target);
+                else
+                    File.Move(item.FullPath, target);
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.PortalRenameFailedFormat, item.Name, ex.Message);
+                return false;
+            }
+
+            LoadFolder(CurrentPath);
+            return true;
+        }
+
+        public void RecycleSelection()
+        {
+            string[] paths = SelectedItems.Select(item => item.FullPath).Where(path => !string.IsNullOrEmpty(path)).ToArray();
+            if (paths.Length == 0)
+                return;
+            if (!PortalRecycle.Send(paths))
+                return;
+            LoadFolder(CurrentPath);
         }
 
         public override string TabBarLabel
@@ -492,11 +549,17 @@ namespace Naultinus.ViewModel
         #region IDragSource
         public void StartDrag(IDragInfo dragInfo)
         {
-            if (dragInfo.SourceItem is FolderPortalItem item && !string.IsNullOrEmpty(item.FullPath))
-            {
-                dragInfo.DataObject = new DataObject(DataFormats.FileDrop, new[] { item.FullPath });
-                dragInfo.Effects = DragDropEffects.Copy | DragDropEffects.Move;
-            }
+            if (dragInfo.SourceItem is not FolderPortalItem item || string.IsNullOrEmpty(item.FullPath))
+                return;
+
+            if (!item.IsSelected)
+                SelectItem(item, control: false, shift: false);
+
+            string[] paths = SelectedItems.Select(selected => selected.FullPath).Where(path => !string.IsNullOrEmpty(path)).ToArray();
+            if (paths.Length == 0)
+                paths = new[] { item.FullPath };
+            dragInfo.DataObject = new DataObject(DataFormats.FileDrop, paths);
+            dragInfo.Effects = DragDropEffects.Copy | DragDropEffects.Move;
         }
 
         public bool CanStartDrag(IDragInfo dragInfo) => dragInfo.SourceItem is FolderPortalItem;
@@ -618,6 +681,104 @@ namespace Naultinus.ViewModel
 
         #endregion
 
+        private void SortBy(PortalSortField field)
+        {
+            _sortField = field;
+            FolderPortalItem? anchor = _selectionAnchor;
+            Items = new ObservableCollection<FolderPortalItem>(PortalItemSort.Order(Items, field));
+            _selectionAnchor = anchor != null && Items.Contains(anchor) ? anchor : null;
+        }
+
+        private void PlaceSelectionOnClipboard(bool move)
+        {
+            string[] paths = SelectedItems.Select(item => item.FullPath).Where(path => !string.IsNullOrEmpty(path)).ToArray();
+            if (paths.Length == 0)
+                return;
+
+            try
+            {
+                var data = new DataObject();
+                data.SetData(DataFormats.FileDrop, paths);
+                data.SetData("Preferred DropEffect", new MemoryStream(PortalClipboard.EffectBytes(move)));
+                Clipboard.SetDataObject(data);
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.Log("FolderPortal", "Copie vers le presse-papiers impossible.", ex);
+            }
+        }
+
+        private void PasteClipboard()
+        {
+            if (string.IsNullOrEmpty(CurrentPath) || !PortalPathGuard.IsAllowed(RootPath, CurrentPath))
+                return;
+
+            string[]? files = null;
+            bool move = false;
+            try
+            {
+                if (!Clipboard.ContainsFileDropList())
+                    return;
+                var dropped = Clipboard.GetFileDropList();
+                if (dropped == null)
+                    return;
+                files = dropped.Cast<string>().Where(path => !string.IsNullOrEmpty(path)).ToArray();
+                move = ClipboardMove();
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.Log("FolderPortal", "Lecture du presse-papiers impossible.", ex);
+                return;
+            }
+
+            if (files == null || files.Length == 0)
+                return;
+
+            ImportFileSystemPaths(files, isCopy: !move);
+            if (!move)
+                return;
+
+            try
+            {
+                Clipboard.Clear();
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("FolderPortal.Clipboard.Clear", ex);
+            }
+        }
+
+        private static bool ClipboardMove()
+        {
+            try
+            {
+                IDataObject? data = Clipboard.GetDataObject();
+                if (data == null || !data.GetDataPresent("Preferred DropEffect"))
+                    return false;
+                if (data.GetData("Preferred DropEffect") is not MemoryStream stream)
+                    return false;
+                return PortalClipboard.IsMove(stream.ToArray());
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("FolderPortal.Clipboard", ex);
+                return false;
+            }
+        }
+
+        private static DateTime LastWriteUtc(string path)
+        {
+            try
+            {
+                return File.GetLastWriteTimeUtc(path);
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("FolderPortal.LastWrite", ex);
+                return DateTime.MinValue;
+            }
+        }
+
         #region Commands
         public ICommand CreateNewFolderCommand { get; }
         public ICommand CreateNewFileCommand { get; }
@@ -628,6 +789,9 @@ namespace Naultinus.ViewModel
         public ICommand RefreshCommand { get; }
         public ICommand NavigateToRootCommand { get; }
         public ICommand NavigateToSegmentCommand { get; }
+        public ICommand SortByNameCommand { get; }
+        public ICommand SortByTypeCommand { get; }
+        public ICommand SortByDateCommand { get; }
         #endregion
     }
 }

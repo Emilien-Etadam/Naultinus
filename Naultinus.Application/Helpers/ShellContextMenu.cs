@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -167,19 +169,38 @@ namespace Naultinus.Helpers
 
         public static void Show(string path, Window owner)
         {
-            if (string.IsNullOrEmpty(path) || (!File.Exists(path) && !Directory.Exists(path)))
+            Show(new[] { path }, owner);
+        }
+
+        public static void Show(IReadOnlyList<string> paths, Window owner)
+        {
+            if (owner == null || paths == null || paths.Count == 0)
                 return;
 
-            string? parentPath = Path.GetDirectoryName(path);
-            if (parentPath == null) return;
+            List<string> existing = paths
+                .Where(path => !string.IsNullOrEmpty(path) && (File.Exists(path) || Directory.Exists(path)))
+                .ToList();
+            if (existing.Count == 0)
+                return;
 
-            string childName = Path.GetFileName(path);
+            string? parentPath = Path.GetDirectoryName(existing[0]);
+            if (string.IsNullOrEmpty(parentPath))
+                return;
+
+            List<string> children = existing
+                .Where(path => string.Equals(Path.GetDirectoryName(path), parentPath, StringComparison.OrdinalIgnoreCase))
+                .Select(Path.GetFileName)
+                .Where(name => !string.IsNullOrEmpty(name))
+                .Cast<string>()
+                .ToList();
+            if (children.Count == 0)
+                return;
 
             if (SHGetDesktopFolder(out IShellFolder desktopFolder) != 0)
                 return;
 
             IntPtr parentPidl = IntPtr.Zero;
-            IntPtr childPidl = IntPtr.Zero;
+            var childPidls = new List<IntPtr>();
             IntPtr hMenu = IntPtr.Zero;
             IShellFolder? parentFolder = null;
             IContextMenu? contextMenu = null;
@@ -187,29 +208,32 @@ namespace Naultinus.Helpers
 
             try
             {
-                // Get parent folder's PIDL
                 uint eaten = 0;
                 uint attrs = 0;
                 if (desktopFolder.ParseDisplayName(IntPtr.Zero, IntPtr.Zero, parentPath, out eaten, out parentPidl, ref attrs) != 0)
                     return;
 
-                // Bind to parent folder
                 Guid iidShellFolder = typeof(IShellFolder).GUID;
                 if (desktopFolder.BindToObject(parentPidl, IntPtr.Zero, ref iidShellFolder, out IntPtr parentFolderPtr) != 0)
                     return;
                 parentFolder = (IShellFolder)Marshal.GetObjectForIUnknown(parentFolderPtr);
                 Marshal.Release(parentFolderPtr);
 
-                // Get child PIDL
-                eaten = 0;
-                attrs = 0;
-                if (parentFolder.ParseDisplayName(IntPtr.Zero, IntPtr.Zero, childName, out eaten, out childPidl, ref attrs) != 0)
+                foreach (string childName in children)
+                {
+                    eaten = 0;
+                    attrs = 0;
+                    if (parentFolder.ParseDisplayName(IntPtr.Zero, IntPtr.Zero, childName, out eaten, out IntPtr childPidl, ref attrs) != 0 || childPidl == IntPtr.Zero)
+                        continue;
+                    childPidls.Add(childPidl);
+                }
+
+                if (childPidls.Count == 0)
                     return;
 
-                // Get IContextMenu
                 Guid iidContextMenu = typeof(IContextMenu).GUID;
-                IntPtr[] pidls = new IntPtr[] { childPidl };
-                if (parentFolder.GetUIObjectOf(IntPtr.Zero, 1, pidls, ref iidContextMenu, IntPtr.Zero, out IntPtr contextMenuPtr) != 0)
+                IntPtr[] pidls = childPidls.ToArray();
+                if (parentFolder.GetUIObjectOf(IntPtr.Zero, (uint)pidls.Length, pidls, ref iidContextMenu, IntPtr.Zero, out IntPtr contextMenuPtr) != 0)
                     return;
                 contextMenu = (IContextMenu)Marshal.GetObjectForIUnknown(contextMenuPtr);
                 Marshal.Release(contextMenuPtr);
@@ -263,8 +287,12 @@ namespace Naultinus.Helpers
 
                 if (hMenu != IntPtr.Zero)
                     DestroyMenu(hMenu);
-                if (childPidl != IntPtr.Zero)
-                    CoTaskMemFree(childPidl);
+                foreach (IntPtr childPidl in childPidls)
+                {
+                    if (childPidl != IntPtr.Zero)
+                        CoTaskMemFree(childPidl);
+                }
+
                 if (parentPidl != IntPtr.Zero)
                     CoTaskMemFree(parentPidl);
 
