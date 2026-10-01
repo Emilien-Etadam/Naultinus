@@ -5,7 +5,7 @@ using System.Text;
 namespace Naultinus.Helpers
 {
     /// <summary>
-    /// Chemin final Windows (jonctions et liens) et conversion PIDL, pour la vue shell du portail.
+    /// Chemin final Windows (jonctions et liens) pour le garde-fou du portail.
     /// </summary>
     internal static class ShellPathResolver
     {
@@ -50,38 +50,6 @@ namespace Naultinus.Helpers
             }
         }
 
-        internal static IntPtr ParseFolderPidl(string path)
-        {
-            if (!OperatingSystem.IsWindows())
-                return IntPtr.Zero;
-
-            int hr = SHParseDisplayName(path, IntPtr.Zero, out IntPtr pidl, 0, out _);
-            return hr == 0 ? pidl : IntPtr.Zero;
-        }
-
-        internal static string? PathFromPidl(IntPtr pidl)
-        {
-            if (!OperatingSystem.IsWindows() || pidl == IntPtr.Zero)
-                return null;
-
-            var buffer = new StringBuilder(32768);
-            if (SHGetPathFromIDListEx(pidl, buffer, (uint)buffer.Capacity, 0))
-            {
-                string path = buffer.ToString();
-                return path.Length == 0 ? null : path;
-            }
-
-            buffer.Clear();
-            buffer.EnsureCapacity(260);
-            return SHGetPathFromIDListW(pidl, buffer) ? buffer.ToString() : null;
-        }
-
-        internal static void FreePidl(IntPtr pidl)
-        {
-            if (pidl != IntPtr.Zero)
-                CoTaskMemFree(pidl);
-        }
-
         private static bool IsReparsePoint(string path)
         {
             try
@@ -119,22 +87,5 @@ namespace Naultinus.Helpers
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool CloseHandle(IntPtr handle);
-
-        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-        private static extern int SHParseDisplayName(
-            string name,
-            IntPtr bindContext,
-            out IntPtr pidl,
-            uint attributesIn,
-            out uint attributesOut);
-
-        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-        private static extern bool SHGetPathFromIDListEx(IntPtr pidl, StringBuilder path, uint capacity, int options);
-
-        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-        private static extern bool SHGetPathFromIDListW(IntPtr pidl, StringBuilder path);
-
-        [DllImport("ole32.dll")]
-        private static extern void CoTaskMemFree(IntPtr pointer);
     }
 }

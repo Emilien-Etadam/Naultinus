@@ -38,6 +38,12 @@ namespace Naultinus.View
 
             PreviewKeyDown += (_, e) =>
             {
+                if (_group.SelectedMember is FolderPortalViewModel folder && PortalFolderInput.TryHandle(folder, this, e))
+                {
+                    e.Handled = true;
+                    return;
+                }
+
                 if (e.Key != Key.Delete && e.Key != Key.Back)
                     return;
 

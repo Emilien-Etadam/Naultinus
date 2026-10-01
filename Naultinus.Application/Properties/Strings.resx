@@ -637,8 +637,29 @@
   <data name="MenuSaveCurrentLayout" xml:space="preserve">
     <value>Save current layout…</value>
   </data>
+  <data name="MenuSortByDate" xml:space="preserve">
+    <value>Sort by date</value>
+  </data>
   <data name="MenuSortByName" xml:space="preserve">
     <value>Sort by name</value>
+  </data>
+  <data name="MenuSortByType" xml:space="preserve">
+    <value>Sort by type</value>
+  </data>
+  <data name="PortalRecycleConfirmFormat" xml:space="preserve">
+    <value>Send {0} item(s) to the Recycle Bin?</value>
+  </data>
+  <data name="PortalRecycleTitle" xml:space="preserve">
+    <value>Recycle Bin</value>
+  </data>
+  <data name="PortalRenameFailedFormat" xml:space="preserve">
+    <value>Cannot rename {0}: {1}</value>
+  </data>
+  <data name="PortalRenamePrompt" xml:space="preserve">
+    <value>New name</value>
+  </data>
+  <data name="PortalRenameTitle" xml:space="preserve">
+    <value>Rename</value>
   </data>
   <data name="ScreenDimensionsSeparator" xml:space="preserve">
     <value>×</value>

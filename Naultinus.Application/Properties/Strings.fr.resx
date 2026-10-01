@@ -637,8 +637,29 @@
   <data name="MenuSaveCurrentLayout" xml:space="preserve">
     <value>Enregistrer la disposition actuelle…</value>
   </data>
+  <data name="MenuSortByDate" xml:space="preserve">
+    <value>Trier par date</value>
+  </data>
   <data name="MenuSortByName" xml:space="preserve">
     <value>Trier par nom</value>
+  </data>
+  <data name="MenuSortByType" xml:space="preserve">
+    <value>Trier par type</value>
+  </data>
+  <data name="PortalRecycleConfirmFormat" xml:space="preserve">
+    <value>Envoyer {0} élément(s) vers la corbeille ?</value>
+  </data>
+  <data name="PortalRecycleTitle" xml:space="preserve">
+    <value>Corbeille</value>
+  </data>
+  <data name="PortalRenameFailedFormat" xml:space="preserve">
+    <value>Impossible de renommer {0} : {1}</value>
+  </data>
+  <data name="PortalRenamePrompt" xml:space="preserve">
+    <value>Nouveau nom</value>
+  </data>
+  <data name="PortalRenameTitle" xml:space="preserve">
+    <value>Renommer</value>
   </data>
   <data name="ScreenDimensionsSeparator" xml:space="preserve">
     <value>×</value>

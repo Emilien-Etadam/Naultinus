@@ -183,19 +183,9 @@
             </Grid>
         </DataTemplate>
 
-        <!-- Browse naultinus (folder) : vue shell, bandeau Naultinus inchangé. -->
+        <!-- Browse naultinus (folder) : même grille WPF que la fenêtre seule. -->
         <DataTemplate DataType="{x:Type viewModel:FolderPortalViewModel}">
-            <Border CornerRadius="0" ClipToBounds="True" Background="{DynamicResource NaultinusControlBrush}">
-                <Grid>
-                    <TextBlock Text="{Binding ErrorMessage, Mode=OneWay}"
-                               Foreground="{DynamicResource NaultinusErrorBrush}"
-                               FontSize="13"
-                               Margin="15,10"
-                               TextWrapping="Wrap"
-                               Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibilityConverter}, FallbackValue=Collapsed}" />
-                    <view:PortalShellFolderView Visibility="{Binding ErrorMessage, Converter={StaticResource InverseEmptyStringToVisibilityConverter}}"/>
-                </Grid>
-            </Border>
+            <view:PortalFolderGrid/>
         </DataTemplate>
 
         <!-- Task -->

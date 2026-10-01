@@ -87,17 +87,7 @@
                 </Grid>
                 <view:PortalPathBar Grid.Row="1"/>
             </Grid>
-            <Border CornerRadius="0" ClipToBounds="True" Background="{DynamicResource NaultinusControlBrush}">
-                <Grid>
-                    <TextBlock Text="{Binding ErrorMessage, Mode=OneWay}"
-                               Foreground="{DynamicResource NaultinusErrorBrush}"
-                               FontSize="13"
-                               Margin="15,10"
-                               TextWrapping="Wrap"
-                               Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibilityConverter}, FallbackValue=Collapsed}" />
-                    <view:PortalShellFolderView Visibility="{Binding ErrorMessage, Converter={StaticResource InverseEmptyStringToVisibilityConverter}}"/>
-                </Grid>
-            </Border>
+            <view:PortalFolderGrid/>
         </DockPanel>
     </Border>
 </Window>
