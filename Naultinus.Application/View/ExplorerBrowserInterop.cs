@@ -22,6 +22,20 @@ namespace Naultinus.View
         internal const int ShowCommand = 5;
         internal const int HideCommand = 0;
 
+        /// <summary>WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS. Pas de WS_EX_LAYERED : un enfant HWND y serait invisible.</summary>
+        internal const int PopupClipStyle = unchecked((int)0x80000000) | 0x02000000 | 0x04000000;
+
+        /// <summary>WS_EX_TOOLWINDOW : hors de la barre des tâches et d'Alt+Tab.</summary>
+        internal const int ToolWindowExtendedStyle = 0x00000080;
+
+        internal const int OwnerWindowIndex = -8;
+        internal const int WindowPosChanging = 0x0046;
+        internal const int WindowPosChanged = 0x0047;
+        internal const uint SwpNoZOrder = 0x0004;
+        internal const uint SwpNoActivate = 0x0010;
+        internal const uint SwpShowWindow = 0x0040;
+        internal const uint SwpNoCopyBits = 0x0100;
+
         internal static readonly Guid PaneVisibilityId = new("E07010EC-BC17-44C0-97B0-46C7C95B9EDC");
 
         internal static readonly Guid NavPane = new("CB316B22-25F7-42B8-8A09-540D23A43C2F");
@@ -42,6 +56,25 @@ namespace Naultinus.View
             public int Top;
             public int Right;
             public int Bottom;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct NativePoint
+        {
+            public int X;
+            public int Y;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct WindowPos
+        {
+            public IntPtr Hwnd;
+            public IntPtr InsertAfter;
+            public int X;
+            public int Y;
+            public int Width;
+            public int Height;
+            public uint Flags;
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 4)]
@@ -219,7 +252,34 @@ namespace Naultinus.View
         [DllImport("user32.dll")]
         internal static extern bool ShowWindow(IntPtr window, int command);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern bool SetWindowPos(
+            IntPtr window,
+            IntPtr insertAfter,
+            int x,
+            int y,
+            int width,
+            int height,
+            uint flags);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern bool ClientToScreen(IntPtr window, ref NativePoint point);
+
+        internal static void SetOwner(IntPtr window, IntPtr owner)
+        {
+            if (IntPtr.Size == 8)
+                _ = SetWindowLongPtrW(window, OwnerWindowIndex, owner);
+            else
+                _ = SetWindowLongW(window, OwnerWindowIndex, owner.ToInt32());
+        }
+
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
         internal static extern IntPtr GetModuleHandleW(string? moduleName);
+
+        [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
+        private static extern IntPtr SetWindowLongPtrW(IntPtr window, int index, IntPtr newValue);
+
+        [DllImport("user32.dll", EntryPoint = "SetWindowLongW", SetLastError = true)]
+        private static extern int SetWindowLongW(IntPtr window, int index, int newValue);
     }
 }

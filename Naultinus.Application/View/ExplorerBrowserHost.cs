@@ -18,8 +18,8 @@ namespace Naultinus.View
         private IntPtr _eventsPointer;
         private uint _adviseCookie;
         private string? _shownPath;
+        private string? _requestedPath;
         private IntPtr _hostWindow;
-        private bool _windowReady;
 
         internal ExplorerBrowserHost()
         {
@@ -45,9 +45,21 @@ namespace Naultinus.View
 
         internal bool Browse(string path)
         {
-            if (_browser == null || !OperatingSystem.IsWindows())
+            _requestedPath = path;
+            return TryBrowseRequested();
+        }
+
+        internal void Fit()
+        {
+            FitToHost();
+        }
+
+        private bool TryBrowseRequested()
+        {
+            if (_browser == null || string.IsNullOrEmpty(_requestedPath) || !OperatingSystem.IsWindows())
                 return false;
 
+            string path = _requestedPath;
             IntPtr pidl = ShellPathResolver.ParseFolderPidl(path);
             if (pidl == IntPtr.Zero)
                 return false;
@@ -62,7 +74,7 @@ namespace Naultinus.View
                 }
 
                 _shownPath = path;
-                Fit();
+                FitToHost();
                 return true;
             }
             finally
@@ -86,16 +98,15 @@ namespace Naultinus.View
             }
         }
 
-        internal void SetWindowVisible(bool visible)
+        /// <summary>
+        /// Navigue vers le dossier demandé si la vue shell existe et n'affiche pas déjà ce chemin.
+        /// </summary>
+        internal void NavigateToRequestedFolder()
         {
-            if (!_windowReady)
+            if (string.IsNullOrEmpty(_requestedPath) || IsShowing(_requestedPath))
                 return;
 
-            ExplorerBrowserInterop.ShowWindow(
-                _hostWindow,
-                visible ? ExplorerBrowserInterop.ShowCommand : ExplorerBrowserInterop.HideCommand);
-            if (visible)
-                Fit();
+            TryBrowseRequested();
         }
 
         internal void RememberShown(string path)
@@ -105,6 +116,7 @@ namespace Naultinus.View
 
         protected override HandleRef BuildWindowCore(HandleRef parent)
         {
+            ResolveInitialSize(parent.Handle, out int width, out int height);
             IntPtr window = ExplorerBrowserInterop.CreateWindowExW(
                 0,
                 "Static",
@@ -112,8 +124,8 @@ namespace Naultinus.View
                 ExplorerBrowserInterop.ChildWindowStyle,
                 0,
                 0,
-                Math.Max(1, (int)ActualWidth),
-                Math.Max(1, (int)ActualHeight),
+                width,
+                height,
                 parent.Handle,
                 IntPtr.Zero,
                 ExplorerBrowserInterop.GetModuleHandleW(null),
@@ -123,7 +135,6 @@ namespace Naultinus.View
                 throw new InvalidOperationException("Impossible de créer la fenêtre hôte de la vue shell.");
 
             _hostWindow = window;
-            _windowReady = true;
 
             if (OperatingSystem.IsWindows())
                 TryCreateBrowser(window);
@@ -133,7 +144,6 @@ namespace Naultinus.View
 
         protected override void DestroyWindowCore(HandleRef hwnd)
         {
-            _windowReady = false;
             _hostWindow = IntPtr.Zero;
             TearDownBrowser();
             if (hwnd.Handle != IntPtr.Zero)
@@ -143,7 +153,7 @@ namespace Naultinus.View
         protected override void OnWindowPositionChanged(Rect rcBoundingBox)
         {
             base.OnWindowPositionChanged(rcBoundingBox);
-            Fit();
+            FitToHost();
         }
 
         protected override bool TranslateAcceleratorCore(ref MSG msg, ModifierKeys modifiers)
@@ -190,7 +200,7 @@ namespace Naultinus.View
                 if (hr != ExplorerBrowserInterop.Ok)
                     NaultinusDiagnostics.Log("FolderPortal", "IExplorerBrowser.Advise a échoué : " + hr);
 
-                Fit();
+                FitToHost();
             }
             catch (Exception ex)
             {
@@ -257,7 +267,24 @@ namespace Naultinus.View
             _shownPath = null;
         }
 
-        private void Fit()
+        private void ResolveInitialSize(IntPtr parent, out int width, out int height)
+        {
+            width = Math.Max(1, (int)ActualWidth);
+            height = Math.Max(1, (int)ActualHeight);
+            if (parent == IntPtr.Zero)
+                return;
+            if (!ExplorerBrowserInterop.GetClientRect(parent, out ExplorerBrowserInterop.NativeRect client))
+                return;
+
+            int clientWidth = client.Right - client.Left;
+            int clientHeight = client.Bottom - client.Top;
+            if (clientWidth > width)
+                width = clientWidth;
+            if (clientHeight > height)
+                height = clientHeight;
+        }
+
+        private void FitToHost()
         {
             if (_browser == null || _hostWindow == IntPtr.Zero)
                 return;
