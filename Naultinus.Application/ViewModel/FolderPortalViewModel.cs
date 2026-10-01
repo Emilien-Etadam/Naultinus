@@ -24,6 +24,7 @@ namespace Naultinus.ViewModel
         private string _currentFolderName;
         private string _errorMessage;
         private FileSystemWatcher? _watcher;
+        private string? _watchedPath;
         private System.Threading.Timer? _fsDebounceTimer;
         private readonly object _fsTimerLock = new object();
         private bool _disposed;
@@ -106,13 +107,8 @@ namespace Naultinus.ViewModel
 
             CleanupLegacyIcons();
 
-            if (!string.IsNullOrEmpty(model.CurrentPath) && Directory.Exists(model.CurrentPath))
-                LoadFolder(model.CurrentPath);
-            else if (!string.IsNullOrEmpty(model.RootPath) && Directory.Exists(model.RootPath))
-            {
-                model.CurrentPath = model.RootPath;
-                LoadFolder(model.RootPath);
-            }
+            if (!TryLoadContained(model.CurrentPath))
+                TryLoadContained(model.RootPath);
 
             UpdateBreadcrumb();
 
@@ -127,7 +123,7 @@ namespace Naultinus.ViewModel
             CreateNewFolderCommand = new RelayCommand(() =>
             {
                 var currentPath = CurrentPath;
-                if (string.IsNullOrEmpty(currentPath)) return;
+                if (string.IsNullOrEmpty(currentPath) || !PortalPathGuard.IsAllowed(RootPath, currentPath)) return;
                 var name = Strings.NewFolderName;
                 var path = Path.Combine(currentPath, name);
                 var counter = 1;
@@ -143,7 +139,7 @@ namespace Naultinus.ViewModel
             CreateNewFileCommand = new RelayCommand(() =>
             {
                 var currentPath = CurrentPath;
-                if (string.IsNullOrEmpty(currentPath)) return;
+                if (string.IsNullOrEmpty(currentPath) || !PortalPathGuard.IsAllowed(RootPath, currentPath)) return;
                 var name = Strings.NewFileName;
                 var path = Path.Combine(currentPath, name);
                 var counter = 1;
@@ -159,7 +155,7 @@ namespace Naultinus.ViewModel
             PasteFromClipboardCommand = new RelayCommand(() =>
             {
                 var currentPath = CurrentPath;
-                if (string.IsNullOrEmpty(currentPath)) return;
+                if (string.IsNullOrEmpty(currentPath) || !PortalPathGuard.IsAllowed(RootPath, currentPath)) return;
                 if (!Clipboard.ContainsFileDropList()) return;
                 var files = Clipboard.GetFileDropList();
                 if (files == null) return;
@@ -202,18 +198,13 @@ namespace Naultinus.ViewModel
             {
                 if (!CanNavigateBack) return;
                 string? parent = Directory.GetParent(CurrentPath)?.FullName;
-                if (parent != null)
-                {
-                    string rootFull = Path.GetFullPath(RootPath).TrimEnd(Path.DirectorySeparatorChar);
-                    string parentFull = Path.GetFullPath(parent).TrimEnd(Path.DirectorySeparatorChar);
-                    if (parentFull.Length >= rootFull.Length)
-                        LoadFolder(parent);
-                }
+                if (parent != null && PortalPathGuard.IsAllowed(RootPath, parent))
+                    LoadFolder(parent);
             });
 
             OpenInExplorerCommand = new RelayCommand(() =>
             {
-                if (string.IsNullOrEmpty(CurrentPath) || !Directory.Exists(CurrentPath)) return;
+                if (string.IsNullOrEmpty(CurrentPath) || !Directory.Exists(CurrentPath) || !PortalPathGuard.IsAllowed(RootPath, CurrentPath)) return;
                 try
                 {
                     Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = CurrentPath, UseShellExecute = true });
@@ -229,9 +220,25 @@ namespace Naultinus.ViewModel
 
         }
 
+        private bool TryLoadContained(string? path)
+        {
+            if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+                return false;
+            if (!PortalPathGuard.IsAllowed(_model.RootPath, path))
+                return false;
+            LoadFolder(path);
+            return true;
+        }
+
         public void LoadFolder(string path)
         {
             ErrorMessage = "";
+
+            if (!PortalPathGuard.IsAllowed(RootPath, path))
+            {
+                ErrorMessage = string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.AccessDeniedFormat, path);
+                return;
+            }
 
             if (!Directory.Exists(path))
             {
@@ -243,16 +250,13 @@ namespace Naultinus.ViewModel
             try
             {
                 var newItems = new ObservableCollection<FolderPortalItem>();
-                string iconsDir = AppPaths.GetNaultinusIconsDirectory(Identifier);
-                AppPaths.EnsureExists(iconsDir);
 
                 foreach (string dir in Directory.GetDirectories(path).OrderBy(d => Path.GetFileName(d), StringComparer.OrdinalIgnoreCase))
                 {
                     if (IsHiddenOrSystemEntry(dir))
                         continue;
                     string dirName = Path.GetFileName(dir);
-                    string iconPath = AppPaths.GetOrCreateIcon(dir, "folder_", iconsDir);
-                    newItems.Add(new FolderPortalItem(dirName, dir, true, iconPath));
+                    newItems.Add(new FolderPortalItem(dirName, dir, true, string.Empty));
                 }
 
                 foreach (string file in Directory.GetFiles(path).OrderBy(f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase))
@@ -260,8 +264,7 @@ namespace Naultinus.ViewModel
                     string fileName = Path.GetFileName(file);
                     if (fileName.StartsWith("~$", StringComparison.Ordinal) || IsHiddenOrSystemEntry(file))
                         continue;
-                    string iconPath = AppPaths.GetOrCreateIcon(file, "file_", iconsDir);
-                    newItems.Add(new FolderPortalItem(fileName, file, false, iconPath));
+                    newItems.Add(new FolderPortalItem(fileName, file, false, string.Empty));
                 }
 
                 Items = newItems;
@@ -330,6 +333,11 @@ namespace Naultinus.ViewModel
 
         private void SetupWatcher(string? path)
         {
+            // Recharger le même dossier ne doit pas détruire le watcher : le rafraîchissement
+            // est souvent déclenché par son propre callback.
+            if (_watcher != null && PortalPathGuard.AreSame(_watchedPath, path))
+                return;
+
             try
             {
                 _watcher?.Dispose();
@@ -340,6 +348,7 @@ namespace Naultinus.ViewModel
             }
 
             _watcher = null;
+            _watchedPath = null;
 
             lock (_fsTimerLock)
             {
@@ -376,6 +385,7 @@ namespace Naultinus.ViewModel
                 w.Changed += (_, _) => OnFileSystemEvent();
                 w.EnableRaisingEvents = true;
                 _watcher = w;
+                _watchedPath = path;
             }
             catch (Exception ex)
             {
@@ -401,7 +411,10 @@ namespace Naultinus.ViewModel
         {
             try
             {
-                _uiDispatcher.Invoke(() =>
+                // BeginInvoke : le thread du timer ne doit pas attendre le thread UI.
+                // Un Invoke synchrone pendant que l'UI recrée le watcher (ou résout le chemin)
+                // peut bloquer les deux côtés, et le processus de test ne se termine plus.
+                _uiDispatcher.BeginInvoke(() =>
                 {
                     if (_disposed)
                         return;
@@ -419,6 +432,7 @@ namespace Naultinus.ViewModel
             if (_disposed)
                 return;
             _disposed = true;
+            _watchedPath = null;
             try
             {
                 _watcher?.Dispose();
@@ -534,7 +548,7 @@ namespace Naultinus.ViewModel
         private void ImportFileSystemPaths(string[] files, bool isCopy)
         {
             string targetDir = CurrentPath;
-            if (string.IsNullOrEmpty(targetDir) || !Directory.Exists(targetDir))
+            if (string.IsNullOrEmpty(targetDir) || !Directory.Exists(targetDir) || !PortalPathGuard.IsAllowed(RootPath, targetDir))
                 return;
 
             foreach (string sourcePath in files)
