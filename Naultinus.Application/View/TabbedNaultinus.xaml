@@ -183,71 +183,17 @@
             </Grid>
         </DataTemplate>
 
-        <!-- Browse naultinus (folder) -->
+        <!-- Browse naultinus (folder) : vue shell, bandeau Naultinus inchangé. -->
         <DataTemplate DataType="{x:Type viewModel:FolderPortalViewModel}">
             <Border CornerRadius="0" ClipToBounds="True" Background="{DynamicResource NaultinusControlBrush}">
                 <Grid>
-                    <Grid.Resources>
-                        <helpers:BindingProxy x:Key="folderProxy" Data="{Binding}" />
-                    </Grid.Resources>
-                    <Grid.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="{x:Static properties:Strings.MenuNewFolder}" Command="{Binding CreateNewFolderCommand}"/>
-                            <MenuItem Header="{x:Static properties:Strings.MenuNewTextFile}" Command="{Binding CreateNewFileCommand}"/>
-                            <MenuItem Header="{x:Static properties:Strings.MenuPaste}" Command="{Binding PasteFromClipboardCommand}"/>
-                            <Separator/>
-                            <MenuItem Header="{x:Static properties:Strings.MenuRefresh}" Command="{Binding RefreshCommand}"/>
-                            <MenuItem Header="{x:Static properties:Strings.MenuOpenInExplorer}" Command="{Binding OpenInExplorerCommand}"/>
-                        </ContextMenu>
-                    </Grid.ContextMenu>
                     <TextBlock Text="{Binding ErrorMessage, Mode=OneWay}"
                                Foreground="{DynamicResource NaultinusErrorBrush}"
                                FontSize="13"
                                Margin="15,10"
                                TextWrapping="Wrap"
                                Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibilityConverter}, FallbackValue=Collapsed}" />
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                        <ItemsControl ItemsSource="{Binding Items}" Margin="10"
-                                      VirtualizingPanel.IsVirtualizing="True"
-                                      VirtualizingPanel.VirtualizationMode="Recycling"
-                                      dd:DragDrop.IsDragSource="True"
-                                      dd:DragDrop.IsDropTarget="True"
-                                      dd:DragDrop.DropHandler="{Binding}"
-                                      dd:DragDrop.DragHandler="{Binding}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <ContentControl>
-                                        <i:Interaction.Triggers>
-                                            <i:EventTrigger EventName="MouseDoubleClick">
-                                                <i:InvokeCommandAction Command="{Binding Path=Data.NavigateIntoFolderCommand, Source={StaticResource folderProxy}}" CommandParameter="{Binding}" />
-                                            </i:EventTrigger>
-                                        </i:Interaction.Triggers>
-                                        <Border Margin="0,10" CornerRadius="3" Width="100">
-                                            <Border.Style>
-                                                <Style>
-                                                    <Style.Triggers>
-                                                        <Trigger Property="Border.IsMouseOver" Value="True">
-                                                            <Setter Property="Border.Background" Value="{DynamicResource NaultinusCardHoverBrush}" />
-                                                        </Trigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Border.Style>
-                                            <StackPanel VerticalAlignment="Top" HorizontalAlignment="Center" Cursor="Hand">
-                                                <Image Source="{Binding IconPath, Converter={StaticResource PathToImage}}" Width="48" Height="48" Stretch="UniformToFill" Margin="5" />
-                                                <TextBlock TextWrapping="NoWrap" TextAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding Name, Mode=OneWay}"
-                                                           Foreground="{DynamicResource NaultinusTextBrush}" HorizontalAlignment="Center" Margin="5,0,5,5" ToolTip="{Binding Name, Mode=OneWay}" />
-                                            </StackPanel>
-                                        </Border>
-                                    </ContentControl>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
+                    <view:PortalShellFolderView Visibility="{Binding ErrorMessage, Converter={StaticResource InverseEmptyStringToVisibilityConverter}}"/>
                 </Grid>
             </Border>
         </DataTemplate>
