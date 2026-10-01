@@ -508,7 +508,7 @@
     <Border x:Name="LayoutRoot" CornerRadius="0" ClipToBounds="True">
         <DockPanel>
             <!-- Les boutons d’onglet absorbent le clic (DragMove du Grid ne part pas). Un glissement au-delà du seuil système sur un onglet déplace la fenêtre ; un clic court la sélectionne. La colonne de 12 px reste une poignée pour le vide de la barre. -->
-            <Grid DockPanel.Dock="Top" x:Name="Header" MouseLeftButtonDown="Header_MouseLeftButtonDown" PreviewMouseLeftButtonDown="Header_PreviewMouseLeftButtonDown" PreviewMouseMove="Header_PreviewMouseMove" PreviewMouseLeftButtonUp="Header_PreviewMouseLeftButtonUp" IsHitTestVisible="True" Background="{DynamicResource NaultinusWindowBrush}" RowDefinitions="Auto,Auto">
+            <Grid DockPanel.Dock="Top" x:Name="Header" MouseLeftButtonDown="Header_MouseLeftButtonDown" PreviewMouseLeftButtonDown="Header_PreviewMouseLeftButtonDown" PreviewMouseMove="Header_PreviewMouseMove" PreviewMouseLeftButtonUp="Header_PreviewMouseLeftButtonUp" PreviewMouseRightButtonUp="Header_PreviewMouseRightButtonUp" IsHitTestVisible="True" Background="{DynamicResource NaultinusWindowBrush}" RowDefinitions="Auto,Auto">
                 <Grid.ContextMenu>
                     <ContextMenu>
                         <MenuItem Header="{x:Static properties:Strings.MenuEdit}" Command="{x:Static pal:NaultinusWpfCommands.OpenEditSelectedTabCommand}" CommandParameter="{Binding SelectedMember}">

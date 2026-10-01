@@ -76,6 +76,11 @@ namespace Naultinus.View
             catch (System.InvalidOperationException) { /* le bouton gauche n'est plus enfoncé : sans effet */ }
         }
 
+        private void Header_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            BannerContextMenu.Open(Header, e);
+        }
+
         // Le Button d'un onglet marque MouseLeftButtonDown comme géré : le Grid ne reçoit plus l'événement
         // et DragMove ne démarre pas. Dès le deuxième onglet, les libellés (surtout Parcourir) couvrent
         // la barre ; la poignée de 12 px ne suffit plus. Un écart au-delà du seuil système lance le

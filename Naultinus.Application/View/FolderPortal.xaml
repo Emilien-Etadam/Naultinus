@@ -39,7 +39,7 @@
     </Window.Resources>
     <Border x:Name="LayoutRoot" CornerRadius="0" ClipToBounds="True">
         <DockPanel>
-            <Grid DockPanel.Dock="Top" x:Name="Header" MouseLeftButtonDown="Header_MouseLeftButtonDown" IsHitTestVisible="True" Background="{DynamicResource NaultinusWindowBrush}" Tag="{Binding DataContext, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" RowDefinitions="Auto,Auto">
+            <Grid DockPanel.Dock="Top" x:Name="Header" MouseLeftButtonDown="Header_MouseLeftButtonDown" PreviewMouseRightButtonUp="Header_PreviewMouseRightButtonUp" IsHitTestVisible="True" Background="{DynamicResource NaultinusWindowBrush}" Tag="{Binding DataContext, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" RowDefinitions="Auto,Auto">
                 <Grid.ContextMenu>
                     <ContextMenu>
                         <MenuItem Header="{x:Static properties:Strings.MenuEdit}" Command="{Binding Path=Data.EditCommand, Source={StaticResource proxy}}" />

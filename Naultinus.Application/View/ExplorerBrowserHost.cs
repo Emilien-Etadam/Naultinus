@@ -31,9 +31,9 @@ namespace Naultinus.View
 
         internal bool IsReady => _browser != null;
 
-        internal void Bind(Func<string, bool> allowPath, Action<string> navigated)
+        internal void Bind(Func<string, bool> allowPath, Action<string> navigated, Action? navigationFailed)
         {
-            _site.Bind(allowPath, navigated);
+            _site.Bind(allowPath, navigated, navigationFailed);
         }
 
         internal void Unbind()

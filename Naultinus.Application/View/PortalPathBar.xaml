@@ -5,6 +5,18 @@
              Height="28"
              Background="{DynamicResource NaultinusWindowBrush}">
     <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/View/Styles/NaultinusStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        <Style x:Key="PortalBannerIconButton" TargetType="Button" BasedOn="{StaticResource HeaderActionButton}">
+            <Setter Property="Margin" Value="2,0,0,0"/>
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.35"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
         <Style x:Key="PortalBannerTextButton" TargetType="Button">
             <Setter Property="Foreground" Value="{DynamicResource NaultinusTextBrush}"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -36,20 +48,21 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
     <Grid ColumnDefinitions="Auto,*">
-        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,4,0">
-            <Button Content="{x:Static properties:Strings.PortalHome}"
+        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0,4,0">
+            <Button Content="&#x2302;"
                     Command="{Binding NavigateToRootCommand}"
                     ToolTip="{x:Static properties:Strings.TooltipGoToRoot}"
-                    Style="{StaticResource PortalBannerTextButton}"
-                    FontWeight="SemiBold"/>
-            <Button Content="{x:Static properties:Strings.PortalGoUp}"
+                    AutomationProperties.Name="{x:Static properties:Strings.PortalHome}"
+                    Style="{StaticResource PortalBannerIconButton}"/>
+            <Button Content="&#x2190;"
                     Command="{Binding NavigateBackCommand}"
                     IsEnabled="{Binding CanNavigateBack}"
                     ToolTip="{x:Static properties:Strings.TooltipNavigateBack}"
-                    Style="{StaticResource PortalBannerTextButton}"
-                    FontWeight="SemiBold"/>
+                    AutomationProperties.Name="{x:Static properties:Strings.PortalGoUp}"
+                    Style="{StaticResource PortalBannerIconButton}"/>
         </StackPanel>
         <ScrollViewer Grid.Column="1"
                       HorizontalScrollBarVisibility="Auto"
