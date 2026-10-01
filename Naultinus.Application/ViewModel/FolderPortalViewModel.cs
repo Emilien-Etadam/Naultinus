@@ -5,6 +5,7 @@ using Naultinus.Model;
 using Naultinus.Services;
 using Naultinus.View;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -19,6 +20,7 @@ namespace Naultinus.ViewModel
     public class FolderPortalViewModel : ViewModelBase, IDropTarget, IDragSource
     {
         private readonly FolderPortalModel _model;
+        private readonly ObservableCollection<PortalPathSegment> _breadcrumbSegments = new ObservableCollection<PortalPathSegment>();
         private ObservableCollection<FolderPortalItem> _items;
         private string _breadcrumb;
         private string _currentFolderName;
@@ -63,6 +65,8 @@ namespace Naultinus.ViewModel
             set { _breadcrumb = value; OnPropertyChanged(); }
         }
 
+        public ObservableCollection<PortalPathSegment> BreadcrumbSegments => _breadcrumbSegments;
+
         public string CurrentFolderName
         {
             get => _currentFolderName;
@@ -86,10 +90,7 @@ namespace Naultinus.ViewModel
             {
                 if (string.IsNullOrEmpty(RootPath) || string.IsNullOrEmpty(CurrentPath))
                     return false;
-                return !string.Equals(
-                    Path.GetFullPath(CurrentPath).TrimEnd(Path.DirectorySeparatorChar),
-                    Path.GetFullPath(RootPath).TrimEnd(Path.DirectorySeparatorChar),
-                    StringComparison.OrdinalIgnoreCase);
+                return !PortalPathGuard.AreSame(RootPath, CurrentPath);
             }
         }
 
@@ -218,6 +219,14 @@ namespace Naultinus.ViewModel
                     LoadFolder(RootPath);
             });
 
+            NavigateToSegmentCommand = new RelayCommand<PortalPathSegment>(segment =>
+            {
+                if (segment == null || string.IsNullOrEmpty(segment.Path))
+                    return;
+                if (!PortalPathGuard.IsAllowed(RootPath, segment.Path))
+                    return;
+                LoadFolder(segment.Path);
+            });
         }
 
         private bool TryLoadContained(string? path)
@@ -293,32 +302,23 @@ namespace Naultinus.ViewModel
 
         private void UpdateBreadcrumb()
         {
-            if (string.IsNullOrEmpty(RootPath) || string.IsNullOrEmpty(CurrentPath))
+            IReadOnlyList<PortalPathSegment> segments = PortalBreadcrumb.Build(RootPath, CurrentPath);
+            _breadcrumbSegments.Clear();
+            for (int i = 0; i < segments.Count; i++)
+                _breadcrumbSegments.Add(segments[i]);
+
+            if (segments.Count == 0)
             {
                 Breadcrumb = "";
                 CurrentFolderName = "";
-                return;
             }
-
-            string rootFull = Path.GetFullPath(RootPath).TrimEnd(Path.DirectorySeparatorChar);
-            string currentFull = Path.GetFullPath(CurrentPath).TrimEnd(Path.DirectorySeparatorChar);
-
-            CurrentFolderName = Path.GetFileName(currentFull);
-            if (string.IsNullOrEmpty(CurrentFolderName))
-                CurrentFolderName = currentFull;
-
-            string rootName = Path.GetFileName(rootFull);
-            if (string.IsNullOrEmpty(rootName))
-                rootName = rootFull;
-
-            if (string.Equals(rootFull, currentFull, StringComparison.OrdinalIgnoreCase))
-                Breadcrumb = rootName;
             else
             {
-                string relativePath = currentFull.Substring(rootFull.Length).TrimStart(Path.DirectorySeparatorChar);
-                string[] parts = relativePath.Split(Path.DirectorySeparatorChar);
-                Breadcrumb = rootName + " > " + string.Join(" > ", parts);
+                Breadcrumb = string.Join(" > ", segments.Select(segment => segment.Label));
+                CurrentFolderName = segments[segments.Count - 1].Label;
             }
+
+            OnPropertyChanged(nameof(CanNavigateBack));
         }
 
         private static bool IsHiddenOrSystemEntry(string path)
@@ -609,6 +609,7 @@ namespace Naultinus.ViewModel
         public ICommand OpenInExplorerCommand { get; }
         public ICommand RefreshCommand { get; }
         public ICommand NavigateToRootCommand { get; }
+        public ICommand NavigateToSegmentCommand { get; }
         #endregion
     }
 }
