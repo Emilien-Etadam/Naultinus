@@ -26,6 +26,11 @@ namespace Naultinus.View
             catch (System.InvalidOperationException) { /* le bouton gauche n'est plus enfoncé : sans effet */ }
         }
 
+        private void Header_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            BannerContextMenu.Open(Header, e);
+        }
+
         private void TitleBarMenuButton_Click(object sender, RoutedEventArgs e)
         {
             if (Header.ContextMenu is ContextMenu cm)

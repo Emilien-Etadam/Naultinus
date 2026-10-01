@@ -239,6 +239,24 @@ namespace Naultinus.ViewModel
             return true;
         }
 
+        /// <summary>
+        /// Aligne le bandeau sur le dossier que la vue shell vient d'ouvrir, sans relister les fichiers.
+        /// </summary>
+        public void ShowNavigatedFolder(string path)
+        {
+            if (string.IsNullOrEmpty(path) || !PortalPathGuard.IsAllowed(RootPath, path) || !Directory.Exists(path))
+                return;
+
+            ErrorMessage = "";
+            if (PortalPathGuard.AreSame(CurrentPath, path))
+            {
+                UpdateBreadcrumb();
+                return;
+            }
+
+            CurrentPath = path;
+        }
+
         public void LoadFolder(string path)
         {
             ErrorMessage = "";

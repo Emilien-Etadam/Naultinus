@@ -28,20 +28,23 @@ namespace Naultinus.View
 
         private Func<string, bool>? _allowPath;
         private Action<string>? _navigated;
+        private Action? _navigationFailed;
         private ExplorerBrowserInterop.IShellView? _shellView;
 
         internal Action? ViewReady { get; set; }
 
-        internal void Bind(Func<string, bool> allowPath, Action<string> navigated)
+        internal void Bind(Func<string, bool> allowPath, Action<string> navigated, Action? navigationFailed)
         {
             _allowPath = allowPath;
             _navigated = navigated;
+            _navigationFailed = navigationFailed;
         }
 
         internal void Clear()
         {
             _allowPath = null;
             _navigated = null;
+            _navigationFailed = null;
             ReleaseView();
         }
 
@@ -84,6 +87,7 @@ namespace Naultinus.View
                 if (allow == null || !allow(path))
                     return ExplorerBrowserInterop.AccessDenied;
 
+                _navigated?.Invoke(path);
                 return ExplorerBrowserInterop.Ok;
             }
             catch (Exception ex)
@@ -149,6 +153,15 @@ namespace Naultinus.View
 
         public int OnNavigationFailed(IntPtr folderPidl)
         {
+            try
+            {
+                _navigationFailed?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.Log("FolderPortal", "Échec de navigation shell ignoré.", ex);
+            }
+
             return ExplorerBrowserInterop.Ok;
         }
 

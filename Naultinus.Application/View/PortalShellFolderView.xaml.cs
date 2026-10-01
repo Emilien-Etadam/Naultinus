@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Naultinus.Helpers;
 using Naultinus.ViewModel;
 
@@ -23,6 +24,7 @@ namespace Naultinus.View
         private bool _ownerHooked;
         private bool _applyingShellNavigation;
         private bool _placingSurface;
+        private string? _pathBeforeShellMove;
 
         public PortalShellFolderView()
         {
@@ -36,7 +38,7 @@ namespace Naultinus.View
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
             _surface ??= new PortalShellSurface();
-            _surface.Browser.Bind(AllowPath, OnShellNavigated);
+            _surface.Browser.Bind(AllowPath, OnShellNavigated, OnShellNavigationFailed);
             _owner = Window.GetWindow(this);
             HookOwner();
 
@@ -145,10 +147,29 @@ namespace Naultinus.View
 
         private void OnShellNavigated(string path)
         {
-            _ = Dispatcher.InvokeAsync(() => ApplyShellNavigation(path));
+            // Send : le bandeau change avant le prochain rendu, sans relister le dossier dans le callback COM.
+            _ = Dispatcher.BeginInvoke(DispatcherPriority.Send, new Action(() => ApplyShellNavigation(path, rememberReturn: true)));
         }
 
-        private void ApplyShellNavigation(string path)
+        private void OnShellNavigationFailed()
+        {
+            // Hors du callback COM : BrowseToIDList depuis l'échec réentrerait dans le shell.
+            _ = Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(RestoreShellPath));
+        }
+
+        private void RestoreShellPath()
+        {
+            string? back = _pathBeforeShellMove;
+            _pathBeforeShellMove = null;
+            if (string.IsNullOrEmpty(back) || _surface == null)
+                return;
+
+            if (!_surface.Browser.IsShowing(back))
+                _surface.Browser.Browse(back);
+            ApplyShellNavigation(back, rememberReturn: false);
+        }
+
+        private void ApplyShellNavigation(string path, bool rememberReturn)
         {
             FolderPortalViewModel? portal = _portal;
             if (portal == null || _surface == null)
@@ -163,12 +184,19 @@ namespace Naultinus.View
 
             _surface.Browser.RememberShown(path);
             if (PortalPathGuard.AreSame(portal.CurrentPath, path))
+            {
+                _pathBeforeShellMove = null;
+                portal.ShowNavigatedFolder(path);
                 return;
+            }
+
+            if (rememberReturn)
+                _pathBeforeShellMove = portal.CurrentPath;
 
             _applyingShellNavigation = true;
             try
             {
-                portal.LoadFolder(path);
+                portal.ShowNavigatedFolder(path);
             }
             finally
             {
