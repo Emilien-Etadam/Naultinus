@@ -658,6 +658,12 @@
   <data name="TooltipForceSync" xml:space="preserve">
     <value>Forcer la synchronisation</value>
   </data>
+  <data name="PortalGoUp" xml:space="preserve">
+    <value>Remonter d'un dossier</value>
+  </data>
+  <data name="PortalHome" xml:space="preserve">
+    <value>Accueil</value>
+  </data>
   <data name="TooltipGoToRoot" xml:space="preserve">
     <value>Aller au dossier racine</value>
   </data>
@@ -668,7 +674,7 @@
     <value>Menu</value>
   </data>
   <data name="TooltipNavigateBack" xml:space="preserve">
-    <value>Retour</value>
+    <value>Remonter d'un dossier</value>
   </data>
   <data name="TooltipRefresh" xml:space="preserve">
     <value>Actualiser</value>

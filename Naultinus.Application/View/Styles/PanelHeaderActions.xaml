@@ -47,16 +47,8 @@
         </StackPanel>
     </DataTemplate>
 
+    <!-- Accueil, Remonter et le chemin sont sur la ligne du bandeau (PortalPathBar), pas dans cette barre d'onglets. -->
     <DataTemplate x:Key="FolderHeaderActionsTemplate">
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-            <Button Content="&#x2190;" Command="{Binding NavigateBackCommand}"
-                    ToolTip="{x:Static properties:Strings.TooltipNavigateBack}"
-                    Style="{StaticResource HeaderActionButton}" Margin="2,0,0,0"
-                    Visibility="{Binding CanNavigateBack, Converter={StaticResource BoolToVis}}"/>
-            <Button Content="&#x2302;" Command="{Binding NavigateToRootCommand}"
-                    ToolTip="{x:Static properties:Strings.TooltipGoToRoot}"
-                    Style="{StaticResource HeaderActionButton}" Margin="2,0,8,0"
-                    Visibility="{Binding CanNavigateBack, Converter={StaticResource BoolToVis}}"/>
-        </StackPanel>
+        <Grid/>
     </DataTemplate>
 </ResourceDictionary>

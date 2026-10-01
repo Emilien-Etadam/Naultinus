@@ -658,6 +658,12 @@
   <data name="TooltipForceSync" xml:space="preserve">
     <value>Force sync</value>
   </data>
+  <data name="PortalGoUp" xml:space="preserve">
+    <value>Up one folder</value>
+  </data>
+  <data name="PortalHome" xml:space="preserve">
+    <value>Home</value>
+  </data>
   <data name="TooltipGoToRoot" xml:space="preserve">
     <value>Go to root folder</value>
   </data>
@@ -668,7 +674,7 @@
     <value>Menu</value>
   </data>
   <data name="TooltipNavigateBack" xml:space="preserve">
-    <value>Back</value>
+    <value>Up one folder</value>
   </data>
   <data name="TooltipRefresh" xml:space="preserve">
     <value>Refresh</value>

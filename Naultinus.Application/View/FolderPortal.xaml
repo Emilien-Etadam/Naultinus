@@ -35,7 +35,6 @@
             <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
             <converters:InverseEmptyStringToVisibilityConverter x:Key="InverseEmptyStringToVisibilityConverter" />
             <helpers:BindingProxy x:Key="proxy" Data="{Binding}" />
-            <BooleanToVisibilityConverter x:Key="BoolToVis" />
         </ResourceDictionary>
     </Window.Resources>
     <Border x:Name="LayoutRoot" CornerRadius="0" ClipToBounds="True">
@@ -77,40 +76,16 @@
                         <MenuItem Header="{x:Static properties:Strings.MenuCheckForUpdates}" Command="{Binding Path=Data.CheckForUpdatesCommand, Source={StaticResource proxy}}" />
                     </ContextMenu>
                 </Grid.ContextMenu>
-                <Grid Grid.Row="0" Height="32" Background="{DynamicResource NaultinusWindowBrush}" ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+                <Grid Grid.Row="0" Height="32" Background="{DynamicResource NaultinusWindowBrush}" ColumnDefinitions="Auto,*,Auto">
                     <Button Grid.Column="0" Style="{StaticResource HeaderActionButton}" Margin="4,0,0,0" Click="TitleBarMenuButton_Click" ToolTip="{x:Static properties:Strings.TooltipMenu}">
                         <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE700;" FontSize="12" VerticalAlignment="Center"/>
                     </Button>
-                    <Button Grid.Column="1"
-                            Content="&#x2190;"
-                            Command="{Binding NavigateBackCommand}"
-                            ToolTip="{x:Static properties:Strings.TooltipNavigateBack}"
-                            Style="{StaticResource HeaderActionButton}"
-                            Margin="2,0,0,0"
-                            Visibility="{Binding CanNavigateBack, Converter={StaticResource BoolToVis}}"/>
-                    <TextBlock Grid.Column="2" Text="{Binding Name, Mode=OneWay}" Margin="5,0" Style="{StaticResource NaultinusHeaderText}" HorizontalAlignment="Center"/>
-
-                    <!-- Home button -->
-                    <Button Grid.Column="3"
-                            Content="&#x2302;"
-                            Command="{Binding NavigateToRootCommand}"
-                            ToolTip="{x:Static properties:Strings.TooltipGoToRoot}"
-                            Style="{StaticResource HeaderActionButton}"
-                            Margin="2,0,0,0"
-                            Visibility="{Binding CanNavigateBack, Converter={StaticResource BoolToVis}}"/>
-                    <Button Grid.Column="4" Style="{StaticResource HeaderActionButton}" Margin="2,0,8,0" Click="AddFolderPortalTab_Click" ToolTip="{x:Static properties:Strings.TooltipAddTabBrowseSameGroup}">
+                    <TextBlock Grid.Column="1" Text="{Binding Name, Mode=OneWay}" Margin="5,0" Style="{StaticResource NaultinusHeaderText}" HorizontalAlignment="Center"/>
+                    <Button Grid.Column="2" Style="{StaticResource HeaderActionButton}" Margin="2,0,8,0" Click="AddFolderPortalTab_Click" ToolTip="{x:Static properties:Strings.TooltipAddTabBrowseSameGroup}">
                         <TextBlock Text="+" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource NaultinusTextBrush}" VerticalAlignment="Center"/>
                     </Button>
                 </Grid>
-                <Grid Grid.Row="1" Background="{DynamicResource NaultinusWindowBrush}">
-                    <TextBlock Text="{Binding Breadcrumb, Mode=OneWay}"
-                               Foreground="{DynamicResource NaultinusTextBrush}"
-                               FontSize="12"
-                               Margin="15,2,15,4"
-                               TextTrimming="CharacterEllipsis"
-                               ToolTip="{Binding Breadcrumb, Mode=OneWay}"
-                               VerticalAlignment="Center" />
-                </Grid>
+                <view:PortalPathBar Grid.Row="1"/>
             </Grid>
             <Border CornerRadius="0" ClipToBounds="True" Background="{DynamicResource NaultinusControlBrush}">
                 <Grid>

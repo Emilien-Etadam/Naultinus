@@ -1090,6 +1090,16 @@
     "en": "Force sync"
   },
   {
+    "key": "PortalGoUp",
+    "fr": "Remonter d'un dossier",
+    "en": "Up one folder"
+  },
+  {
+    "key": "PortalHome",
+    "fr": "Accueil",
+    "en": "Home"
+  },
+  {
     "key": "TooltipGoToRoot",
     "fr": "Aller au dossier racine",
     "en": "Go to root folder"
@@ -1106,8 +1116,8 @@
   },
   {
     "key": "TooltipNavigateBack",
-    "fr": "Retour",
-    "en": "Back"
+    "fr": "Remonter d'un dossier",
+    "en": "Up one folder"
   },
   {
     "key": "TooltipRefresh",

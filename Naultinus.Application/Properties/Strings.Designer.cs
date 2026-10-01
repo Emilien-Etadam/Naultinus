@@ -224,6 +224,8 @@ namespace Naultinus.Properties
         public static string TooltipCalDAVBaseUrlExample => ResourceManager.GetString(nameof(TooltipCalDAVBaseUrlExample)) ?? string.Empty;
         public static string TooltipCalDAVUrlExampleZimbra => ResourceManager.GetString(nameof(TooltipCalDAVUrlExampleZimbra)) ?? string.Empty;
         public static string TooltipForceSync => ResourceManager.GetString(nameof(TooltipForceSync)) ?? string.Empty;
+        public static string PortalGoUp => ResourceManager.GetString(nameof(PortalGoUp)) ?? string.Empty;
+        public static string PortalHome => ResourceManager.GetString(nameof(PortalHome)) ?? string.Empty;
         public static string TooltipGoToRoot => ResourceManager.GetString(nameof(TooltipGoToRoot)) ?? string.Empty;
         public static string TooltipImapHostExample => ResourceManager.GetString(nameof(TooltipImapHostExample)) ?? string.Empty;
         public static string TooltipMenu => ResourceManager.GetString(nameof(TooltipMenu)) ?? string.Empty;

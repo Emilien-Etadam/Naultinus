@@ -508,7 +508,7 @@
     <Border x:Name="LayoutRoot" CornerRadius="0" ClipToBounds="True">
         <DockPanel>
             <!-- Les boutons d’onglet absorbent le clic (DragMove du Grid ne part pas). Un glissement au-delà du seuil système sur un onglet déplace la fenêtre ; un clic court la sélectionne. La colonne de 12 px reste une poignée pour le vide de la barre. -->
-            <Grid DockPanel.Dock="Top" x:Name="Header" Height="32" MouseLeftButtonDown="Header_MouseLeftButtonDown" PreviewMouseLeftButtonDown="Header_PreviewMouseLeftButtonDown" PreviewMouseMove="Header_PreviewMouseMove" PreviewMouseLeftButtonUp="Header_PreviewMouseLeftButtonUp" IsHitTestVisible="True" Background="{DynamicResource NaultinusWindowBrush}" ColumnDefinitions="Auto, 12, *, Auto, Auto">
+            <Grid DockPanel.Dock="Top" x:Name="Header" MouseLeftButtonDown="Header_MouseLeftButtonDown" PreviewMouseLeftButtonDown="Header_PreviewMouseLeftButtonDown" PreviewMouseMove="Header_PreviewMouseMove" PreviewMouseLeftButtonUp="Header_PreviewMouseLeftButtonUp" IsHitTestVisible="True" Background="{DynamicResource NaultinusWindowBrush}" RowDefinitions="Auto,Auto">
                 <Grid.ContextMenu>
                     <ContextMenu>
                         <MenuItem Header="{x:Static properties:Strings.MenuEdit}" Command="{x:Static pal:NaultinusWpfCommands.OpenEditSelectedTabCommand}" CommandParameter="{Binding SelectedMember}">
@@ -566,6 +566,7 @@
                         <MenuItem Header="{x:Static properties:Strings.MenuCheckForUpdates}" Command="{Binding Path=Data.CheckForUpdatesCommand, Source={StaticResource proxy}}" />
                     </ContextMenu>
                 </Grid.ContextMenu>
+                <Grid Grid.Row="0" Height="32" ColumnDefinitions="Auto, 12, *, Auto, Auto">
                 <Button Grid.Column="0" x:Name="TitleBarMenuButton" Style="{StaticResource HeaderActionButton}" Margin="4,0,0,0" Click="TitleBarMenuButton_Click" ToolTip="{x:Static properties:Strings.TooltipMenu}">
                     <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE700;" FontSize="12" VerticalAlignment="Center"/>
                 </Button>
@@ -602,6 +603,26 @@
                 <Button Grid.Column="4" Style="{StaticResource HeaderActionButton}" Margin="2,0,6,0" Click="AddFolderPortalTab_Click" ToolTip="{x:Static properties:Strings.TooltipAddTabBrowseSameGroup}">
                     <TextBlock Text="+" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource NaultinusTextBrush}" VerticalAlignment="Center"/>
                 </Button>
+                </Grid>
+                <ContentControl Grid.Row="1" Content="{Binding SelectedMember}">
+                    <ContentControl.Style>
+                        <Style TargetType="ContentControl">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Setter Property="ContentTemplate">
+                                <Setter.Value>
+                                    <DataTemplate>
+                                        <view:PortalPathBar/>
+                                    </DataTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SelectedMember, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource IsTypeConverter}, ConverterParameter={x:Type viewModel:FolderPortalViewModel}}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ContentControl.Style>
+                </ContentControl>
             </Grid>
             <ContentControl Content="{Binding SelectedMember}" />
         </DockPanel>
