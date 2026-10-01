@@ -31,10 +31,16 @@ namespace Naultinus.View
         internal const int OwnerWindowIndex = -8;
         internal const int WindowPosChanging = 0x0046;
         internal const int WindowPosChanged = 0x0047;
+        internal const uint SwpNoSize = 0x0001;
+        internal const uint SwpNoMove = 0x0002;
         internal const uint SwpNoZOrder = 0x0004;
         internal const uint SwpNoActivate = 0x0010;
         internal const uint SwpShowWindow = 0x0040;
+        internal const uint SwpHideWindow = 0x0080;
         internal const uint SwpNoCopyBits = 0x0100;
+
+        /// <summary>FWF_NOHEADERINALLVIEWS : titres de colonnes seulement en mode détails.</summary>
+        internal const int FolderHeaderOnlyInDetails = 0x01000000;
 
         internal static readonly Guid PaneVisibilityId = new("E07010EC-BC17-44C0-97B0-46C7C95B9EDC");
 
@@ -89,7 +95,10 @@ namespace Naultinus.View
         internal enum FolderViewMode
         {
             Auto = -1,
+            Details = 4,
         }
+
+        internal static readonly Guid FolderView2Id = new("1af3a467-214f-4298-908e-06b03e0b39f9");
 
         [Flags]
         internal enum ExplorerBrowserOptions
@@ -226,6 +235,93 @@ namespace Naultinus.View
 
             [PreserveSig]
             int Refresh();
+        }
+
+        /// <summary>
+        /// IFolderView2, méthodes précédentes jamais appelées : seul le cran de vtable de
+        /// <see cref="SetCurrentFolderFlags"/> compte.
+        /// </summary>
+        [ComImport]
+        [Guid("1af3a467-214f-4298-908e-06b03e0b39f9")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        internal interface IFolderView2Flags
+        {
+            void GetCurrentViewMode();
+
+            void SetCurrentViewMode();
+
+            void GetFolder();
+
+            void Item();
+
+            void ItemCount();
+
+            void Items();
+
+            void GetSelectionMarkedItem();
+
+            void GetFocusedItem();
+
+            void GetItemPosition();
+
+            void GetSpacing();
+
+            void GetDefaultSpacing();
+
+            void GetAutoArrange();
+
+            void SelectItem();
+
+            void SelectAndPositionItems();
+
+            void SetGroupBy();
+
+            void GetGroupBy();
+
+            void SetViewProperty();
+
+            void GetViewProperty();
+
+            void SetTileViewProperties();
+
+            void SetExtendedTileViewProperties();
+
+            void SetText();
+
+            [PreserveSig]
+            int SetCurrentFolderFlags(uint mask, uint flags);
+        }
+
+        internal static void KeepHeaderOnlyInDetails(object view)
+        {
+            IntPtr unknown = Marshal.GetIUnknownForObject(view);
+            try
+            {
+                Guid iid = FolderView2Id;
+                if (Marshal.QueryInterface(unknown, in iid, out IntPtr folderView) != Ok || folderView == IntPtr.Zero)
+                    return;
+
+                try
+                {
+                    var flags = (IFolderView2Flags)Marshal.GetTypedObjectForIUnknown(folderView, typeof(IFolderView2Flags));
+                    try
+                    {
+                        flags.SetCurrentFolderFlags((uint)FolderHeaderOnlyInDetails, (uint)FolderHeaderOnlyInDetails);
+                    }
+                    finally
+                    {
+                        Marshal.ReleaseComObject(flags);
+                    }
+                }
+                finally
+                {
+                    Marshal.Release(folderView);
+                }
+            }
+            finally
+            {
+                Marshal.Release(unknown);
+            }
         }
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]

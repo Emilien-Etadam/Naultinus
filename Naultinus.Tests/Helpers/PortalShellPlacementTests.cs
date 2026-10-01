@@ -55,5 +55,41 @@ namespace Naultinus.Tests.Helpers
 
             Assert.False(PortalShellPlacement.Intersection(content, window).HasValue);
         }
+
+        [Fact]
+        public void BelowBanner_SlotAlreadyUnderTheBanner_Stays()
+        {
+            var content = new PortalShellPlacement.PixelRect(10, 80, 200, 120);
+
+            PortalShellPlacement.PixelRect? visible = PortalShellPlacement.BelowBanner(content, 64);
+
+            Assert.True(visible.HasValue);
+            Assert.Equal(10, visible.Value.X);
+            Assert.Equal(80, visible.Value.Y);
+            Assert.Equal(200, visible.Value.Width);
+            Assert.Equal(120, visible.Value.Height);
+        }
+
+        [Fact]
+        public void BelowBanner_SlotCoveringTheBanner_IsCut()
+        {
+            var content = new PortalShellPlacement.PixelRect(0, 0, 400, 300);
+
+            PortalShellPlacement.PixelRect? visible = PortalShellPlacement.BelowBanner(content, 64);
+
+            Assert.True(visible.HasValue);
+            Assert.Equal(0, visible.Value.X);
+            Assert.Equal(64, visible.Value.Y);
+            Assert.Equal(400, visible.Value.Width);
+            Assert.Equal(236, visible.Value.Height);
+        }
+
+        [Fact]
+        public void BelowBanner_SlotEntirelyAboveTheBanner_HasNoSurface()
+        {
+            var content = new PortalShellPlacement.PixelRect(0, 0, 400, 40);
+
+            Assert.False(PortalShellPlacement.BelowBanner(content, 64).HasValue);
+        }
     }
 }

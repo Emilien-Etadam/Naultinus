@@ -52,5 +52,22 @@ namespace Naultinus.Helpers
 
             return new PixelRect(left, top, width, height);
         }
+
+        /// <summary>
+        /// Découpe le haut du rectangle pour qu'il commence au bord inférieur du bandeau, ou plus bas.
+        /// </summary>
+        internal static PixelRect? BelowBanner(PixelRect slot, int bannerBottom)
+        {
+            if (slot.Width <= 0 || slot.Height <= 0)
+                return null;
+            if (slot.Y >= bannerBottom)
+                return slot;
+
+            int height = slot.Height - (bannerBottom - slot.Y);
+            if (height <= 0)
+                return null;
+
+            return new PixelRect(slot.X, bannerBottom, slot.Width, height);
+        }
     }
 }
