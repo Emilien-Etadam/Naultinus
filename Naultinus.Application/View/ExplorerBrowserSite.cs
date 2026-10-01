@@ -30,6 +30,8 @@ namespace Naultinus.View
         private Action<string>? _navigated;
         private ExplorerBrowserInterop.IShellView? _shellView;
 
+        internal Action? ViewReady { get; set; }
+
         internal void Bind(Func<string, bool> allowPath, Action<string> navigated)
         {
             _allowPath = allowPath;
@@ -116,6 +118,15 @@ namespace Naultinus.View
                 NaultinusDiagnostics.Log("FolderPortal", "Vue shell créée, raccourcis clavier indisponibles.", ex);
             }
 
+            try
+            {
+                ViewReady?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ExplorerBrowserSite.ViewReady", ex);
+            }
+
             return ExplorerBrowserInterop.Ok;
         }
 
@@ -126,6 +137,7 @@ namespace Naultinus.View
                 string? path = ShellPathResolver.PathFromPidl(folderPidl);
                 if (!string.IsNullOrEmpty(path))
                     _navigated?.Invoke(path);
+                ViewReady?.Invoke();
             }
             catch (Exception ex)
             {

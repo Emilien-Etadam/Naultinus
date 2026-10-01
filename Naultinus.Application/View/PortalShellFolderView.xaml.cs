@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
+using System.Windows.Media;
 using Naultinus.Helpers;
 using Naultinus.ViewModel;
 
@@ -220,6 +221,17 @@ namespace Naultinus.View
                 return;
             }
 
+            if (TryGetBannerBottom(out int bannerBottom))
+            {
+                if (PortalShellPlacement.BelowBanner(slot, bannerBottom) is not PortalShellPlacement.PixelRect underBanner)
+                {
+                    _surface.Hide();
+                    return;
+                }
+
+                slot = underBanner;
+            }
+
             IntPtr ownerHwnd = new WindowInteropHelper(_owner).Handle;
             if (!PortalShellSurface.TryGetClientOnScreen(ownerHwnd, out PortalShellPlacement.PixelRect ownerClient))
             {
@@ -246,22 +258,52 @@ namespace Naultinus.View
 
         private bool TryGetSlot(out PortalShellPlacement.PixelRect slot)
         {
-            slot = default;
-            if (!IsVisible || ActualWidth < 2 || ActualHeight < 2 || PresentationSource.FromVisual(this) == null)
+            return TryGetElementOnScreen(this, out slot);
+        }
+
+        private bool TryGetBannerBottom(out int bottom)
+        {
+            bottom = 0;
+            if (_owner?.FindName("Header") is not FrameworkElement header || header.ActualHeight < 1)
+                return false;
+            if (PresentationSource.FromVisual(header) is not HwndSource source || source.CompositionTarget == null || _owner == null)
                 return false;
 
-            Point origin = PointToScreen(new Point(0, 0));
-            Point far = PointToScreen(new Point(ActualWidth, ActualHeight));
-            int left = (int)Math.Floor(Math.Min(origin.X, far.X));
-            int top = (int)Math.Floor(Math.Min(origin.Y, far.Y));
-            int right = (int)Math.Ceiling(Math.Max(origin.X, far.X));
-            int bottom = (int)Math.Ceiling(Math.Max(origin.Y, far.Y));
+            IntPtr hwnd = new WindowInteropHelper(_owner).Handle;
+            if (!PortalShellSurface.TryGetClientOnScreen(hwnd, out PortalShellPlacement.PixelRect client))
+                return false;
+
+            Point far = header.TransformToAncestor(source.RootVisual).Transform(new Point(0, header.ActualHeight));
+            far = source.CompositionTarget.TransformToDevice.Transform(far);
+            bottom = client.Y + (int)Math.Ceiling(far.Y);
+            return bottom > client.Y;
+        }
+
+        private bool TryGetElementOnScreen(FrameworkElement element, out PortalShellPlacement.PixelRect rect)
+        {
+            rect = default;
+            if (!element.IsVisible || element.ActualWidth < 2 || element.ActualHeight < 2 || _owner == null)
+                return false;
+            if (PresentationSource.FromVisual(element) is not HwndSource source || source.CompositionTarget == null)
+                return false;
+
+            IntPtr hwnd = new WindowInteropHelper(_owner).Handle;
+            if (!PortalShellSurface.TryGetClientOnScreen(hwnd, out PortalShellPlacement.PixelRect client))
+                return false;
+
+            GeneralTransform toRoot = element.TransformToAncestor(source.RootVisual);
+            Point origin = source.CompositionTarget.TransformToDevice.Transform(toRoot.Transform(new Point(0, 0)));
+            Point far = source.CompositionTarget.TransformToDevice.Transform(toRoot.Transform(new Point(element.ActualWidth, element.ActualHeight)));
+            int left = client.X + (int)Math.Floor(Math.Min(origin.X, far.X));
+            int top = client.Y + (int)Math.Ceiling(Math.Min(origin.Y, far.Y));
+            int right = client.X + (int)Math.Floor(Math.Max(origin.X, far.X));
+            int bottom = client.Y + (int)Math.Floor(Math.Max(origin.Y, far.Y));
             int width = right - left;
             int height = bottom - top;
             if (width <= 1 || height <= 1)
                 return false;
 
-            slot = new PortalShellPlacement.PixelRect(left, top, width, height);
+            rect = new PortalShellPlacement.PixelRect(left, top, width, height);
             return true;
         }
     }

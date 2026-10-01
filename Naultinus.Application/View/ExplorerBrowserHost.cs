@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Threading;
 using Naultinus.Helpers;
 
 namespace Naultinus.View
@@ -24,6 +25,8 @@ namespace Naultinus.View
         internal ExplorerBrowserHost()
         {
             Focusable = true;
+            _site.ViewReady = () => Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(ApplyChrome));
+            PortalShellChrome.Changed += ApplyChrome;
         }
 
         internal bool IsReady => _browser != null;
@@ -75,6 +78,7 @@ namespace Naultinus.View
 
                 _shownPath = path;
                 FitToHost();
+                ApplyChrome();
                 return true;
             }
             finally
@@ -166,7 +170,12 @@ namespace Naultinus.View
         protected override void Dispose(bool disposing)
         {
             if (disposing)
+            {
+                PortalShellChrome.Changed -= ApplyChrome;
+                _site.ViewReady = null;
                 TearDownBrowser();
+            }
+
             base.Dispose(disposing);
         }
 
@@ -183,7 +192,7 @@ namespace Naultinus.View
                 var settings = new ExplorerBrowserInterop.FolderSettings
                 {
                     ViewMode = ExplorerBrowserInterop.FolderViewMode.Auto,
-                    Options = 0,
+                    Options = ExplorerBrowserInterop.FolderHeaderOnlyInDetails,
                 };
                 int hr = _browser.Initialize(window, ref rect, settings);
                 if (hr != ExplorerBrowserInterop.Ok)
@@ -201,6 +210,7 @@ namespace Naultinus.View
                     NaultinusDiagnostics.Log("FolderPortal", "IExplorerBrowser.Advise a échoué : " + hr);
 
                 FitToHost();
+                ApplyChrome();
             }
             catch (Exception ex)
             {
@@ -282,6 +292,14 @@ namespace Naultinus.View
                 width = clientWidth;
             if (clientHeight > height)
                 height = clientHeight;
+        }
+
+        private void ApplyChrome()
+        {
+            if (_hostWindow == IntPtr.Zero)
+                return;
+
+            PortalShellChrome.Apply(_hostWindow, _site.ShellView);
         }
 
         private void FitToHost()

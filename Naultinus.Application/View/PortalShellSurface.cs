@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Naultinus.Helpers;
 
@@ -26,6 +27,7 @@ namespace Naultinus.View
         private bool _visible;
         private bool _disposed;
         private int _ownerMoveDepth;
+        private IntPtr _fillBrush;
         private PortalShellPlacement.PixelRect _last;
 
         internal static bool TryGetClientOnScreen(IntPtr window, out PortalShellPlacement.PixelRect rect)
@@ -49,13 +51,32 @@ namespace Naultinus.View
             return true;
         }
 
+        private static void ToDeviceIndependent(IntPtr ownerHwnd, PortalShellPlacement.PixelRect physical, out int x, out int y, out int width, out int height)
+        {
+            x = physical.X;
+            y = physical.Y;
+            width = Math.Max(1, physical.Width);
+            height = Math.Max(1, physical.Height);
+            HwndSource? source = HwndSource.FromHwnd(ownerHwnd);
+            if (source?.CompositionTarget == null)
+                return;
+
+            Matrix fromDevice = source.CompositionTarget.TransformFromDevice;
+            Point origin = fromDevice.Transform(new Point(physical.X, physical.Y));
+            x = (int)Math.Round(origin.X);
+            y = (int)Math.Round(origin.Y);
+            width = Math.Max(1, (int)Math.Round(physical.Width * fromDevice.M11));
+            height = Math.Max(1, (int)Math.Round(physical.Height * fromDevice.M22));
+        }
+
         internal PortalShellSurface()
         {
             _browser.HorizontalAlignment = HorizontalAlignment.Stretch;
             _browser.VerticalAlignment = VerticalAlignment.Stretch;
             _root.Children.Add(_browser);
             _root.SizeChanged += (_, _) => _browser.Fit();
-            _root.SetResourceReference(Panel.BackgroundProperty, "NaultinusControlBrush");
+            UseThemeFill();
+            PortalShellChrome.Changed += OnThemeChanged;
         }
 
         internal ExplorerBrowserHost Browser => _browser;
@@ -128,6 +149,9 @@ namespace Naultinus.View
 
             _disposed = true;
             _visible = false;
+            PortalShellChrome.Changed -= OnThemeChanged;
+            PortalShellChrome.DeleteFill(_fillBrush);
+            _fillBrush = IntPtr.Zero;
             if (_ownerSource != null)
             {
                 _ownerSource.RemoveHook(OnOwnerMessage);
@@ -150,14 +174,15 @@ namespace Naultinus.View
             if (_source != null)
                 return;
 
+            ToDeviceIndependent(ownerHwnd, rect, out int x, out int y, out int width, out int height);
             var parameters = new HwndSourceParameters("Naultinus.Portal")
             {
                 WindowStyle = ExplorerBrowserInterop.PopupClipStyle,
                 ExtendedWindowStyle = ExplorerBrowserInterop.ToolWindowExtendedStyle,
-                PositionX = rect.X,
-                PositionY = rect.Y,
-                Width = rect.Width,
-                Height = rect.Height,
+                PositionX = x,
+                PositionY = y,
+                Width = width,
+                Height = height,
                 UsesPerPixelOpacity = false,
                 RestoreFocusMode = RestoreFocusMode.None,
             };
@@ -190,13 +215,50 @@ namespace Naultinus.View
             return IntPtr.Zero;
         }
 
+        private void OnThemeChanged()
+        {
+            if (_disposed)
+                return;
+
+            UseThemeFill();
+        }
+
+        private void UseThemeFill()
+        {
+            if (!PortalShellChrome.TryGetTheme(out int background, out _))
+                return;
+
+            var color = Color.FromRgb((byte)(background & 0xFF), (byte)((background >> 8) & 0xFF), (byte)((background >> 16) & 0xFF));
+            _root.Background = new SolidColorBrush(color);
+            IntPtr next = PortalShellChrome.CreateFill(background);
+            IntPtr previous = _fillBrush;
+            _fillBrush = next;
+            PortalShellChrome.DeleteFill(previous);
+        }
+
         private IntPtr OnSurfaceMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
+            if (msg == 0x0014 && _fillBrush != IntPtr.Zero)
+            {
+                PortalShellChrome.Fill(wParam, hwnd, _fillBrush);
+                handled = true;
+                return (IntPtr)1;
+            }
+
             if (msg != ExplorerBrowserInterop.WindowPosChanging || _placing)
                 return IntPtr.Zero;
 
             var pos = Marshal.PtrToStructure<ExplorerBrowserInterop.WindowPos>(lParam);
             pos.Flags |= ExplorerBrowserInterop.SwpNoZOrder;
+            if (_visible && _last.Width > 1 && _last.Height > 1 && (pos.Flags & ExplorerBrowserInterop.SwpHideWindow) == 0)
+            {
+                pos.X = _last.X;
+                pos.Y = _last.Y;
+                pos.Width = _last.Width;
+                pos.Height = _last.Height;
+                pos.Flags &= ~(ExplorerBrowserInterop.SwpNoMove | ExplorerBrowserInterop.SwpNoSize);
+            }
+
             Marshal.StructureToPtr(pos, lParam, false);
             return IntPtr.Zero;
         }
