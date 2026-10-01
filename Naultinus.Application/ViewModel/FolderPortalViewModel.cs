@@ -24,6 +24,7 @@ namespace Naultinus.ViewModel
         private string _currentFolderName;
         private string _errorMessage;
         private FileSystemWatcher? _watcher;
+        private string? _watchedPath;
         private System.Threading.Timer? _fsDebounceTimer;
         private readonly object _fsTimerLock = new object();
         private bool _disposed;
@@ -332,6 +333,11 @@ namespace Naultinus.ViewModel
 
         private void SetupWatcher(string? path)
         {
+            // Recharger le même dossier ne doit pas détruire le watcher : le rafraîchissement
+            // est souvent déclenché par son propre callback.
+            if (_watcher != null && PortalPathGuard.AreSame(_watchedPath, path))
+                return;
+
             try
             {
                 _watcher?.Dispose();
@@ -342,6 +348,7 @@ namespace Naultinus.ViewModel
             }
 
             _watcher = null;
+            _watchedPath = null;
 
             lock (_fsTimerLock)
             {
@@ -378,6 +385,7 @@ namespace Naultinus.ViewModel
                 w.Changed += (_, _) => OnFileSystemEvent();
                 w.EnableRaisingEvents = true;
                 _watcher = w;
+                _watchedPath = path;
             }
             catch (Exception ex)
             {
@@ -403,7 +411,10 @@ namespace Naultinus.ViewModel
         {
             try
             {
-                _uiDispatcher.Invoke(() =>
+                // BeginInvoke : le thread du timer ne doit pas attendre le thread UI.
+                // Un Invoke synchrone pendant que l'UI recrée le watcher (ou résout le chemin)
+                // peut bloquer les deux côtés, et le processus de test ne se termine plus.
+                _uiDispatcher.BeginInvoke(() =>
                 {
                     if (_disposed)
                         return;
@@ -421,6 +432,7 @@ namespace Naultinus.ViewModel
             if (_disposed)
                 return;
             _disposed = true;
+            _watchedPath = null;
             try
             {
                 _watcher?.Dispose();

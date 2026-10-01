@@ -11,7 +11,7 @@ namespace Naultinus.Tests.ViewModel
 {
     /// <summary>
     /// Nécessite un thread STA et une <see cref="Dispatcher"/> WPF : le watcher déclenche un timer
-    /// qui rappelle l’UI via <c>Dispatcher.Invoke</c> ; sans Application, le test est exécuté sur un
+    /// qui rappelle l’UI via <c>Dispatcher.BeginInvoke</c> ; sans Application, le test est exécuté sur un
     /// thread STA dédié avec pompage du dispatcher.
     /// </summary>
     public class FolderPortalViewModelFileWatcherTests
@@ -20,7 +20,6 @@ namespace Naultinus.Tests.ViewModel
         public void FileSystemWatcher_NewFileAppearsInItems_AfterDebounce()
         {
             Exception? error = null;
-            bool found = false;
             var thread = new Thread(() =>
             {
                 try
@@ -46,15 +45,15 @@ namespace Naultinus.Tests.ViewModel
 
                         // Attendre l'apparition du fichier ou 8 s max (debounce 500 ms).
                         var deadline = DateTime.UtcNow.AddMilliseconds(8000);
-                        while (DateTime.UtcNow < deadline)
+                        var dispatcher = Application.Current!.Dispatcher;
+                        while (DateTime.UtcNow < deadline && vm.Items.Count == 0)
                         {
-                            Application.Current!.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
-                            if (vm.Items.Count > 0) break;
+                            Pump(dispatcher);
                             Thread.Sleep(25);
                         }
 
-                        found = vm.Items.Count > 0 && vm.Items[0].Name == "test.txt";
-                        Assert.True(found, "test.txt did not appear in Items within 8 s");
+                        Assert.True(vm.Items.Count > 0 && vm.Items[0].Name == "test.txt", "test.txt did not appear in Items within 8 s");
+                        vm.Dispose();
                     }
                     finally
                     {
@@ -69,11 +68,22 @@ namespace Naultinus.Tests.ViewModel
                 }
             });
 
+            // Arrière-plan : un blocage du dispatcher ne doit pas retenir le processus de test
+            // jusqu'au délai de six heures de l'agent Windows.
+            thread.IsBackground = true;
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
-            thread.Join(30000);
+            if (!thread.Join(30000))
+                throw new TimeoutException("Le thread STA du portail ne s'est pas terminé.");
             if (error != null)
                 throw new AggregateException(error);
+        }
+
+        private static void Pump(Dispatcher dispatcher)
+        {
+            var frame = new DispatcherFrame();
+            dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => frame.Continue = false));
+            Dispatcher.PushFrame(frame);
         }
     }
 }
