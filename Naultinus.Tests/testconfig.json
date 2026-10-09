@@ -1,0 +1,6 @@
+{
+  "$schema": "https://xunit.net/schema/current/xunit.testconfig.schema.json",
+  "xUnit": {
+    "parallelMode": "all"
+  }
+}

@@ -19,6 +19,13 @@ jobs:
         with:
           dotnet-version: '10.0.112'
 
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: nuget-
+
       - name: Restore dependencies
         run: dotnet restore Naultinus.Application/Naultinus.Application.csproj
 
