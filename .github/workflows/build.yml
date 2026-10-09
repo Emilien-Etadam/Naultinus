@@ -12,10 +12,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.112'
 
@@ -32,7 +32,7 @@ jobs:
         run: dotnet build Naultinus.Application/Naultinus.Application.csproj -c Release --no-restore
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Naultinus-win-x64
           path: Naultinus.Application/bin/Release/
