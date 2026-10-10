@@ -87,7 +87,10 @@
                 </Grid>
                 <view:PortalPathBar Grid.Row="1"/>
             </Grid>
-            <view:PortalFolderGrid/>
+            <Grid x:Name="BodyHost">
+                <view:PortalFolderGrid x:Name="WpfGridView"/>
+                <view:ShellFolderViewHost x:Name="ShellView" Visibility="Collapsed"/>
+            </Grid>
         </DockPanel>
     </Border>
 </Window>

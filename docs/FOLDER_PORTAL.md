@@ -21,6 +21,13 @@ Type de naultinus qui affiche le contenu d'un dossier choisi, comme un mini-expl
 
 Dans le dialogue : saisir un titre, parcourir le dossier racine, **Créer**.
 
+## Évolution visée
+
+Le portail doit afficher et manipuler les fichiers comme l'Explorateur Windows. L'architecture
+retenue (hébergement de la vue d'éléments du shell plutôt qu'une grille WPF redessinée), la liste
+des critères d'acceptation et le plan de travail sont dans
+[PORTAL_EXPLORER_PARITY.md](PORTAL_EXPLORER_PARITY.md).
+
 ## Limites connues
 
 - Pas de glisser-déposer de fichiers (contrairement aux naultinus raccourcis)
