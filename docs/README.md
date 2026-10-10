@@ -5,6 +5,7 @@ Notes techniques complémentaires au [README](../README.md) à la racine du dép
 | Document | Description |
 |----------|-------------|
 | [FOLDER_PORTAL.md](FOLDER_PORTAL.md) | Naultinus navigation (mini-explorateur de fichiers) |
+| [PORTAL_EXPLORER_PARITY.md](PORTAL_EXPLORER_PARITY.md) | Parité du portail avec l'Explorateur : choix d'architecture, critères d'acceptation, plan |
 | [CALDAV.md](CALDAV.md) | Intégration CalDAV (tâches et calendriers) |
 | [PLAN-archived.md](PLAN-archived.md) | Plan de développement historique (archivé) |
 
