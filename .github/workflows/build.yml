@@ -29,9 +29,6 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore Naultinus.Application/Naultinus.Application.csproj
 
-      - name: Build (Debug)
-        run: dotnet build Naultinus.Application/Naultinus.Application.csproj -c Debug --no-restore
-
       - name: Run tests
         run: dotnet test Naultinus.Tests/Naultinus.Tests.csproj -c Debug
 
