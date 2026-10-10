@@ -55,6 +55,32 @@ namespace Naultinus.ViewModel
             }
         }
 
+        /// <summary>Vrai pendant l'adoption d'un chemin venant de la vue hébergée (pas de renvoi).</summary>
+        private bool _adoptingShellPath;
+
+        public bool IsAdoptingShellPath => _adoptingShellPath;
+
+        /// <summary>
+        /// Enregistre le dossier que la vue d'éléments du shell affiche réellement, sans renvoyer de
+        /// navigation à la vue. Garde la barre de chemin et la flèche « remonter » justes quand
+        /// l'utilisateur double-clique un dossier.
+        /// </summary>
+        public void AdoptShellPath(string path)
+        {
+            if (string.IsNullOrEmpty(path) || string.Equals(path, CurrentPath, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            _adoptingShellPath = true;
+            try
+            {
+                CurrentPath = path;
+            }
+            finally
+            {
+                _adoptingShellPath = false;
+            }
+        }
+
         public ObservableCollection<FolderPortalItem> Items
         {
             get => _items;

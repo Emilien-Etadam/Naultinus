@@ -1,5 +1,6 @@
 using Microsoft.Win32;
 using System;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Media;
 
@@ -22,6 +23,7 @@ namespace Naultinus.Helpers
         {
             _resources = resources;
             bool dark = IsDarkMode();
+            ApplyProcessThemeMode(dark);
 
             // ── Jetons « VSS » (Design System) — valeurs exactes du kit, variantes sombre / claire.
             Color bg = C(dark ? "#1A1918" : "#F5F4F2");   // --bg
@@ -128,7 +130,32 @@ namespace Naultinus.Helpers
             return g;
         }
 
-        private static bool IsDarkMode()
+        /// <summary>Le système est-il en thème sombre (ApplicationsUtilisentThèmeClair = 0).</summary>
+        /// <summary>
+        /// Les vues du shell et les contrôles communs ne regardent pas le thème de l'application mais
+        /// le mode sombre déclaré pour le <em>processus</em> : un processus classique est déclaré clair,
+        /// et la vue de dossiers reste blanche au milieu d'une application sombre. Le réglage passe par
+        /// l'ordinal 135 de uxtheme.dll, non documenté ; on l'isole ici et son absence ne casse rien.
+        /// </summary>
+        private static void ApplyProcessThemeMode(bool dark)
+        {
+            try
+            {
+                _ = SetPreferredAppMode(dark ? PreferredAppModeForceDark : PreferredAppModeDefault);
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ThemeWatcher.ApplyProcessThemeMode", ex);
+            }
+        }
+
+        [DllImport("uxtheme.dll", EntryPoint = "#135")]
+        private static extern int SetPreferredAppMode(int mode);
+
+        private const int PreferredAppModeDefault = 0;
+        private const int PreferredAppModeForceDark = 1;
+
+        public static bool IsDarkMode()
         {
             try
             {

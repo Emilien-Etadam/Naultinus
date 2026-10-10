@@ -3,6 +3,7 @@ using Naultinus.Helpers.Native;
 using System;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
+using System.Windows;
 using System.Windows.Interop;
 
 namespace Naultinus.View
@@ -38,11 +39,26 @@ namespace Naultinus.View
         private IntPtr _siteHwnd;
         private bool _initialized;
 
+        /// <summary>Récepteur des notifications de la vue, à garder vivant tant que l'hôte écoute.</summary>
+        private ExplorerBrowserEventsSink? _events;
+        private uint _eventsCookie;
+        private bool _themeApplied;
+
+        /// <summary>Vrai pendant une navigation déclenchée par nous : la réponse ne doit pas nous revenir.</summary>
+        private bool _navigatingFromApp;
+
         /// <summary>Chemin demandé, conservé si la vue n'est pas encore prête.</summary>
         private string _pendingPath = "";
 
         /// <summary>Faux si l'hôte de vue n'a pas pu être créé : l'affichage WPF prend le relais.</summary>
         public bool IsAvailable => _initialized;
+
+        /// <summary>
+        /// Dossier que la vue affiche désormais, y compris quand l'utilisateur y est allé tout seul
+        /// (double-clic sur un dossier, retour arrière). Sert à garder la barre de chemin et la
+        /// flèche « remonter » cohérentes.
+        /// </summary>
+        public event Action<string>? Navigated;
 
         public ShellFolderViewHost()
         {
@@ -119,6 +135,7 @@ namespace Naultinus.View
         protected override void DestroyWindowCore(HandleRef hwnd)
         {
             Instances.TryRemove(hwnd.Handle, out _);
+            Microsoft.Win32.SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
             ReleaseBrowser();
             if (hwnd.Handle != IntPtr.Zero)
                 DestroyWindow(hwnd.Handle);
@@ -160,6 +177,7 @@ namespace Naultinus.View
             IntPtr pidl = IntPtr.Zero;
             try
             {
+                _navigatingFromApp = true;
                 int hr = ShellBrowserNative.SHParseDisplayName(path, IntPtr.Zero, out pidl, 0, out _);
                 if (hr != 0 || pidl == IntPtr.Zero)
                 {
@@ -168,6 +186,7 @@ namespace Naultinus.View
                 }
 
                 ((IExplorerBrowser)_browser!).BrowseToIDList(pidl, ShellBrowserNative.BrowseFlags.Absolute);
+                _navigatingFromApp = false;
             }
             catch (Exception ex)
             {
@@ -177,6 +196,7 @@ namespace Naultinus.View
             {
                 if (pidl != IntPtr.Zero)
                     ShellBrowserNative.ILFree(pidl);
+                _navigatingFromApp = false;
             }
         }
 
@@ -227,6 +247,8 @@ namespace Naultinus.View
                 explorerBrowser.SetOptions(ShellBrowserNative.ExplorerBrowserOptions.None);
 
                 _initialized = true;
+                AdviseEvents();
+                Microsoft.Win32.SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
                 NaultinusDiagnostics.Log("ShellFolderViewHost", "Vue du shell créée.");
                 if (!string.IsNullOrEmpty(_pendingPath))
                 {
@@ -246,6 +268,19 @@ namespace Naultinus.View
         {
             if (_browser == null)
                 return;
+
+            try
+            {
+                if (_events != null && _eventsCookie != 0)
+                    ((IExplorerBrowser)_browser).Unadvise(_eventsCookie);
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.Unadvise", ex);
+            }
+
+            _eventsCookie = 0;
+            _events = null;
 
             try
             {
@@ -303,6 +338,144 @@ namespace Naultinus.View
             {
                 ShellBrowserNative.MoveWindow(child, 0, 0, width, height, true);
                 child = ShellBrowserNative.GetWindow(child, ShellBrowserNative.GwHwndNext);
+            }
+        }
+
+        #endregion
+
+        #region Notifications de la vue
+
+        /// <summary>
+        /// Déclare notre récepteur d'événements auprès de l'hôte de vue. Le pointeur COM rendu par
+        /// <c>GetComInterfaceForObject</c> porte notre propre référence : on la rend tout de suite,
+        /// l'hôte garde la sienne tant que le cookie court.
+        /// </summary>
+        private void AdviseEvents()
+        {
+            if (_browser is not IExplorerBrowser browser)
+                return;
+
+            try
+            {
+                var sink = new ExplorerBrowserEventsSink();
+                sink.ViewCreated += OnViewCreated;
+                sink.NavigationComplete += OnNavigationComplete;
+
+                IntPtr sinkPointer = Marshal.GetComInterfaceForObject(sink, typeof(IExplorerBrowserEvents));
+                try
+                {
+                    browser.Advise(sinkPointer, out _eventsCookie);
+                }
+                finally
+                {
+                    Marshal.Release(sinkPointer);
+                }
+
+                _events = sink;
+            }
+            catch (Exception ex)
+            {
+                // Sans notifications, la vue fonctionne : seule la barre de chemin ne se resynchronise pas.
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.AdviseEvents", ex);
+            }
+        }
+
+        private void OnViewCreated()
+        {
+            NaultinusDiagnostics.Log("ShellFolderViewHost", "vue créée par l'hôte de navigation.");
+            ApplyViewTheme();
+        }
+
+        private void OnNavigationComplete(IntPtr pidlFolder)
+        {
+            // Trace de diagnostic : prouve que l'hôte de vue nous rappelle bien, y compris pour une
+            // navigation qu'il a faite tout seul (double-clic sur un dossier).
+            NaultinusDiagnostics.Log("ShellFolderViewHost", "notification de navigation reçue (initiée par l'application : " + _navigatingFromApp + ")");
+
+            // La navigation recrée des fenêtres : elles naissent avec le thème par défaut (clair).
+            _themeApplied = false;
+            ApplyViewTheme();
+
+            string? path = CurrentFolderPath();
+            NaultinusDiagnostics.Log("ShellFolderViewHost", "dossier réellement affiché : " + (path ?? "(élément hors système de fichiers)"));
+
+            if (_navigatingFromApp)
+                return;
+
+            if (!string.IsNullOrEmpty(path))
+                Navigated?.Invoke(path);
+        }
+
+        private void OnUserPreferenceChanged(object? sender, Microsoft.Win32.UserPreferenceChangedEventArgs e)
+        {
+            if (e.Category != Microsoft.Win32.UserPreferenceCategory.General)
+                return;
+
+            _themeApplied = false;
+            Application.Current?.Dispatcher.BeginInvoke(new Action(ApplyViewTheme));
+        }
+
+        /// <summary>
+        /// Le shell ne rend ses vues en sombre que si l'on demande le sous-thème « Explorer » à
+        /// chacune de ses fenêtres. Sans cela, le corps du portail reste blanc dans une application
+        /// sombre, ce qui est pire que l'inverse.
+        /// </summary>
+        private void ApplyViewTheme()
+        {
+            if (_siteHwnd == IntPtr.Zero || _themeApplied)
+                return;
+
+            _themeApplied = true;
+            ApplyTheme(_siteHwnd, ThemeWatcher.IsDarkMode());
+        }
+
+        private static void ApplyTheme(IntPtr hwnd, bool dark)
+        {
+            // Sous-thème « Explorer » et liste de parties vide : c'est la recette qui fait basculer
+            // les vues de dossiers. En clair on rend son thème par défaut à la fenêtre.
+            _ = ShellBrowserNative.SetWindowTheme(hwnd, dark ? "Explorer" : null, dark ? string.Empty : null);
+
+            for (IntPtr child = ShellBrowserNative.GetWindow(hwnd, ShellBrowserNative.GwChild); child != IntPtr.Zero; child = ShellBrowserNative.GetWindow(child, ShellBrowserNative.GwHwndNext))
+                ApplyTheme(child, dark);
+        }
+
+        /// <summary>
+        /// Lit le dossier réellement affiché par la vue : vue courante → dossier → nom complet.
+        /// Retourne null pour un élément hors système de fichiers (Corbeille, Réseau…).
+        /// </summary>
+        private string? CurrentFolderPath()
+        {
+            if (_browser is not IExplorerBrowser browser)
+                return null;
+
+            IntPtr namePointer = IntPtr.Zero;
+            object? folder = null;
+            try
+            {
+                Guid folderViewId = typeof(IFolderView).GUID;
+                browser.GetCurrentView(ref folderViewId, out object view);
+                if (view is not IFolderView folderView)
+                    return null;
+
+                Guid shellItemId = typeof(IShellItem).GUID;
+                folderView.GetFolder(ref shellItemId, out folder);
+                if (folder is not IShellItem item)
+                    return null;
+
+                item.GetDisplayName(ShellBrowserNative.SigdnFilePath, out namePointer);
+                return namePointer == IntPtr.Zero ? null : Marshal.PtrToStringUni(namePointer);
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.CurrentFolderPath", ex);
+                return null;
+            }
+            finally
+            {
+                if (namePointer != IntPtr.Zero)
+                    ShellBrowserNative.CoTaskMemFree(namePointer);
+                if (folder != null)
+                    Marshal.ReleaseComObject(folder);
             }
         }
 

@@ -53,6 +53,7 @@ namespace Naultinus.View
             if (viewModel != null)
             {
                 viewModel.PropertyChanged += ViewModel_PropertyChanged;
+                ShellView.Navigated += ShellView_Navigated;
                 Loaded += (_, _) => ShellView.Navigate(viewModel.CurrentPath);
             }
 
@@ -61,8 +62,23 @@ namespace Naultinus.View
 
         private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(FolderPortalViewModel.CurrentPath))
-                ShellView.Navigate(viewModel.CurrentPath);
+            if (e.PropertyName != nameof(FolderPortalViewModel.CurrentPath))
+                return;
+
+            // Un chemin qui vient de la vue n'a pas besoin d'être renvoyé à la vue.
+            if (viewModel.IsAdoptingShellPath)
+                return;
+
+            ShellView.Navigate(viewModel.CurrentPath);
+        }
+
+        /// <summary>
+        /// La vue a navigué seule (double-clic sur un dossier, retour arrière) : on aligne l'état,
+        /// la barre de chemin et la flèche « remonter ».
+        /// </summary>
+        private void ShellView_Navigated(string path)
+        {
+            viewModel.AdoptShellPath(path);
         }
 
         private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

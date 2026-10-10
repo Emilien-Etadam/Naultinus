@@ -120,7 +120,7 @@ quitter la naultinus.
 | PR | Contenu | Risque |
 |----|---------|--------|
 | 1 | Spike : hôte `HwndHost` + `IExplorerBrowser` + site COM + traduction clavier, fenêtre du portail rendue opaque, focus sans remontée de Z-order | élevé — valide ou invalide l'architecture |
-| 2 | Navigation : historique persisté par naultinus, remontée à la racine, titre = dossier affiché, ouverture dans l'Explorateur | faible |
+| 2 | Navigation : historique persisté par naultinus, remontée à la racine, titre = dossier affiché, ouverture dans l'Explorateur (déjà fait en PR 1 : suivi du dossier affiché par `IExplorerBrowserEvents`) | faible |
 | 3 | Pilotage de la vue : modes, taille d'icônes, tri et colonnes, délégation de l'état de vue au shell | moyen |
 | 4 | Interactions : dépôt sur un sous-dossier, menu du vide, recherche et filtre, infobulles, propriétés | moyen |
 | 5 | Finitions : cibles de recherche et chemins réseau, masquage des superpositions, bascules désactivables, messages d'erreur | faible |
@@ -141,6 +141,8 @@ pas le contenu hébergé.
 
 ![Corps de portail rendu par la vue d'éléments du shell](portal-shell-view.png)
 
+![Même corps en thème sombre](portal-shell-view-dark.png)
+
 Vérifié sur le poste Windows (Windows 11 24H2) avec un dossier de test : la vue s'affiche avec le
 rendu de l'Explorateur (colonnes Nom / Modifié le / Type / Taille, icônes vraies du shell, tri),
 elle suit le redimensionnement de la fenêtre, et l'arborescence des fenêtres est bien celle de
@@ -153,14 +155,42 @@ NaultinusShellViewSite › ExplorerBrowserControl › SHELLDLL_DefView › Direc
 Le repli fonctionne aussi : quand la vue ne peut pas être créée, le portail garde son affichage WPF
 et note la raison dans le journal de diagnostic.
 
+**Thème**. La vue hébergée sortait en blanc dans une application sombre. Deux réglages sont
+nécessaires, et le second seul suffit :
+
+- `SetWindowTheme(hwnd, L"Explorer", L"")` sur toute la chaîne de fenêtres (réglage par fenêtre) :
+  mesuré sans aucun effet sur Windows 11 24H2, luminance moyenne du corps 253 avant comme après ;
+- le mode sombre **du processus**, par l'ordinal 135 de `uxtheme.dll` (`SetPreferredAppMode`, non
+documenté) : luminance mesurée 61,4, la vue rend son thème sombre. Les vues du shell ne regardent
+pas le thème de l'application mais celui que le processus déclare, et un processus classique se
+déclare clair. L'appel est isolé dans `ThemeWatcher.ApplyProcessThemeMode`, avec repli silencieux
+s'il venait à manquer ; il est rappelé quand l'utilisateur change de thème.
+
+L'appel se fait avant la création des fenêtres. Une bascule sombre/clair en cours de session ne
+recolore donc pas une vue déjà ouverte : elle le sera à sa réouverture (à revoir en PR 3).
+
+**Navigation**. Un double-clic sur un sous-dossier déplace la vue sans rien dire au portail : la
+barre de chemin reste sur l'ancien dossier et la flèche « remonter » ne fait plus rien, parce que
+`PeutRemonter` croit encore être à la racine. L'hôte s'abonne donc à `IExplorerBrowserEvents`
+(`OnNavigationComplete`) et relit le dossier affiché par `IFolderView.GetFolder` puis
+`IShellItem.GetDisplayName(SIGDN_FILESYSPATH)` ; le portail enregistre ce chemin par
+`AdoptShellPath`, qui aligne l'état sans renvoyer de navigation à la vue. Journal mesuré :
+`dossier réellement affiché : C:\…\SpikeDocs`.
+
 Reste à juger à la main, ce que la mesure automatique ne couvre pas :
 
 - [ ] double-clic, sélection, clic droit, glisser-déposer et renommage se comportent comme dans
       l'Explorateur
 - [ ] le clavier entre dans la vue (flèches, `Entrée`, `F2`, `Suppr`, saisie du début du nom)
+- [ ] la flèche « remonter » suit les déplacements faits dans la vue (la synchro est câblée et
+      journalisée, mais les entrées synthétiques du banc d'essai n'atteignent pas la vue : à juger
+      au clavier et à la souris)
 - [ ] la naultinus reste derrière les autres fenêtres malgré les clics dans la vue
 - [ ] la navigation de la barre d'adresse et l'onglet pilotent bien la vue
 - [ ] aucune fuite : ouvrir et fermer la naultinus une dizaine de fois ne laisse pas de fenêtre orpheline
+
+Ce que le banc d'essai couvre : création de la vue, chaîne de fenêtres, dimensionnement, thème
+sombre mesuré, livraison des notifications de `IExplorerBrowserEvents` et lecture du chemin affiché.
 
 Limites assumées du spike : pas de `IShellBrowser` parent (donc pas de `Tab`/`MAJ+Tab` entre la vue
 et le reste de l'interface), mode de vue et colonnes non encore pilotés (`IFolderView2` = PR 3),
@@ -185,6 +215,16 @@ et fond opaque pour le corps du portail.
   échoue en `ERROR_CANNOT_FIND_WND_CLASS (1407)`.
 - `BuildWindowCore` ne doit **jamais** rendre un handle nul : WPF l'interprète comme une exception
   et ferme l'application. On rend une fenêtre vide et on garde l'affichage WPF.
+- Le thème sombre ne vient **pas** de `SetWindowTheme` : appeler `SetWindowTheme(hwnd, L"Explorer",
+  L"")` sur la vue et ses neuf fenêtres ne change rien sur 24H2. Ce qui change tout, c'est le mode
+  sombre du processus (`uxtheme.dll` ordinal 135), à demander avant la création des fenêtres.
+- Un récepteur `IExplorerBrowserEvents` doit rester **référencé** par nous tant que le cookie court :
+  sans champ qui le retient, le ramasse-miettes le collecte et les notifications s'arrêtent sans
+  erreur. La classe doit être `[ComVisible(true)]`, et le pointeur rendu par
+  `GetComInterfaceForObject` porte notre référence, à rendre après `Advise`.
+- Les entrées synthétiques (`PostMessage`/`SendMessage` de `VK_DOWN`, `VK_RETURN`, `VK_BACK`, et
+  même `mouse_event`) ne pilotent **pas** la vue de dossiers : le rendu se vérifie par capture
+  d'écran, mais le clavier et la souris ne se prouvent qu'à la main.
 - `Initialize` est appelé alors que la fenêtre hôte fait encore 1x1 (WPF dimensionne juste après) :
   c'est `SetRect`, déclenché par le message de dimensionnement, qui met la vue à l'heure.
 - La capture d'écran de validation doit passer par `PrintWindow` avec `PW_RENDERFULLCONTENT` :

@@ -33,6 +33,13 @@ namespace Naultinus.Helpers.Native
             public int Bottom;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct POINT
+        {
+            public int X;
+            public int Y;
+        }
+
         /// <summary>
         /// <c>FOLDERSETTINGS</c> : mode de vue et attributs d'affichage demandés à la création.
         /// Un pointeur nul laisse le shell appliquer les réglages mémorisés pour le dossier.
@@ -83,6 +90,24 @@ namespace Naultinus.Helpers.Native
             internal const uint SelectFromDataObject = 0x00000100;
             internal const uint NoDropTarget = 0x00000200;
         }
+
+        #endregion
+
+        #region Thème et chemins
+
+        /// <summary><c>SIGDN_FILESYSPATH</c> : chemin complet, pour les éléments du système de fichiers.</summary>
+        internal const uint SigdnFilePath = 0x80058000;
+
+        /// <summary>
+        /// Applique un sous-thème à une fenêtre. C'est par là que la vue hébergée bascule en sombre :
+        /// le shell ne suit le thème sombre que si on lui demande explicitement l'apparence « Explorer ».
+        /// Les deux paramètres à <c>null</c> reviennent au thème par défaut.
+        /// </summary>
+        [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)]
+        internal static extern int SetWindowTheme(IntPtr hwnd, string? subAppName, string? subIdList);
+
+        [DllImport("ole32.dll")]
+        internal static extern void CoTaskMemFree(IntPtr pv);
 
         #endregion
 
@@ -160,6 +185,82 @@ namespace Naultinus.Helpers.Native
 
         void RemoveAll();
 
-        void GetCurrentView([In] ref Guid riid, out IntPtr view);
+        void GetCurrentView([In] ref Guid riid, [MarshalAs(UnmanagedType.IUnknown)] out object view);
+    }
+
+    /// <summary>
+    /// <c>IExplorerBrowserEvents</c> : ce que l'hôte de vue nous apprend. <c>OnNavigationComplete</c>
+    /// est le seul moyen de savoir où l'utilisateur a atterri après un double-clic sur un dossier.
+    /// </summary>
+    [ComImport]
+    [Guid("361BBDC7-E6EE-4E13-BE58-58E2240C810F")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IExplorerBrowserEvents
+    {
+        void OnNavigationPending(IntPtr pidlFolder);
+
+        void OnViewCreated(IntPtr shellView);
+
+        void OnNavigationComplete(IntPtr pidlFolder);
+
+        void OnNavigationFailed(IntPtr pidlFolder);
+    }
+
+    /// <summary>
+    /// <c>IFolderView</c> : la vue d'éléments. <c>GetFolder</c> donne le dossier affiché à l'instant
+    /// où on l'interroge ; c'est ce qui sert à resynchroniser la barre de chemin.
+    /// </summary>
+    [ComImport]
+    [Guid("CDE725B0-CCC9-4519-917E-325D72FAB4CE")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IFolderView
+    {
+        void GetCurrentViewMode(out uint viewMode);
+
+        void SetCurrentViewMode(uint viewMode);
+
+        void GetFolder([In] ref Guid riid, [MarshalAs(UnmanagedType.IUnknown)] out object folder);
+
+        void Item(int item, out IntPtr pidl);
+
+        void ItemCount(uint flags, out int count);
+
+        void Items(uint flags, [In] ref Guid riid, out IntPtr items);
+
+        void GetSelectionMarkedItem(out int index);
+
+        void GetFocusedItem(out int index);
+
+        void GetItemPosition(IntPtr pidl, out ShellBrowserNative.POINT position);
+
+        void GetSpacing(out ShellBrowserNative.POINT spacing);
+
+        void GetDefaultSpacing(out ShellBrowserNative.POINT spacing);
+
+        void GetAutoArrange();
+
+        void SelectItem(int index, uint flags);
+
+        void SelectAndPositionItems(uint count, IntPtr pidls, IntPtr points, uint flags);
+    }
+
+    /// <summary>
+    /// <c>IShellItem</c> : un élément du shell. <c>GetDisplayName</c> rend sa chaîne, à libérer
+    /// avec <c>CoTaskMemFree</c>.
+    /// </summary>
+    [ComImport]
+    [Guid("43826D1E-E718-42EE-BC55-A1E261C37BFE")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IShellItem
+    {
+        void BindToHandler(IntPtr bindContext, [In] ref Guid handlerId, [In] ref Guid riid, out IntPtr result);
+
+        void GetParent(out IntPtr parent);
+
+        void GetDisplayName(uint displayNameKind, out IntPtr displayName);
+
+        void GetAttributes(uint mask, out uint attributes);
+
+        void Compare(IntPtr other, uint hint, out int order);
     }
 }
