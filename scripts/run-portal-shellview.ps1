@@ -1,11 +1,16 @@
 # Lance Naultinus avec le corps de portail rendu par la vue du shell.
 #
 # Regles retenues par mesure sur ce poste :
-#  - construire dans WSL (5 s) ; construire depuis Windows passe par le pont 9p, tres lent, et
-#    laisse un arbre bin/ incomplet s'il est interrompu ;
-#  - executer sur le poste, mais sur une COPIE LOCALE : le chemin UNC \\wsl.localhost... est vu par
-#    fois comme absent (cache du pont 9p), ce qui fait partir dotnet.exe sans rien afficher.
-param([switch]$Build)
+#  - construire dans WSL (6 s) ; construire depuis Windows passe par le pont 9p, tres lent, et une
+#    construction interrompue laisse un bin\ sans Naultinus.dll ;
+#  - executer sur une COPIE LOCALE : le chemin UNC \\wsl.localhost...\bin\ est vu parfois comme
+#    absent (cache du pont 9p) et dotnet.exe rend alors la main sans rien afficher ;
+#  - arreter les copies deja lancées : le mutex Local\Naultinus.SingleInstance ferme aussitôt la
+#    copie de developpement si l'application installee tourne (journal : « Instance deja en cours »).
+param(
+    [switch]$Build,        # construit d'abord dans WSL
+    [switch]$KeepRunning   # ne pas arreter les copies en cours
+)
 $ErrorActionPreference = 'Stop'
 
 $src = '\\wsl.localhost\Ubuntu-24.04\home\pc\Naultinus\Naultinus.Application\bin\Debug\net10.0-windows10.0.17763.0'
@@ -19,11 +24,24 @@ if ($Build) {
 
 Write-Host "Copie locale vers $dst..." -ForegroundColor Cyan
 robocopy $src $dst /MIR /R:5 /W:2 /NFL /NDL /NJH /NJS | Out-Null
-if ($LASTEXITCODE -ge 8) { throw "Copie impossible (robocopy $LASTEXITCODE). L'arbre de build est-etre vide : relance avec -Build." }
+if ($LASTEXITCODE -ge 8) { throw "Copie impossible (robocopy $LASTEXITCODE). Arbre de build vide ? Relancez avec -Build." }
 
 $dll = Join-Path $dst 'Naultinus.dll'
-if (-not (Test-Path -LiteralPath $dll)) { throw "Naultinus.dll absente de $dst : relance avec -Build." }
+if (-not (Test-Path -LiteralPath $dll)) { throw "Naultinus.dll absente de $dst. Relancez avec -Build." }
+
+if (-not $KeepRunning) {
+    $ids = @(
+        (Get-Process Naultinus -ErrorAction SilentlyContinue | ForEach-Object { $_.Id })
+        (Get-CimInstance Win32_Process -Filter "Name='dotnet.exe'" |
+            Where-Object { $_.CommandLine -like '*Naultinus.dll*' } | ForEach-Object { $_.ProcessId })
+    )
+    if ($ids.Count -gt 0) {
+        Write-Host ("Copie(s) deja en cours arrete(s) : " + ($ids -join ', ')) -ForegroundColor Yellow
+        $ids | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }
+        Start-Sleep -Seconds 2
+    }
+}
 
 $env:NAULTINUS_SHELLVIEW = '1'
-Write-Host "Execution (corps de portail = vue du shell). Journal : $env:TEMP\Naultinus_startup.log" -ForegroundColor Green
+Write-Host "Execution. Journal : $env:TEMP\Naultinus_startup.log" -ForegroundColor Green
 & 'C:\Program Files\dotnet\dotnet.exe' $dll
