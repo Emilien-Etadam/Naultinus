@@ -196,6 +196,23 @@ Limites assumées du spike : pas de `IShellBrowser` parent (donc pas de `Tab`/`M
 et le reste de l'interface), mode de vue et colonnes non encore pilotés (`IFolderView2` = PR 3),
 et fond opaque pour le corps du portail.
 
+### Lancer le spike sur un poste Windows
+
+Le code reste dans WSL, seul le poste exécute (le runtime WPF n'existe que là-bas). Deux règles
+venues de la mesure :
+
+- **construire dans WSL** : 6 s. Construire depuis Windows passe par le pont 9p, c'est lent, et une
+  construction interrompue laisse un `bin\` où `Naultinus.dll` a disparu — le lancement échoue
+  alors sans message ;
+- **exécuter une copie locale** : `\\wsl.localhost\…\bin\…` est vu parfois comme absent (cache du
+  pont 9p) et `dotnet.exe` rend la main sans rien afficher.
+
+`scripts/run-portal-shellview.ps1` applique ces deux règles ; `-Build` construit d'abord dans WSL.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run-portal-shellview.ps1 -Build
+```
+
 ### Pièges rencontrés, à ne pas répéter
 
 - L'interface est documentée dans **`shobjidl_core.h`**, avec `IID_IExplorerBrowser =
