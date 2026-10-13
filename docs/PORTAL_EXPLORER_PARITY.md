@@ -205,7 +205,10 @@ venues de la mesure :
   construction interrompue laisse un `bin\` où `Naultinus.dll` a disparu — le lancement échoue
   alors sans message ;
 - **exécuter une copie locale** : `\\wsl.localhost\…\bin\…` est vu parfois comme absent (cache du
-  pont 9p) et `dotnet.exe` rend la main sans rien afficher.
+  pont 9p) et `dotnet.exe` rend la main sans rien afficher ;
+- **arrêter les copies déjà lancées** : le mutex `Local\Naultinus.SingleInstance` ferme aussitôt la
+  copie de développement si l'application installée tourne, et le lanceur semble ne rien faire —
+  seule la ligne « Instance déjà en cours d'exécution » du journal le dit.
 
 `scripts/run-portal-shellview.ps1` applique ces deux règles ; `-Build` construit d'abord dans WSL.
 
