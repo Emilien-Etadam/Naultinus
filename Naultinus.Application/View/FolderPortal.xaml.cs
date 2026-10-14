@@ -1,5 +1,7 @@
+using Naultinus.Helpers.Native;
 using Naultinus.ViewModel;
 using Naultinus;
+using System;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
@@ -57,7 +59,42 @@ namespace Naultinus.View
                 Loaded += (_, _) => ShellView.Navigate(viewModel.CurrentPath);
             }
 
-            Activated += (_, _) => ShellView.FocusView();
+            // La vue peut changer de mode par son propre menu, et l'en-tête de colonnes reste alors
+            // accroché : on le remet d'accord avec le mode à chaque activation du portail.
+            Activated += (_, _) =>
+            {
+                ShellView.FocusView();
+                ShellView.ReconcileViewMode();
+            };
+
+            if (Environment.GetEnvironmentVariable("NAULTINUS_SHELLVIEW_DIAGMODE") == "cycle")
+                StartModeCycleForDiagnostics();
+        }
+
+        /// <summary>
+        /// Diagnostic réservé aux bancs d'essai : enchaîne les modes de vue pour mesurer ce que
+        /// chacun fait des titres de colonnes (NAULTINUS_SHELLVIEW_DIAGMODE=cycle).
+        /// </summary>
+        private void StartModeCycleForDiagnostics()
+        {
+            (uint Mode, bool Header, string Nom)[] steps =
+            {
+                (ShellBrowserNative.FolderViewModes.Details, true, "details"),
+                (ShellBrowserNative.FolderViewModes.Thumbnail, true, "vignettes"),
+                (ShellBrowserNative.FolderViewModes.List, true, "liste"),
+            };
+
+            int index = 0;
+            var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(6) };
+            timer.Tick += (_, _) =>
+            {
+                (uint Mode, bool Header, string Nom) step = steps[index % steps.Length];
+                ShellView.SetViewMode(step.Mode, step.Header);
+                Naultinus.Helpers.NaultinusDiagnostics.Log("Diagnostic.mode", "mode = " + step.Nom);
+                index++;
+            };
+
+            timer.Start();
         }
 
         private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)

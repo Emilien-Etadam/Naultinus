@@ -196,9 +196,36 @@ Limites assumées du spike : pas de `IShellBrowser` parent (donc pas de `Tab`/`M
 et le reste de l'interface), mode de vue et colonnes non encore pilotés (`IFolderView2` = PR 3),
 et fond opaque pour le corps du portail.
 
+**Mode d'affichage et titres de colonnes**. Le portail n'a pas encore de réglage de mode (PR 3) :
+aujourd'hui seul le menu de la vue en change. Mesures sur le poste, capture après chaque changement
+:
+
+| Action | Résultat mesuré |
+|---|---|
+| mode demandé par nous (`SetFolderSettings` + `IFolderView::SetCurrentViewMode`) | titres masqués dès que le mode n'est pas « détails » |
+| même demande avec `FWF_NOCOLUMNHEADER` en plus | identique, le drapeau n'ajoute rien dans ce chemin |
+| mode changé par le **menu de la vue** | les éléments se replacent en icônes mais **l'en-tête reste** |
+| retour au mode détails | titres revenus, implantation des éléments encore en icônes à la capture suivante |
+
+D'où le signalement « en vignettes je vois toujours les titres de la vue détails ». Le correctif :
+`ReconcileViewMode` relit le mode réel de la vue (`IFolderView::GetCurrentViewMode`) et recopie les
+réglages en conséquence — `FWF_NOCOLUMNHEADER` dès que le mode n'est pas détails. C'est appelé à
+chaque navigation et à chaque activation du portail, donc au plus tard au premier clic après un
+changement fait dans le menu de la vue. Le mode reste redemandé après chaque navigation : le shell
+rétablit ses propres réglages mémorisés par dossier.
+
+Attention aux valeurs de `FOLDERVIEWMODE`, lues dans `shobjidl_core.h` : **`FVM_DETAILS` vaut 4**,
+`FVM_THUMBNAIL` 5, `FVM_LIST` 3. Les valeurs qu'on trouve dans d'anciens articles (détails = 3) sont
+fausses et font tomber le mode « liste ».
+
+Ce que la machine n'a pas pu prouver : le cas précis du titre resté accroché après un changement
+fait dans le menu de la vue — les entrées synthétiques ne pilotent pas ce menu. Le drapeau
+`FWF_NOCOLUMNHEADER` est la réponse documentée à cet état, mais il reste à le confirmer à la main.
+
+
 ### Lancer le spike sur un poste Windows
 
-Le code reste dans WSL, seul le poste exécute (le runtime WPF n'existe que là-bas). Deux règles
+Le code reste dans WSL, seul le poste exécute (le runtime WPF n'existe que là-bas). Trois règles
 venues de la mesure :
 
 - **construire dans WSL** : 6 s. Construire depuis Windows passe par le pont 9p, c'est lent, et une

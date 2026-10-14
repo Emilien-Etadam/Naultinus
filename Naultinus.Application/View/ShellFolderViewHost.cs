@@ -47,6 +47,10 @@ namespace Naultinus.View
         /// <summary>Vrai pendant une navigation déclenchée par nous : la réponse ne doit pas nous revenir.</summary>
         private bool _navigatingFromApp;
 
+        /// <summary>Mode de vue demandé, 0 pour laisser le shell faire à sa tête.</summary>
+        private uint _viewMode;
+        private bool _showColumnHeader = true;
+
         /// <summary>Chemin demandé, conservé si la vue n'est pas encore prête.</summary>
         private string _pendingPath = "";
 
@@ -341,6 +345,94 @@ namespace Naultinus.View
             }
         }
 
+        /// <summary>
+        /// Mode d'affichage de la vue et titres de colonnes. Le shell rétablit ses propres réglages
+        /// mémorisés par dossier à chaque navigation : ils sont donc redemandés après chacune.
+        /// </summary>
+        public void SetViewMode(uint viewMode, bool showColumnHeader)
+        {
+            _viewMode = viewMode;
+            _showColumnHeader = showColumnHeader;
+            ApplyViewMode();
+        }
+
+        /// <summary>
+        /// Remet l'en-tête de colonnes d'accord avec le mode affiché. À appeler quand on a une raison
+        /// de croire que la vue a changé d'avis toute seule (menu contextuel de la vue).
+        /// </summary>
+        public void ReconcileViewMode()
+        {
+            if (_viewMode != 0)
+                ApplyViewMode();
+            else
+                EnforceColumnHeader();
+        }
+
+        /// <summary>
+        /// Les titres de colonnes n'ont rien à faire dans un mode qui n'est pas « détails ». Mesuré :
+        /// un mode changé par nos soins masque d'office les titres ; un mode changé par le menu de la
+        /// vue, lui, laisse l'en-tête en place. On recopie donc les réglages selon le mode réel.
+        /// </summary>
+        private void EnforceColumnHeader()
+        {
+            if (_browser is not IExplorerBrowser browser)
+                return;
+
+            try
+            {
+                Guid folderViewId = typeof(IFolderView).GUID;
+                browser.GetCurrentView(ref folderViewId, out object view);
+                if (view is not IFolderView folderView)
+                    return;
+
+                folderView.GetCurrentViewMode(out uint mode);
+                var settings = new ShellBrowserNative.FolderSettings
+                {
+                    ViewMode = (int)mode,
+                    Flags = mode == ShellBrowserNative.FolderViewModes.Details ? 0u : ShellBrowserNative.FolderViewFlags.NoColumnHeader,
+                };
+
+                browser.SetFolderSettings(ref settings);
+                NaultinusDiagnostics.Log("ShellFolderViewHost", "mode relevé dans la vue : " + mode + ", titres de colonnes : " + (mode == ShellBrowserNative.FolderViewModes.Details));
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.EnforceColumnHeader", ex);
+            }
+        }
+
+        /// <summary>
+        /// Le mode passe par les réglages de dossier et par la vue courante : les deux sont
+        /// nécessaires, <c>SetFolderSettings</c> seul ne repeint pas une vue déjà dessinée.
+        /// </summary>
+        private void ApplyViewMode()
+        {
+            if (_browser is not IExplorerBrowser browser || _viewMode == 0)
+                return;
+
+            try
+            {
+                var settings = new ShellBrowserNative.FolderSettings
+                {
+                    ViewMode = (int)_viewMode,
+                    Flags = _showColumnHeader ? 0u : ShellBrowserNative.FolderViewFlags.NoColumnHeader,
+                };
+
+                browser.SetFolderSettings(ref settings);
+
+                Guid folderViewId = typeof(IFolderView).GUID;
+                browser.GetCurrentView(ref folderViewId, out object view);
+                if (view is IFolderView folderView)
+                    folderView.SetCurrentViewMode(_viewMode);
+
+                NaultinusDiagnostics.Log("ShellFolderViewHost", "mode de vue demandé : " + _viewMode + ", titres de colonnes : " + _showColumnHeader);
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.ApplyViewMode", ex);
+            }
+        }
+
         #endregion
 
         #region Notifications de la vue
@@ -384,6 +476,7 @@ namespace Naultinus.View
         {
             NaultinusDiagnostics.Log("ShellFolderViewHost", "vue créée par l'hôte de navigation.");
             ApplyViewTheme();
+            ApplyViewMode();
         }
 
         private void OnNavigationComplete(IntPtr pidlFolder)
@@ -395,6 +488,9 @@ namespace Naultinus.View
             // La navigation recrée des fenêtres : elles naissent avec le thème par défaut (clair).
             _themeApplied = false;
             ApplyViewTheme();
+
+            // Le shell rétablit le mode mémorisé pour ce dossier : on redemande le nôtre.
+            ReconcileViewMode();
 
             string? path = CurrentFolderPath();
             NaultinusDiagnostics.Log("ShellFolderViewHost", "dossier réellement affiché : " + (path ?? "(élément hors système de fichiers)"));

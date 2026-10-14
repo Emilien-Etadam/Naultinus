@@ -55,6 +55,32 @@ namespace Naultinus.Helpers.Native
 
         #region Options et indicateurs
 
+        /// <summary>
+        /// <c>FOLDERVIEWMODE</c> : mode d'affichage de la vue d'éléments. Valeurs de l'en-tête
+        /// <c>shobjidl_core.h</c> — attention, le mode « détails » vaut 4, pas 3.
+        /// </summary>
+        internal static class FolderViewModes
+        {
+            public const uint Icon = 1;
+            public const uint SmallIcon = 2;
+            public const uint List = 3;
+            public const uint Details = 4;
+            public const uint Thumbnail = 5;
+            public const uint Tile = 6;
+            public const uint Content = 8;
+        }
+
+        /// <summary>
+        /// <c>FOLDERFLAGS</c> : attributs demandés à la vue. <c>FWF_NOHEADERINALLVIEWS</c> affiche
+        /// les titres de colonnes dans tous les modes, <c>FWF_NOCOLUMNHEADER</c> les masque.
+        /// </summary>
+        internal static class FolderViewFlags
+        {
+            public const uint NoColumnHeader = 0x00800000;
+            public const uint NoHeaderInAllViews = 0x01000000;
+            public const uint FullRowSelect = 0x00200000;
+        }
+
         /// <summary>Catégorie du PIDL passée à <c>BrowseToIDList</c> (SBSP_*).</summary>
         internal static class BrowseFlags
         {
