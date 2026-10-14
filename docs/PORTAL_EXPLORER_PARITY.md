@@ -207,20 +207,33 @@ aujourd'hui seul le menu de la vue en change. Mesures sur le poste, capture apr�
 | mode changé par le **menu de la vue** | les éléments se replacent en icônes mais **l'en-tête reste** |
 | retour au mode détails | titres revenus, implantation des éléments encore en icônes à la capture suivante |
 
-D'où le signalement « en vignettes je vois toujours les titres de la vue détails ». Le correctif :
-`ReconcileViewMode` relit le mode réel de la vue (`IFolderView::GetCurrentViewMode`) et recopie les
-réglages en conséquence — `FWF_NOCOLUMNHEADER` dès que le mode n'est pas détails. C'est appelé à
-chaque navigation et à chaque activation du portail, donc au plus tard au premier clic après un
-changement fait dans le menu de la vue. Le mode reste redemandé après chaque navigation : le shell
-rétablit ses propres réglages mémorisés par dossier.
+D'où le signalement « en vignettes je vois toujours les titres de la vue détails ». Le mode de la
+vue ne prévient personne quand il change : `IExplorerBrowserEvents` n'a pas d'événement pour ça, et
+le menu de la vue ne désactive pas le portail, donc un clic dedans ne déclenche pas non plus
+l'activation. Mesure du 14 octobre, avec un banc qui change le mode par la seule vue
+(`IFolderView::SetCurrentViewMode`, le chemin du menu, réglages du dossier laissés à détails) :
+
+| cas | résultat mesuré |
+|---|---|
+| veille désactivée | le mode passe de 4 à 1, **aucune** ligne de reconciliation dans le journal — les titres restent accrochés, c'est le défaut signalé |
+| veille active | mode passé à 1 remarqué **0,58 s** après le changement, réglages recopiés dans la foulée (`titres de colonnes : False`) ; idem pour le mode 3 |
+
+Le correctif tient donc en deux temps. `EnforceColumnHeader` relit le mode réel
+(`IFolderView::GetCurrentViewMode`) et recopie les réglages en conséquence — `FWF_NOCOLUMNHEADER`
+dès que le mode n'est pas détails. Et une veille (`DispatcherTimer`) appelle cette remise à
+l'heure : à 400 ms tant que le portail est au premier plan, à 1500 ms ailleurs, démarrée dès que la
+vue existe. Le mode reste redemandé après chaque navigation : le shell rétablit ses propres réglages
+mémorisés par dossier.
 
 Attention aux valeurs de `FOLDERVIEWMODE`, lues dans `shobjidl_core.h` : **`FVM_DETAILS` vaut 4**,
 `FVM_THUMBNAIL` 5, `FVM_LIST` 3. Les valeurs qu'on trouve dans d'anciens articles (détails = 3) sont
-fausses et font tomber le mode « liste ».
+fausses et font tomber le mode « liste ». Autre mesure : demander le mode vignettes (5) rend le mode
+**1** quand le dossier n'a pas de gestionnaire de vignettes — la vue retombe sur les icônes, ce
+n'est pas un échec.
 
-Ce que la machine n'a pas pu prouver : le cas précis du titre resté accroché après un changement
-fait dans le menu de la vue — les entrées synthétiques ne pilotent pas ce menu. Le drapeau
-`FWF_NOCOLUMNHEADER` est la réponse documentée à cet état, mais il reste à le confirmer à la main.
+Ce que la machine n'a pas pu prouver : le geste manuel dans le menu de la vue (les entrées
+synthétiques ne le pilotent pas) et le rendu final à l'écran. La chaine interne — changement de mode
+sans notification, détection, remise à l'heure des titres — est en revanche mesurée.
 
 
 ### Lancer le spike sur un poste Windows
@@ -276,3 +289,10 @@ powershell -ExecutionPolicy Bypass -File .\run-portal-shellview.ps1 -Build
   c'est `SetRect`, déclenché par le message de dimensionnement, qui met la vue à l'heure.
 - La capture d'écran de validation doit passer par `PrintWindow` avec `PW_RENDERFULLCONTENT` :
   une capture d'écran du contenu de l'écran est faussée par les fenêtres qui passent devant.
+- Un `DispatcherTimer` créé dans le rappel `IExplorerBrowserEvents` (événement « vue créée ») ne bat
+  **jamais** : ce rappel n'arrive pas toujours sur le fil d'interface, et le ventilateur se range
+  alors sur le ventilateur de dispatch du fil COM, qui ne tourne pas. À renvoyer sur le fil
+  d'interface avec `Dispatcher.BeginInvoke`.
+- Un portail posé sur le bureau ne tient pas le premier plan : une veille démarrée à l'activation et
+  arrêtée à la déactivation ne sert jamais, puisque rien ne l'active. La démarrer à la création de la
+  vue et seulement ralentir le rythme quand le portail n'est pas au premier plan.

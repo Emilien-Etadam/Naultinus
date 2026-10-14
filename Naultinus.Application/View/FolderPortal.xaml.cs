@@ -65,9 +65,12 @@ namespace Naultinus.View
             {
                 ShellView.FocusView();
                 ShellView.ReconcileViewMode();
+                ShellView.StartModeWatch();
             };
+            Deactivated += (_, _) => ShellView.SlowModeWatch();
 
-            if (Environment.GetEnvironmentVariable("NAULTINUS_SHELLVIEW_DIAGMODE") == "cycle")
+            if (Environment.GetEnvironmentVariable("NAULTINUS_SHELLVIEW_DIAGMODE") == "cycle"
+                || string.Equals(Environment.GetEnvironmentVariable("NAULTINUS_SHELLVIEW_DIAGMODE"), "menu", StringComparison.OrdinalIgnoreCase))
                 StartModeCycleForDiagnostics();
         }
 
@@ -85,12 +88,27 @@ namespace Naultinus.View
             };
 
             int index = 0;
+            bool throughView = string.Equals(
+                Environment.GetEnvironmentVariable("NAULTINUS_SHELLVIEW_DIAGMODE"),
+                "menu",
+                StringComparison.OrdinalIgnoreCase);
             var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(6) };
             timer.Tick += (_, _) =>
             {
                 (uint Mode, bool Header, string Nom) step = steps[index % steps.Length];
-                ShellView.SetViewMode(step.Mode, step.Header);
-                Naultinus.Helpers.NaultinusDiagnostics.Log("Diagnostic.mode", "mode = " + step.Nom);
+                if (throughView)
+                {
+                    // Chemin du menu de la vue : la vue change le mode sans que les réglages du
+                    // dossier bougent. C'est l'état où les éléments partent en icônes et où l'en-tête
+                    // reste accroché.
+                    ShellView.SetViewModeThroughViewOnly(step.Mode);
+                }
+                else
+                {
+                    ShellView.SetViewMode(step.Mode, step.Header);
+                }
+
+                Naultinus.Helpers.NaultinusDiagnostics.Log("Diagnostic.mode", "mode = " + step.Nom + (throughView ? " (par la vue seule)" : string.Empty));
                 index++;
             };
 

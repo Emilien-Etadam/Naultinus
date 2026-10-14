@@ -51,6 +51,15 @@ namespace Naultinus.View
         private uint _viewMode;
         private bool _showColumnHeader = true;
 
+        /// <summary>Mode relevé dans la vue à la dernière surveillance, pour ne réagir qu'aux changements.</summary>
+        private uint _lastKnownMode = uint.MaxValue;
+
+        /// <summary>Ventilateur du mode : tourne tant que le portail est au premier plan.</summary>
+        private System.Windows.Threading.DispatcherTimer? _modeWatch;
+
+        /// <summary>Fil d'interface, capté à la construction : le ventilateur doit y vivre.</summary>
+        private readonly System.Windows.Threading.Dispatcher _dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
+
         /// <summary>Chemin demandé, conservé si la vue n'est pas encore prête.</summary>
         private string _pendingPath = "";
 
@@ -140,6 +149,7 @@ namespace Naultinus.View
         {
             Instances.TryRemove(hwnd.Handle, out _);
             Microsoft.Win32.SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
+            StopModeWatch();
             ReleaseBrowser();
             if (hwnd.Handle != IntPtr.Zero)
                 DestroyWindow(hwnd.Handle);
@@ -357,6 +367,125 @@ namespace Naultinus.View
         }
 
         /// <summary>
+        /// Surveille le mode de la vue. Le menu de la vue change le mode sans prévenir personne, et
+        /// comme il ne désactive pas le portail, un clic dedans ne déclenche pas non plus
+        /// l'activation : sans cette veille, les titres de colonnes restent accrochés jusqu'au
+        /// prochain clic extérieur. Le rythme est rapide quand le portail est au premier plan et
+        /// lent ailleurs, pour ne pas réveiller la machine pour rien.
+        /// </summary>
+        public void StartModeWatch()
+        {
+            // Banc d'essai : permet de reproduire l'état bloqué, veille désactivée.
+            if (Environment.GetEnvironmentVariable("NAULTINUS_SHELLVIEW_NOWATCH") == "1")
+                return;
+
+            // L'événement « vue créée » arrive parfois sur le fil COM : le ventilateur doit vivre
+            // sur le fil d'interface, sinon il ne bat jamais.
+            if (!_dispatcher.CheckAccess())
+            {
+                _dispatcher.BeginInvoke(new Action(StartModeWatch));
+                return;
+            }
+
+            if (_modeWatch == null)
+            {
+                var timer = new System.Windows.Threading.DispatcherTimer();
+                timer.Tick += (_, _) => CheckModeChanged();
+                _modeWatch = timer;
+                NaultinusDiagnostics.Log("ShellFolderViewHost", "veille du mode de vue démarrée");
+            }
+
+            _modeWatch.Interval = TimeSpan.FromMilliseconds(400);
+            if (!_modeWatch.IsEnabled)
+                _modeWatch.Start();
+        }
+
+        /// <summary>Rythme lent : la veille continue, mais sans réveiller la machine en continu.</summary>
+        public void SlowModeWatch()
+        {
+            if (!_dispatcher.CheckAccess())
+            {
+                _dispatcher.BeginInvoke(new Action(SlowModeWatch));
+                return;
+            }
+
+            StartModeWatch();
+            if (_modeWatch != null)
+                _modeWatch.Interval = TimeSpan.FromMilliseconds(1500);
+        }
+
+        public void StopModeWatch()
+        {
+            if (_modeWatch == null)
+                return;
+
+            if (!_dispatcher.CheckAccess())
+            {
+                _dispatcher.BeginInvoke(new Action(StopModeWatch));
+                return;
+            }
+
+            _modeWatch.Stop();
+            _modeWatch = null;
+        }
+
+        private void CheckModeChanged()
+        {
+            if (_browser is not IExplorerBrowser browser)
+                return;
+
+            try
+            {
+                Guid folderViewId = typeof(IFolderView).GUID;
+                browser.GetCurrentView(ref folderViewId, out object view);
+                if (view is not IFolderView folderView)
+                    return;
+
+                folderView.GetCurrentViewMode(out uint mode);
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.CheckModeChanged : mode relu " + mode + ", dernière valeur connue " + _lastKnownMode);
+                if (mode == _lastKnownMode)
+                    return;
+
+                NaultinusDiagnostics.Log("ShellFolderViewHost", "mode de la vue passé à " + mode + " sans nous dire bonjour");
+                EnforceColumnHeader();
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.CheckModeChanged", ex);
+            }
+        }
+
+        /// <summary>
+        /// Change le mode par la seule vue, sans réglages de dossier : c'est le chemin qu'emprunte le
+        /// menu contextuel de la vue, et il laisse l'en-tête de colonnes en place.
+        /// </summary>
+        public void SetViewModeThroughViewOnly(uint viewMode)
+        {
+            if (_browser is not IExplorerBrowser browser)
+                return;
+
+            try
+            {
+                Guid folderViewId = typeof(IFolderView).GUID;
+                browser.GetCurrentView(ref folderViewId, out object view);
+                if (view is IFolderView folderView)
+                {
+                    folderView.SetCurrentViewMode(viewMode);
+                    folderView.GetCurrentViewMode(out uint relu);
+                    NaultinusDiagnostics.Log("ShellFolderViewHost", "mode demandé à la vue seule : " + viewMode + ", relu juste après " + relu);
+                }
+                else
+                {
+                    NaultinusDiagnostics.Log("ShellFolderViewHost", "mode demandé à la vue seule : aucune vue sous la main");
+                }
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.SetViewModeThroughViewOnly", ex);
+            }
+        }
+
+        /// <summary>
         /// Remet l'en-tête de colonnes d'accord avec le mode affiché. À appeler quand on a une raison
         /// de croire que la vue a changé d'avis toute seule (menu contextuel de la vue).
         /// </summary>
@@ -393,6 +522,7 @@ namespace Naultinus.View
                 };
 
                 browser.SetFolderSettings(ref settings);
+                _lastKnownMode = mode;
                 NaultinusDiagnostics.Log("ShellFolderViewHost", "mode relevé dans la vue : " + mode + ", titres de colonnes : " + (mode == ShellBrowserNative.FolderViewModes.Details));
             }
             catch (Exception ex)
@@ -477,6 +607,7 @@ namespace Naultinus.View
             NaultinusDiagnostics.Log("ShellFolderViewHost", "vue créée par l'hôte de navigation.");
             ApplyViewTheme();
             ApplyViewMode();
+            StartModeWatch();
         }
 
         private void OnNavigationComplete(IntPtr pidlFolder)
