@@ -55,6 +55,42 @@ namespace Naultinus.ViewModel
             }
         }
 
+        /// <summary>Vrai pendant l'adoption d'un chemin venant de la vue hébergée (pas de renvoi).</summary>
+        private bool _adoptingShellPath;
+
+        public bool IsAdoptingShellPath => _adoptingShellPath;
+
+        /// <summary>
+        /// Vrai quand le corps du portail est rendu par la vue d'éléments du shell. Le portail n'a
+        /// alors plus rien à entretenir : la grille WPF est masquée, et la vue se rafraîchit seule
+        /// quand le disque bouge (mesuré : elle se redirige elle-même à la notification de
+        /// changement, sans attendre le portail). Sans ce drapeau, chaque création de fichier dans
+        /// le dossier déclenche une énumération complète et une extraction d'icônes sur le fil
+        /// d'interface, pour une grille que personne ne voit.
+        /// </summary>
+        public bool BodyRenderedByShell { get; set; }
+
+        /// <summary>
+        /// Enregistre le dossier que la vue d'éléments du shell affiche réellement, sans renvoyer de
+        /// navigation à la vue. Garde la barre de chemin et la flèche « remonter » justes quand
+        /// l'utilisateur double-clique un dossier.
+        /// </summary>
+        public void AdoptShellPath(string path)
+        {
+            if (string.IsNullOrEmpty(path) || string.Equals(path, CurrentPath, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            _adoptingShellPath = true;
+            try
+            {
+                CurrentPath = path;
+            }
+            finally
+            {
+                _adoptingShellPath = false;
+            }
+        }
+
         public ObservableCollection<FolderPortalItem> Items
         {
             get => _items;
@@ -242,8 +278,19 @@ namespace Naultinus.ViewModel
 
             try
             {
+                if (BodyRenderedByShell)
+                {
+                    // Le corps est rendu par la vue du shell : ni énumération, ni icônes. Le chemin
+                    // et la flèche « remonter » doivent quand même suivre.
+                    _selectionAnchor = null;
+                    CurrentPath = path;
+                    OnPropertyChanged(nameof(CanNavigateBack));
+                    return;
+                }
+
                 var found = new List<FolderPortalItem>();
                 string iconsDir = AppPaths.GetNaultinusIconsDirectory(Identifier);
+                var loadingStarted = Stopwatch.StartNew();
 
                 foreach (string dir in Directory.GetDirectories(path))
                 {
@@ -267,6 +314,12 @@ namespace Naultinus.ViewModel
                 Items = new ObservableCollection<FolderPortalItem>(PortalItemSort.Order(found, _sortField));
                 CurrentPath = path;
                 OnPropertyChanged(nameof(CanNavigateBack));
+
+                // Mesure : le chargement d'un dossier se paie sur le fil d'interface (icônes
+                // extraites élément par élément). Utile pour juger ce que coûte la grille WPF.
+                NaultinusDiagnostics.LogDebug(
+                    "FolderPortal.LoadFolder : " + path + " -> " + Items.Count + " éléments en "
+                    + loadingStarted.ElapsedMilliseconds + " ms");
             }
             catch (UnauthorizedAccessException)
             {

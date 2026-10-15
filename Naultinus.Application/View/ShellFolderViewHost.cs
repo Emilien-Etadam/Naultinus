@@ -1,0 +1,920 @@
+using Naultinus.Helpers;
+using Naultinus.Helpers.Native;
+using System;
+using System.Collections.Concurrent;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Windows;
+using System.Windows.Interop;
+
+namespace Naultinus.View
+{
+    /// <summary>
+    /// Héberge la vue d'éléments du shell (celle de l'Explorateur Windows) dans une fenêtre WPF.
+    /// Le rendu, les icônes et leurs superpositions, les vignettes, les colonnes, le tri, le
+    /// renommage, le glisser-déposer et les menus viennent du shell ; cette classe ne fait que
+    /// créer la fenêtre hôte, la dimensionner et la diriger vers un dossier.
+    ///
+    /// Points à valider sur Windows (premier spike, voir docs/PORTAL_EXPLORER_PARITY.md) :
+    /// - la fenêtre ne peut pas vivre dans une fenêtre WPF <c>AllowsTransparency="True"</c> ;
+    /// - le site COM n'expose ni <c>IShellBrowser</c> parent ni portée de saisie : Tab/MAJ+Tab entre
+    ///   la vue et le reste de l'interface sont donc inactifs, l'affichage et le clavier dans la vue
+    ///   doivent fonctionner sans cela.
+    /// </summary>
+    public class ShellFolderViewHost : HwndHost
+    {
+        private const int WsChild = 0x40000000;
+        private const int WsVisible = 0x10000000;
+        private const int WsClipChildren = 0x02000000;
+        private const int WsClipSiblings = 0x04000000;
+        private const int CsHredraw = 0x0002;
+        private const int CsVredraw = 0x0001;
+        private const uint WmSize = 0x0005;
+
+        private static readonly string ClassName = "NaultinusShellViewSite";
+        private static readonly WndProcDelegate StaticWndProc = WndProcThunk;
+        private static readonly ConcurrentDictionary<IntPtr, ShellFolderViewHost> Instances = new ConcurrentDictionary<IntPtr, ShellFolderViewHost>();
+        private static bool _classRegistered;
+
+        private object? _browser;
+        private IntPtr _siteHwnd;
+        private bool _initialized;
+
+        /// <summary>Récepteur des notifications de la vue, à garder vivant tant que l'hôte écoute.</summary>
+        private ExplorerBrowserEventsSink? _events;
+        private uint _eventsCookie;
+        private bool _themeApplied;
+
+        /// <summary>Vrai pendant une navigation déclenchée par nous : la réponse ne doit pas nous revenir.</summary>
+        private bool _navigatingFromApp;
+
+        /// <summary>Mode de vue demandé, 0 pour laisser le shell faire à sa tête.</summary>
+        private uint _viewMode;
+        private bool _showColumnHeader = true;
+
+        /// <summary>Mode relevé dans la vue à la dernière surveillance, pour ne réagir qu'aux changements.</summary>
+        private uint _lastKnownMode = uint.MaxValue;
+
+        /// <summary>Ventilateur du mode : tourne tant que le portail est au premier plan.</summary>
+        private System.Windows.Threading.DispatcherTimer? _modeWatch;
+
+        /// <summary>Fil d'interface, capté à la construction : le ventilateur doit y vivre.</summary>
+        private readonly System.Windows.Threading.Dispatcher _dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
+
+        /// <summary>Chemin demandé, conservé si la vue n'est pas encore prête.</summary>
+        private string _pendingPath = "";
+
+        /// <summary>Dossier réellement affiché par la vue, sans le séparateur final.</summary>
+        private string _displayedPath = "";
+
+        /// <summary>Faux si l'hôte de vue n'a pas pu être créé : l'affichage WPF prend le relais.</summary>
+        public bool IsAvailable => _initialized;
+
+        /// <summary>
+        /// Dossier que la vue affiche désormais, y compris quand l'utilisateur y est allé tout seul
+        /// (double-clic sur un dossier, retour arrière). Sert à garder la barre de chemin et la
+        /// flèche « remonter » cohérentes.
+        /// </summary>
+        public event Action<string>? Navigated;
+
+        public ShellFolderViewHost()
+        {
+            Focusable = true;
+        }
+
+        /// <summary>
+        /// Mode expérimental demandé par variable d'environnement, le temps de valider l'architecture.
+        /// </summary>
+        internal static bool IsRequested()
+        {
+            string? value = Environment.GetEnvironmentVariable("NAULTINUS_SHELLVIEW");
+            return string.Equals(value, "1", StringComparison.Ordinal)
+                || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Enregistre la classe de fenêtre hôte. À appeler avant d'exposer l'hôte : un échec doit
+        /// se décider avant la construction de la fenêtre WPF, pas pendant.
+        /// </summary>
+        internal static bool TryPrepare()
+        {
+            try
+            {
+                RegisterWindowClass();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.Log("ShellFolderViewHost", "Classe de fenêtre hôte indisponible.", ex);
+                return false;
+            }
+        }
+
+        #region HwndHost
+
+        protected override HandleRef BuildWindowCore(HandleRef hwndParent)
+        {
+            RegisterWindowClass();
+
+            IntPtr hInstance = GetModuleHandle(null);
+            _siteHwnd = CreateWindowEx(
+                0,
+                ClassName,
+                string.Empty,
+                WsChild | WsVisible | WsClipChildren | WsClipSiblings,
+                0, 0, 1, 1,
+                hwndParent.Handle,
+                IntPtr.Zero,
+                hInstance,
+                IntPtr.Zero);
+
+            if (_siteHwnd == IntPtr.Zero)
+            {
+                int error = Marshal.GetLastWin32Error();
+
+                // WPF rejette un handle nul : on lui donne une fenêtre vide pour que le portail
+                // s'affiche sans corps plutôt que de fermer l'application.
+                _siteHwnd = CreateWindowEx(
+                    0, "Static", string.Empty,
+                    WsChild | WsVisible | WsClipChildren | WsClipSiblings,
+                    0, 0, 1, 1, hwndParent.Handle, IntPtr.Zero, hInstance, IntPtr.Zero);
+
+                NaultinusDiagnostics.Log("ShellFolderViewHost", "CreateWindowEx a échoué (erreur " + error + ") ; fenêtre de repli utilisée.");
+                if (_siteHwnd == IntPtr.Zero)
+                    return new HandleRef(this, IntPtr.Zero);
+            }
+
+            Instances[_siteHwnd] = this;
+            TryCreateBrowser();
+            return new HandleRef(this, _siteHwnd);
+        }
+
+        protected override void DestroyWindowCore(HandleRef hwnd)
+        {
+            Instances.TryRemove(hwnd.Handle, out _);
+            Microsoft.Win32.SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
+            StopModeWatch();
+            ReleaseBrowser();
+            if (hwnd.Handle != IntPtr.Zero)
+                DestroyWindow(hwnd.Handle);
+            _siteHwnd = IntPtr.Zero;
+            _initialized = false;
+        }
+
+        /// <summary>La fenêtre créée pour la vue (different de la fenêtre de gestion WPF).</summary>
+        public IntPtr ViewWindow => _siteHwnd;
+
+        protected override IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg == (int)WmSize)
+            {
+                ResizeView();
+                handled = true;
+                return IntPtr.Zero;
+            }
+
+            return base.WndProc(hwnd, msg, wParam, lParam, ref handled);
+        }
+
+        #endregion
+
+        #region Navigation
+
+        /// <summary>Dirige la vue vers un dossier. Sans effet tant que la vue n'est pas prête.</summary>
+        public void Navigate(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return;
+
+            if (!_initialized)
+            {
+                _pendingPath = path;
+                return;
+            }
+
+            IntPtr pidl = IntPtr.Zero;
+            try
+            {
+                // La vue montre déjà ce dossier : le lui redemander jetterait le défilement et la
+                // sélection. En revanche elle ne se rafraîchit pas toute seule (mesuré : cinq
+                // secondes après la création d'un fichier, il n'était pas là) : on le lui demande.
+                string target = Path.TrimEndingDirectorySeparator(path.Trim());
+                if (string.Equals(target, _displayedPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    NaultinusDiagnostics.LogDebug("ShellFolderViewHost.Navigate : dossier déjà affiché, rafraîchissement demandé (" + target + ")");
+                    RefreshView();
+                    return;
+                }
+
+                _navigatingFromApp = true;
+                int hr = ShellBrowserNative.SHParseDisplayName(path, IntPtr.Zero, out pidl, 0, out _);
+                if (hr != 0 || pidl == IntPtr.Zero)
+                {
+                    _navigatingFromApp = false;
+                    NaultinusDiagnostics.Log("ShellFolderViewHost", $"Chemin non résolu par le shell ({path}) : 0x{hr:X8}");
+                    return;
+                }
+
+                ((IExplorerBrowser)_browser!).BrowseToIDList(pidl, ShellBrowserNative.BrowseFlags.Absolute);
+                _displayedPath = target;
+            }
+            catch (Exception ex)
+            {
+                _navigatingFromApp = false;
+                NaultinusDiagnostics.Log("ShellFolderViewHost", "Navigation impossible vers " + path, ex);
+            }
+            finally
+            {
+                // Le drapeau « initiée par l'application » ne se remet PAS ici : la notification de
+                // navigation arrive après ce retour, et le remettre trop tôt faisait passer nos
+                // navigations pour celles de la vue.
+                if (pidl != IntPtr.Zero)
+                    ShellBrowserNative.ILFree(pidl);
+            }
+        }
+
+        /// <summary>Donne le focus clavier à la vue hébergée (F2, Ctrl+C, saisie du début du nom…).</summary>
+        public void FocusView()
+        {
+            if (_siteHwnd == IntPtr.Zero)
+                return;
+
+            // Le focus doit aller à la fenêtre la plus profonde (la liste elle-même), pas à la
+            // fenêtre hôte qui ne reçoit que les messages de dimensionnement.
+            IntPtr target = _siteHwnd;
+            while (true)
+            {
+                IntPtr child = ShellBrowserNative.GetWindow(target, ShellBrowserNative.GwChild);
+                if (child == IntPtr.Zero)
+                    break;
+                target = child;
+            }
+
+            SetFocus(target);
+        }
+
+        #endregion
+
+        #region Vue
+
+        private void TryCreateBrowser()
+        {
+            try
+            {
+                Guid clsid = ShellBrowserNative.ClsidExplorerBrowser;
+                Guid iid = typeof(IExplorerBrowser).GUID;
+                int hr = ShellBrowserNative.CoCreateInstance(ref clsid, IntPtr.Zero, ShellBrowserNative.ClsContext, ref iid, out object browser);
+                if (hr != 0 || browser is not IExplorerBrowser explorerBrowser)
+                {
+                    NaultinusDiagnostics.Log("ShellFolderViewHost", $"Création de IExplorerBrowser impossible : 0x{hr:X8}");
+                    return;
+                }
+
+                _browser = browser;
+
+                // La zone cliente est encore à 1x1 ici : WPF dimensionne la fenêtre hôte juste après,
+                // et SetRect prend le relais. Les réglages de vue sont laissés à NULL pour que le
+                // shell applique ceux mémorisés pour le dossier, comme dans l'Explorateur.
+                ShellBrowserNative.GetClientRect(_siteHwnd, out ShellBrowserNative.RECT rect);
+                explorerBrowser.Initialize(_siteHwnd, ref rect, IntPtr.Zero);
+                explorerBrowser.SetOptions(ShellBrowserNative.ExplorerBrowserOptions.None);
+
+                _initialized = true;
+                AdviseEvents();
+                Microsoft.Win32.SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
+                NaultinusDiagnostics.Log("ShellFolderViewHost", "Vue du shell créée.");
+                if (!string.IsNullOrEmpty(_pendingPath))
+                {
+                    string pending = _pendingPath;
+                    _pendingPath = "";
+                    Navigate(pending);
+                }
+            }
+            catch (Exception ex)
+            {
+                ReleaseBrowser();
+                NaultinusDiagnostics.Log("ShellFolderViewHost", "Initialisation de la vue du shell impossible.", ex);
+            }
+        }
+
+        private void ReleaseBrowser()
+        {
+            if (_browser == null)
+                return;
+
+            try
+            {
+                if (_events != null && _eventsCookie != 0)
+                    ((IExplorerBrowser)_browser).Unadvise(_eventsCookie);
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.Unadvise", ex);
+            }
+
+            _eventsCookie = 0;
+            _events = null;
+
+            try
+            {
+                // Le contrat de IExplorerBrowser demande Destroy avant de relâcher l'objet :
+                // sans cela, les fenêtres de la vue restent en vie.
+                ((IExplorerBrowser)_browser).Destroy();
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.Destroy", ex);
+            }
+
+            try
+            {
+                Marshal.ReleaseComObject(_browser);
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.ReleaseBrowser", ex);
+            }
+
+            _browser = null;
+        }
+
+        /// <summary>
+        /// La vue hébergée ne suit pas la taille de sa fenêtre parente toute seule : on lui notifie
+        /// la nouvelle zone cliente, puis on étire aussi ses fenêtres enfants, la fenêtre de gestion
+        /// de l'hôte pouvant rester placée ailleurs.
+        /// </summary>
+        private void ResizeView()
+        {
+            if (_siteHwnd == IntPtr.Zero)
+                return;
+
+            if (!ShellBrowserNative.GetClientRect(_siteHwnd, out ShellBrowserNative.RECT rect))
+                return;
+
+            int width = Math.Max(1, rect.Right - rect.Left);
+            int height = Math.Max(1, rect.Bottom - rect.Top);
+
+            if (_browser is IExplorerBrowser explorerBrowser)
+            {
+                try
+                {
+                    explorerBrowser.SetRect(IntPtr.Zero, rect);
+                }
+                catch (Exception ex)
+                {
+                    NaultinusDiagnostics.LogDebug("ShellFolderViewHost.SetRect", ex);
+                }
+            }
+
+            IntPtr child = ShellBrowserNative.GetWindow(_siteHwnd, ShellBrowserNative.GwChild);
+            while (child != IntPtr.Zero)
+            {
+                ShellBrowserNative.MoveWindow(child, 0, 0, width, height, true);
+                child = ShellBrowserNative.GetWindow(child, ShellBrowserNative.GwHwndNext);
+            }
+        }
+
+        /// <summary>
+        /// Mode d'affichage de la vue et titres de colonnes. Le shell rétablit ses propres réglages
+        /// mémorisés par dossier à chaque navigation : ils sont donc redemandés après chacune.
+        /// </summary>
+        public void SetViewMode(uint viewMode, bool showColumnHeader)
+        {
+            _viewMode = viewMode;
+            _showColumnHeader = showColumnHeader;
+            ApplyViewMode();
+        }
+
+        /// <summary>
+        /// Surveille le mode de la vue. Le menu de la vue change le mode sans prévenir personne, et
+        /// comme il ne désactive pas le portail, un clic dedans ne déclenche pas non plus
+        /// l'activation : sans cette veille, les titres de colonnes restent accrochés jusqu'au
+        /// prochain clic extérieur. Le rythme est rapide quand le portail est au premier plan et
+        /// lent ailleurs, pour ne pas réveiller la machine pour rien.
+        /// </summary>
+        public void StartModeWatch()
+        {
+            // Banc d'essai : permet de reproduire l'état bloqué, veille désactivée.
+            if (Environment.GetEnvironmentVariable("NAULTINUS_SHELLVIEW_NOWATCH") == "1")
+                return;
+
+            // L'événement « vue créée » arrive parfois sur le fil COM : le ventilateur doit vivre
+            // sur le fil d'interface, sinon il ne bat jamais.
+            if (!_dispatcher.CheckAccess())
+            {
+                _dispatcher.BeginInvoke(new Action(StartModeWatch));
+                return;
+            }
+
+            if (_modeWatch == null)
+            {
+                var timer = new System.Windows.Threading.DispatcherTimer();
+                timer.Tick += (_, _) => CheckModeChanged();
+                _modeWatch = timer;
+                NaultinusDiagnostics.Log("ShellFolderViewHost", "veille du mode de vue démarrée");
+            }
+
+            _modeWatch.Interval = TimeSpan.FromMilliseconds(400);
+            if (!_modeWatch.IsEnabled)
+                _modeWatch.Start();
+        }
+
+        /// <summary>Rythme lent : la veille continue, mais sans réveiller la machine en continu.</summary>
+        public void SlowModeWatch()
+        {
+            if (!_dispatcher.CheckAccess())
+            {
+                _dispatcher.BeginInvoke(new Action(SlowModeWatch));
+                return;
+            }
+
+            StartModeWatch();
+            if (_modeWatch != null)
+                _modeWatch.Interval = TimeSpan.FromMilliseconds(1500);
+        }
+
+        public void StopModeWatch()
+        {
+            if (_modeWatch == null)
+                return;
+
+            if (!_dispatcher.CheckAccess())
+            {
+                _dispatcher.BeginInvoke(new Action(StopModeWatch));
+                return;
+            }
+
+            _modeWatch.Stop();
+            _modeWatch = null;
+        }
+
+        /// <summary>
+        /// Redemande le contenu du dossier affiché. La vue du shell ne surveille pas le dossier à
+        /// notre place (mesuré) : sans cet appel, un fichier créé pendant que le portail est ouvert
+        /// n'apparaît pas.
+        /// </summary>
+        public void RefreshView()
+        {
+            if (_browser is not IExplorerBrowser browser)
+                return;
+
+            try
+            {
+                // Banc d'essai : « com » appelle IExplorerBrowser::Refresh, « navigate » (le défaut
+                // retenu) redirige la vue vers le même dossier. Mesure sur 400 fichiers : Refresh
+                // ne change rien d'observable (le fichier créé pendant la course n'apparaît pas, la
+                // capture reste identique pixel à pixel), la renavigation l'affiche à sa place.
+                string how = Environment.GetEnvironmentVariable("NAULTINUS_SHELLVIEW_REFRESH") ?? "navigate";
+                if (!string.Equals(how, "com", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(_displayedPath))
+                {
+                    int before = SelectionMarkedItem();
+                    string saved = _displayedPath;
+                    _displayedPath = "";
+                    Navigate(saved);
+                    NaultinusDiagnostics.LogDebug(
+                        "ShellFolderViewHost.RefreshView : renavigation vers " + saved
+                        + ", élément sélectionné avant " + before + ", après " + SelectionMarkedItem());
+                    return;
+                }
+
+                browser.Refresh();
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.RefreshView : IExplorerBrowser::Refresh appelé — sans effet observable sur la liste");
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.Log("ShellFolderViewHost", "Rafraîchissement de la vue impossible", ex);
+            }
+        }
+
+        /// <summary>
+        /// Index de l'élément marqué par la sélection (-1 si la vue n'est pas joignable). Sert à
+        /// juger ce que coûte un rafraîchissement par renavigation.
+        /// </summary>
+        private int SelectionMarkedItem()
+        {
+            if (_browser is not IExplorerBrowser browser)
+                return -2;
+
+            try
+            {
+                Guid folderViewId = typeof(IFolderView).GUID;
+                browser.GetCurrentView(ref folderViewId, out object view);
+                if (view is IFolderView folderView)
+                {
+                    folderView.GetSelectionMarkedItem(out int index);
+                    return index;
+                }
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.SelectionMarkedItem", ex);
+            }
+
+            return -2;
+        }
+
+        private void CheckModeChanged()
+        {
+            if (_browser is not IExplorerBrowser browser)
+                return;
+
+            try
+            {
+                Guid folderViewId = typeof(IFolderView).GUID;
+                browser.GetCurrentView(ref folderViewId, out object view);
+                if (view is not IFolderView folderView)
+                    return;
+
+                folderView.GetCurrentViewMode(out uint mode);
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.CheckModeChanged : mode relu " + mode + ", dernière valeur connue " + _lastKnownMode);
+                if (mode == _lastKnownMode)
+                    return;
+
+                NaultinusDiagnostics.Log("ShellFolderViewHost", "mode de la vue passé à " + mode + " sans nous dire bonjour");
+                EnforceColumnHeader();
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.CheckModeChanged", ex);
+            }
+        }
+
+        /// <summary>
+        /// Change le mode par la seule vue, sans réglages de dossier : c'est le chemin qu'emprunte le
+        /// menu contextuel de la vue, et il laisse l'en-tête de colonnes en place.
+        /// </summary>
+        public void SetViewModeThroughViewOnly(uint viewMode)
+        {
+            if (_browser is not IExplorerBrowser browser)
+                return;
+
+            try
+            {
+                Guid folderViewId = typeof(IFolderView).GUID;
+                browser.GetCurrentView(ref folderViewId, out object view);
+                if (view is IFolderView folderView)
+                {
+                    folderView.SetCurrentViewMode(viewMode);
+                    folderView.GetCurrentViewMode(out uint relu);
+                    NaultinusDiagnostics.Log("ShellFolderViewHost", "mode demandé à la vue seule : " + viewMode + ", relu juste après " + relu);
+                }
+                else
+                {
+                    NaultinusDiagnostics.Log("ShellFolderViewHost", "mode demandé à la vue seule : aucune vue sous la main");
+                }
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.SetViewModeThroughViewOnly", ex);
+            }
+        }
+
+        /// <summary>
+        /// Remet l'en-tête de colonnes d'accord avec le mode affiché. À appeler quand on a une raison
+        /// de croire que la vue a changé d'avis toute seule (menu contextuel de la vue).
+        /// </summary>
+        public void ReconcileViewMode()
+        {
+            if (_viewMode != 0)
+                ApplyViewMode();
+            else
+                EnforceColumnHeader();
+        }
+
+        /// <summary>
+        /// Les titres de colonnes n'ont rien à faire dans un mode qui n'est pas « détails ». Mesuré :
+        /// un mode changé par nos soins masque d'office les titres ; un mode changé par le menu de la
+        /// vue, lui, laisse l'en-tête en place. On recopie donc les réglages selon le mode réel.
+        /// </summary>
+        private void EnforceColumnHeader()
+        {
+            if (_browser is not IExplorerBrowser browser)
+                return;
+
+            try
+            {
+                Guid folderViewId = typeof(IFolderView).GUID;
+                browser.GetCurrentView(ref folderViewId, out object view);
+                if (view is not IFolderView folderView)
+                    return;
+
+                folderView.GetCurrentViewMode(out uint mode);
+                var settings = new ShellBrowserNative.FolderSettings
+                {
+                    ViewMode = (int)mode,
+                    Flags = mode == ShellBrowserNative.FolderViewModes.Details ? 0u : ShellBrowserNative.FolderViewFlags.NoColumnHeader,
+                };
+
+                browser.SetFolderSettings(ref settings);
+                _lastKnownMode = mode;
+                NaultinusDiagnostics.Log("ShellFolderViewHost", "mode relevé dans la vue : " + mode + ", titres de colonnes : " + (mode == ShellBrowserNative.FolderViewModes.Details));
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.EnforceColumnHeader", ex);
+            }
+        }
+
+        /// <summary>
+        /// Le mode passe par les réglages de dossier et par la vue courante : les deux sont
+        /// nécessaires, <c>SetFolderSettings</c> seul ne repeint pas une vue déjà dessinée.
+        /// </summary>
+        private void ApplyViewMode()
+        {
+            if (_browser is not IExplorerBrowser browser || _viewMode == 0)
+                return;
+
+            try
+            {
+                var settings = new ShellBrowserNative.FolderSettings
+                {
+                    ViewMode = (int)_viewMode,
+                    Flags = _showColumnHeader ? 0u : ShellBrowserNative.FolderViewFlags.NoColumnHeader,
+                };
+
+                browser.SetFolderSettings(ref settings);
+
+                Guid folderViewId = typeof(IFolderView).GUID;
+                browser.GetCurrentView(ref folderViewId, out object view);
+                if (view is IFolderView folderView)
+                    folderView.SetCurrentViewMode(_viewMode);
+
+                NaultinusDiagnostics.Log("ShellFolderViewHost", "mode de vue demandé : " + _viewMode + ", titres de colonnes : " + _showColumnHeader);
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.ApplyViewMode", ex);
+            }
+        }
+
+        #endregion
+
+        #region Notifications de la vue
+
+        /// <summary>
+        /// Déclare notre récepteur d'événements auprès de l'hôte de vue. Le pointeur COM rendu par
+        /// <c>GetComInterfaceForObject</c> porte notre propre référence : on la rend tout de suite,
+        /// l'hôte garde la sienne tant que le cookie court.
+        /// </summary>
+        private void AdviseEvents()
+        {
+            if (_browser is not IExplorerBrowser browser)
+                return;
+
+            try
+            {
+                var sink = new ExplorerBrowserEventsSink();
+                sink.ViewCreated += OnViewCreated;
+                sink.NavigationComplete += OnNavigationComplete;
+                sink.NavigationFailed += OnNavigationFailed;
+
+                IntPtr sinkPointer = Marshal.GetComInterfaceForObject(sink, typeof(IExplorerBrowserEvents));
+                try
+                {
+                    browser.Advise(sinkPointer, out _eventsCookie);
+                }
+                finally
+                {
+                    Marshal.Release(sinkPointer);
+                }
+
+                _events = sink;
+            }
+            catch (Exception ex)
+            {
+                // Sans notifications, la vue fonctionne : seule la barre de chemin ne se resynchronise pas.
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.AdviseEvents", ex);
+            }
+        }
+
+        private void OnViewCreated()
+        {
+            NaultinusDiagnostics.Log("ShellFolderViewHost", "vue créée par l'hôte de navigation.");
+            ApplyViewTheme();
+            ApplyViewMode();
+            StartModeWatch();
+        }
+
+        private void OnNavigationFailed(IntPtr pidlFolder)
+        {
+            // Une navigation ratée ne rend jamais la notification de fin : sans ceci, le drapeau
+            // resterait levé et la navigation suivante passerait pour la nôtre.
+            _navigatingFromApp = false;
+            NaultinusDiagnostics.Log("ShellFolderViewHost", "notification d'échec de navigation reçue");
+        }
+
+        private void OnNavigationComplete(IntPtr pidlFolder)
+        {
+            // Le drapeau ne se lit qu'ici : la notification arrive après le retour de
+            // BrowseToIDList, et le remettre à faux trop tôt faisait passer nos propres navigations
+            // pour celles de la vue.
+            bool initiatedByApp = _navigatingFromApp;
+            _navigatingFromApp = false;
+
+            // Trace de diagnostic : prouve que l'hôte de vue nous rappelle bien, y compris pour une
+            // navigation qu'il a faite tout seul (double-clic sur un dossier).
+            NaultinusDiagnostics.Log("ShellFolderViewHost", "notification de navigation reçue (initiée par l'application : " + initiatedByApp + ")");
+
+            // La navigation recrée des fenêtres : elles naissent avec le thème par défaut (clair).
+            _themeApplied = false;
+            ApplyViewTheme();
+
+            // Le shell rétablit le mode mémorisé pour ce dossier : on redemande le nôtre.
+            ReconcileViewMode();
+
+            string? path = CurrentFolderPath();
+            NaultinusDiagnostics.Log("ShellFolderViewHost", "dossier réellement affiché : " + (path ?? "(élément hors système de fichiers)"));
+            if (!string.IsNullOrEmpty(path))
+                _displayedPath = Path.TrimEndingDirectorySeparator(path);
+
+            if (initiatedByApp)
+                return;
+
+            if (!string.IsNullOrEmpty(path))
+                Navigated?.Invoke(path);
+        }
+
+        private void OnUserPreferenceChanged(object? sender, Microsoft.Win32.UserPreferenceChangedEventArgs e)
+        {
+            if (e.Category != Microsoft.Win32.UserPreferenceCategory.General)
+                return;
+
+            _themeApplied = false;
+            Application.Current?.Dispatcher.BeginInvoke(new Action(ApplyViewTheme));
+        }
+
+        /// <summary>
+        /// Le shell ne rend ses vues en sombre que si l'on demande le sous-thème « Explorer » à
+        /// chacune de ses fenêtres. Sans cela, le corps du portail reste blanc dans une application
+        /// sombre, ce qui est pire que l'inverse.
+        /// </summary>
+        private void ApplyViewTheme()
+        {
+            if (_siteHwnd == IntPtr.Zero || _themeApplied)
+                return;
+
+            _themeApplied = true;
+            ApplyTheme(_siteHwnd, ThemeWatcher.IsDarkMode());
+        }
+
+        private static void ApplyTheme(IntPtr hwnd, bool dark)
+        {
+            // Sous-thème « Explorer » et liste de parties vide : c'est la recette qui fait basculer
+            // les vues de dossiers. En clair on rend son thème par défaut à la fenêtre.
+            _ = ShellBrowserNative.SetWindowTheme(hwnd, dark ? "Explorer" : null, dark ? string.Empty : null);
+
+            for (IntPtr child = ShellBrowserNative.GetWindow(hwnd, ShellBrowserNative.GwChild); child != IntPtr.Zero; child = ShellBrowserNative.GetWindow(child, ShellBrowserNative.GwHwndNext))
+                ApplyTheme(child, dark);
+        }
+
+        /// <summary>
+        /// Lit le dossier réellement affiché par la vue : vue courante → dossier → nom complet.
+        /// Retourne null pour un élément hors système de fichiers (Corbeille, Réseau…).
+        /// </summary>
+        private string? CurrentFolderPath()
+        {
+            if (_browser is not IExplorerBrowser browser)
+                return null;
+
+            IntPtr namePointer = IntPtr.Zero;
+            object? folder = null;
+            try
+            {
+                Guid folderViewId = typeof(IFolderView).GUID;
+                browser.GetCurrentView(ref folderViewId, out object view);
+                if (view is not IFolderView folderView)
+                    return null;
+
+                Guid shellItemId = typeof(IShellItem).GUID;
+                folderView.GetFolder(ref shellItemId, out folder);
+                if (folder is not IShellItem item)
+                    return null;
+
+                item.GetDisplayName(ShellBrowserNative.SigdnFilePath, out namePointer);
+                return namePointer == IntPtr.Zero ? null : Marshal.PtrToStringUni(namePointer);
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.CurrentFolderPath", ex);
+                return null;
+            }
+            finally
+            {
+                if (namePointer != IntPtr.Zero)
+                    ShellBrowserNative.CoTaskMemFree(namePointer);
+                if (folder != null)
+                    Marshal.ReleaseComObject(folder);
+            }
+        }
+
+        #endregion
+
+        #region Fenêtre hôte
+
+        private static void RegisterWindowClass()
+        {
+            if (_classRegistered)
+                return;
+
+            var wc = new WNDCLASSEX
+            {
+                cbSize = Marshal.SizeOf<WNDCLASSEX>(),
+                style = CsHredraw | CsVredraw,
+                lpfnWndProc = Marshal.GetFunctionPointerForDelegate(StaticWndProc),
+                cbClsExtra = 0,
+                cbWndExtra = 0,
+                hInstance = GetModuleHandle(null),
+                hIcon = IntPtr.Zero,
+                hCursor = LoadCursor(IntPtr.Zero, 32512),
+                hbrBackground = IntPtr.Zero,
+                lpszMenuName = null,
+                lpszClassName = ClassName,
+                hIconSm = IntPtr.Zero,
+            };
+
+            ushort atom = RegisterClassEx(ref wc);
+            if (atom == 0)
+            {
+                int error = Marshal.GetLastWin32Error();
+                if (error != 1410) // ERROR_CLASS_ALREADY_EXISTS
+                    throw new InvalidOperationException("RegisterClassEx a échoué (" + error + ").");
+            }
+
+            _classRegistered = true;
+        }
+
+        /// <summary>
+        /// Procedure partagée par toutes les fenêtres hôtes : l'instance est retrouvée par sa fenêtre.
+        /// Les messages non traités vont à <c>DefWindowProc</c>, indispensable au comportement par
+        /// défaut des fenêtres enfants.
+        /// </summary>
+        private static IntPtr WndProcThunk(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam)
+        {
+            if (msg == WmSize && Instances.TryGetValue(hwnd, out ShellFolderViewHost? host))
+            {
+                host.ResizeView();
+                return IntPtr.Zero;
+            }
+
+            return DefWindowProc(hwnd, msg, wParam, lParam);
+        }
+
+        #endregion
+
+        #region Win32
+
+        private delegate IntPtr WndProcDelegate(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct WNDCLASSEX
+        {
+            public int cbSize;
+            public int style;
+            public IntPtr lpfnWndProc;
+            public int cbClsExtra;
+            public int cbWndExtra;
+            public IntPtr hInstance;
+            public IntPtr hIcon;
+            public IntPtr hCursor;
+            public IntPtr hbrBackground;
+            [MarshalAs(UnmanagedType.LPWStr)]
+            public string? lpszMenuName;
+            [MarshalAs(UnmanagedType.LPWStr)]
+            public string lpszClassName;
+            public IntPtr hIconSm;
+        }
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+        private static extern IntPtr GetModuleHandle(string? moduleName);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern ushort RegisterClassEx([In] ref WNDCLASSEX lpwcx);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern IntPtr CreateWindowEx(
+            int exStyle,
+            string className,
+            string? windowName,
+            int style,
+            int x, int y, int width, int height,
+            IntPtr parent,
+            IntPtr menu,
+            IntPtr instance,
+            IntPtr param);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool DestroyWindow(IntPtr hwnd);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr DefWindowProc(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr LoadCursor(IntPtr instance, int resource);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SetFocus(IntPtr hWnd);
+
+        #endregion
+    }
+}
