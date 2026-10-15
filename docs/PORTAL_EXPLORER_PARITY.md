@@ -130,6 +130,10 @@ rendu WPF « au plus près de l'Explorateur » (`ListView`/`GridView` pour les d
 virtualisé pour les icônes), au prix de la reprise en main du glisser-déposer, des menus et du
 tri.
 
+La PR 2 a porté d'abord sur la **cohérence entre le bandeau et le corps** (rafraîchissement quand le
+disque bouge, arrêt du scan WPF inutile) : c'est ce que l'usage rendait visible. L'historique persisté
+par naultinus et l'alignement du titre sur le dossier affiché restent à prendre.
+
 ## État d'avancement — PR 1 (spike) : architecture validée
 
 Écrit : `Helpers/Native/ShellBrowserNative.cs` (déclarations COM des API documentées) et
@@ -296,3 +300,45 @@ powershell -ExecutionPolicy Bypass -File .\run-portal-shellview.ps1 -Build
 - Un portail posé sur le bureau ne tient pas le premier plan : une veille démarrée à l'activation et
   arrêtée à la déactivation ne sert jamais, puisque rien ne l'active. La démarrer à la création de la
   vue et seulement ralentir le rythme quand le portail n'est pas au premier plan.
+## État d'avancement — PR 2 : cohérence entre le bandeau et le corps hébergé
+
+### Ce que fait la PR
+
+- Quand le corps est rendu par la vue du shell, le portail **cesse d'entretenir la grille WPF** qu'on ne
+  voit plus : plus d'énumération du dossier, plus d'extraction d'icônes (`FolderPortalViewModel.BodyRenderedByShell`).
+- Le portail ne redemande plus à la vue un dossier **qu'elle affiche déjà** (`ShellFolderViewHost.Navigate`
+  compare au dossier réellement affiché, notifié par `OnNavigationComplete`).
+- Quand le disque bouge, le corps est **rafraîchi par le portail** : renavigation vers le même dossier,
+  déclenchée par la surveillance déjà en place (anti-rebond de 500 ms).
+- Le drapeau « navigation initiée par l'application » n'est plus remis à faux avant l'arrivée de la
+  notification ; un échec de navigation (`OnNavigationFailed`, désormais branché) le remet aussi.
+
+### Mesures (banc Windows, 401 éléments dans le dossier)
+
+| quoi | valeur mesurée |
+|---|---|
+| chargement WPF de 401 éléments, icônes froides | **472 ms** sur le fil d'interface |
+| même chargement, icônes en cache | **27 ms**, et c'est à chaque événement de disque |
+| même dossier, corps hébergé | **0 ms** (aucune énumération, aucune icône) |
+| fichier créé pendant que le portail est ouvert, `IExplorerBrowser::Refresh` | **invisible** 5 s après : capture identique pixel à pixel |
+| fichier créé, rafraîchissement par renavigation | **affiché à sa place dans le tri** |
+
+### Ce que ces mesures corrigent dans les hypothèses
+
+- **La vue du shell ne se rafraîchit pas toute seule.** Contrairement à l'Explorateur, l'hôte de vue ne
+  surveille pas le dossier : sans demande explicite du portail, un fichier créé pendant que le portail est
+  ouvert n'apparaît pas. Ce que le journal prenait pour une navigation « initiée par la vue » était notre
+  propre renavigation, le drapeau étant remis à faux trop tôt.
+- `IExplorerBrowser::Refresh` rend S_OK **sans effet observable** sur la liste. Les en-têtes libres
+  (ReactOS, Wine) s'arrêtent à `GetCurrentView` : la fente utilisée est peut-être `NoBrowserUI`. À
+  repréciser avant d'y remettre la main.
+- `IFolderView::ItemCount` rend **0** sur cette vue, même avec 400 éléments à l'écran (drapeaux 0 et 1
+  testés). Inexploitable pour compter : la capture reste la source de vérité.
+
+### Comment capturer le portail pour prouver un rendu
+
+- Les portails vivent sur l'écran étendu de gauche (`FenceX` négatif) : une capture de tout l'écran y rend
+  du **noir**, ce qui a fait perdre du temps à deux reprises.
+- `PrintWindow(hwnd, hdc, PW_RENDERFULLCONTENT)` rend la fenêtre elle-même, quel que soit l'écran, et
+  capture la vue du shell avec ses icons, ses colonnes et le thème sombre. C'est la bonne méthode, et la
+  seule qui ait servi ici.

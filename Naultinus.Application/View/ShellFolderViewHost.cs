@@ -2,6 +2,7 @@ using Naultinus.Helpers;
 using Naultinus.Helpers.Native;
 using System;
 using System.Collections.Concurrent;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -62,6 +63,9 @@ namespace Naultinus.View
 
         /// <summary>Chemin demandé, conservé si la vue n'est pas encore prête.</summary>
         private string _pendingPath = "";
+
+        /// <summary>Dossier réellement affiché par la vue, sans le séparateur final.</summary>
+        private string _displayedPath = "";
 
         /// <summary>Faux si l'hôte de vue n'a pas pu être créé : l'affichage WPF prend le relais.</summary>
         public bool IsAvailable => _initialized;
@@ -191,26 +195,41 @@ namespace Naultinus.View
             IntPtr pidl = IntPtr.Zero;
             try
             {
+                // La vue montre déjà ce dossier : le lui redemander jetterait le défilement et la
+                // sélection. En revanche elle ne se rafraîchit pas toute seule (mesuré : cinq
+                // secondes après la création d'un fichier, il n'était pas là) : on le lui demande.
+                string target = Path.TrimEndingDirectorySeparator(path.Trim());
+                if (string.Equals(target, _displayedPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    NaultinusDiagnostics.LogDebug("ShellFolderViewHost.Navigate : dossier déjà affiché, rafraîchissement demandé (" + target + ")");
+                    RefreshView();
+                    return;
+                }
+
                 _navigatingFromApp = true;
                 int hr = ShellBrowserNative.SHParseDisplayName(path, IntPtr.Zero, out pidl, 0, out _);
                 if (hr != 0 || pidl == IntPtr.Zero)
                 {
+                    _navigatingFromApp = false;
                     NaultinusDiagnostics.Log("ShellFolderViewHost", $"Chemin non résolu par le shell ({path}) : 0x{hr:X8}");
                     return;
                 }
 
                 ((IExplorerBrowser)_browser!).BrowseToIDList(pidl, ShellBrowserNative.BrowseFlags.Absolute);
-                _navigatingFromApp = false;
+                _displayedPath = target;
             }
             catch (Exception ex)
             {
+                _navigatingFromApp = false;
                 NaultinusDiagnostics.Log("ShellFolderViewHost", "Navigation impossible vers " + path, ex);
             }
             finally
             {
+                // Le drapeau « initiée par l'application » ne se remet PAS ici : la notification de
+                // navigation arrive après ce retour, et le remettre trop tôt faisait passer nos
+                // navigations pour celles de la vue.
                 if (pidl != IntPtr.Zero)
                     ShellBrowserNative.ILFree(pidl);
-                _navigatingFromApp = false;
             }
         }
 
@@ -429,6 +448,71 @@ namespace Naultinus.View
             _modeWatch = null;
         }
 
+        /// <summary>
+        /// Redemande le contenu du dossier affiché. La vue du shell ne surveille pas le dossier à
+        /// notre place (mesuré) : sans cet appel, un fichier créé pendant que le portail est ouvert
+        /// n'apparaît pas.
+        /// </summary>
+        public void RefreshView()
+        {
+            if (_browser is not IExplorerBrowser browser)
+                return;
+
+            try
+            {
+                // Banc d'essai : « com » appelle IExplorerBrowser::Refresh, « navigate » (le défaut
+                // retenu) redirige la vue vers le même dossier. Mesure sur 400 fichiers : Refresh
+                // ne change rien d'observable (le fichier créé pendant la course n'apparaît pas, la
+                // capture reste identique pixel à pixel), la renavigation l'affiche à sa place.
+                string how = Environment.GetEnvironmentVariable("NAULTINUS_SHELLVIEW_REFRESH") ?? "navigate";
+                if (!string.Equals(how, "com", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(_displayedPath))
+                {
+                    int before = SelectionMarkedItem();
+                    string saved = _displayedPath;
+                    _displayedPath = "";
+                    Navigate(saved);
+                    NaultinusDiagnostics.LogDebug(
+                        "ShellFolderViewHost.RefreshView : renavigation vers " + saved
+                        + ", élément sélectionné avant " + before + ", après " + SelectionMarkedItem());
+                    return;
+                }
+
+                browser.Refresh();
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.RefreshView : IExplorerBrowser::Refresh appelé — sans effet observable sur la liste");
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.Log("ShellFolderViewHost", "Rafraîchissement de la vue impossible", ex);
+            }
+        }
+
+        /// <summary>
+        /// Index de l'élément marqué par la sélection (-1 si la vue n'est pas joignable). Sert à
+        /// juger ce que coûte un rafraîchissement par renavigation.
+        /// </summary>
+        private int SelectionMarkedItem()
+        {
+            if (_browser is not IExplorerBrowser browser)
+                return -2;
+
+            try
+            {
+                Guid folderViewId = typeof(IFolderView).GUID;
+                browser.GetCurrentView(ref folderViewId, out object view);
+                if (view is IFolderView folderView)
+                {
+                    folderView.GetSelectionMarkedItem(out int index);
+                    return index;
+                }
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.SelectionMarkedItem", ex);
+            }
+
+            return -2;
+        }
+
         private void CheckModeChanged()
         {
             if (_browser is not IExplorerBrowser browser)
@@ -582,6 +666,7 @@ namespace Naultinus.View
                 var sink = new ExplorerBrowserEventsSink();
                 sink.ViewCreated += OnViewCreated;
                 sink.NavigationComplete += OnNavigationComplete;
+                sink.NavigationFailed += OnNavigationFailed;
 
                 IntPtr sinkPointer = Marshal.GetComInterfaceForObject(sink, typeof(IExplorerBrowserEvents));
                 try
@@ -610,11 +695,25 @@ namespace Naultinus.View
             StartModeWatch();
         }
 
+        private void OnNavigationFailed(IntPtr pidlFolder)
+        {
+            // Une navigation ratée ne rend jamais la notification de fin : sans ceci, le drapeau
+            // resterait levé et la navigation suivante passerait pour la nôtre.
+            _navigatingFromApp = false;
+            NaultinusDiagnostics.Log("ShellFolderViewHost", "notification d'échec de navigation reçue");
+        }
+
         private void OnNavigationComplete(IntPtr pidlFolder)
         {
+            // Le drapeau ne se lit qu'ici : la notification arrive après le retour de
+            // BrowseToIDList, et le remettre à faux trop tôt faisait passer nos propres navigations
+            // pour celles de la vue.
+            bool initiatedByApp = _navigatingFromApp;
+            _navigatingFromApp = false;
+
             // Trace de diagnostic : prouve que l'hôte de vue nous rappelle bien, y compris pour une
             // navigation qu'il a faite tout seul (double-clic sur un dossier).
-            NaultinusDiagnostics.Log("ShellFolderViewHost", "notification de navigation reçue (initiée par l'application : " + _navigatingFromApp + ")");
+            NaultinusDiagnostics.Log("ShellFolderViewHost", "notification de navigation reçue (initiée par l'application : " + initiatedByApp + ")");
 
             // La navigation recrée des fenêtres : elles naissent avec le thème par défaut (clair).
             _themeApplied = false;
@@ -625,8 +724,10 @@ namespace Naultinus.View
 
             string? path = CurrentFolderPath();
             NaultinusDiagnostics.Log("ShellFolderViewHost", "dossier réellement affiché : " + (path ?? "(élément hors système de fichiers)"));
+            if (!string.IsNullOrEmpty(path))
+                _displayedPath = Path.TrimEndingDirectorySeparator(path);
 
-            if (_navigatingFromApp)
+            if (initiatedByApp)
                 return;
 
             if (!string.IsNullOrEmpty(path))

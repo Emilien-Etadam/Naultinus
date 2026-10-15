@@ -212,6 +212,13 @@ namespace Naultinus.Helpers.Native
         void RemoveAll();
 
         void GetCurrentView([In] ref Guid riid, [MarshalAs(UnmanagedType.IUnknown)] out object view);
+
+        void NoBrowserUI();
+
+        /// <summary>Redemande le contenu du dossier affiché, sans navigation : la vue garde son
+        /// défilement et sa sélection. C'est ce que l'Explorateur fait quand la surveillance du
+        /// dossier signale un changement.</summary>
+        void Refresh();
     }
 
     /// <summary>

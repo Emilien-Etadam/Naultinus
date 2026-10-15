@@ -54,6 +54,9 @@ namespace Naultinus.View
 
             if (viewModel != null)
             {
+                // La grille WPF est masquée : le modèle arrête de charger le dossier et ses icônes,
+                // la vue du shell s'en occupe et se rafraîchit seule.
+                viewModel.BodyRenderedByShell = true;
                 viewModel.PropertyChanged += ViewModel_PropertyChanged;
                 ShellView.Navigated += ShellView_Navigated;
                 Loaded += (_, _) => ShellView.Navigate(viewModel.CurrentPath);
