@@ -65,6 +65,7 @@
                             <MenuItem Header="{x:Static properties:Strings.MenuSortByDate}" Command="{Binding Path=Data.SortByDateCommand, Source={StaticResource proxy}}" />
                         </MenuItem>
                         <Separator />
+                        <MenuItem Header="{x:Static properties:Strings.MenuHide}" Command="{Binding Path=Data.HideNaultinusCommand, Source={StaticResource proxy}}" CommandParameter="{Binding Identifier}" />
                         <MenuItem Header="{x:Static properties:Strings.MenuDelete}" Command="{Binding Path=Data.DeleteNaultinusCommand, Source={StaticResource proxy}}" CommandParameter="{Binding Identifier}" />
                         <Separator />
                         <MenuItem Header="{x:Static properties:Strings.MenuNewShortcutNaultinus}" Command="{Binding Path=Data.NewNaultinusCommand, Source={StaticResource proxy}}" />

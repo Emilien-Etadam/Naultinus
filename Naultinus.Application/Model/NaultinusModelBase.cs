@@ -49,6 +49,9 @@ namespace Naultinus.Model
         /// <summary>Position de l'onglet dans le groupe (défaut 0).</summary>
         public int TabOrder { get; set; }
 
+        /// <summary>Masquée : non affichée au démarrage ; reste dans state.xml.</summary>
+        public bool IsHidden { get; set; }
+
         /// <summary>Version du schéma XML pour state.xml (rétrocompatibilité : anciens fichiers sans attribut → 0, traité comme 1 au chargement).</summary>
         public int SchemaVersion { get => _schemaVersion; set => _schemaVersion = value; }
     }

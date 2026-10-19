@@ -21,8 +21,20 @@ namespace Naultinus.Helpers
         private const uint Win32BadNetResp = 0x8007003A;
         private const uint Win32NetNameDeleted = 0x80070040;
 
+        /// <summary>Chemin d'espace de noms shell (recherche, known folder), pas un dossier FS.</summary>
+        internal static bool IsShellNamespacePath(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return false;
+            string t = path.Trim();
+            return t.StartsWith("search-ms:", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("shell:", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("::{", StringComparison.Ordinal);
+        }
+
         /// <summary>
         /// Teste l'existence sans laisser remonter une exception réseau.
+        /// Les chemins <c>search-ms:</c> / <c>shell:</c> passent par <c>SHParseDisplayName</c>.
         /// </summary>
         internal static bool TryExists(string path, out string? errorMessage)
         {
@@ -30,6 +42,20 @@ namespace Naultinus.Helpers
             if (string.IsNullOrWhiteSpace(path))
             {
                 errorMessage = string.Format(CultureInfo.CurrentCulture, Strings.FolderNotFoundFormat, path ?? "");
+                return false;
+            }
+
+            if (IsShellNamespacePath(path))
+            {
+                if (OperatingSystem.IsWindows()
+                    && Native.ShellBrowserNative.SHParseDisplayName(path, IntPtr.Zero, out IntPtr pidl, 0, out _) == 0
+                    && pidl != IntPtr.Zero)
+                {
+                    Native.ShellBrowserNative.ILFree(pidl);
+                    return true;
+                }
+
+                errorMessage = string.Format(CultureInfo.CurrentCulture, Strings.PortalNavigationFailedFormat, path);
                 return false;
             }
 

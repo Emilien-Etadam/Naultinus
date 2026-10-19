@@ -383,10 +383,9 @@ namespace Naultinus.ViewModel
                 if (!fromHistory)
                     PushHistory(path);
 
-                if (BodyRenderedByShell)
+                if (BodyRenderedByShell || PortalFolderAccess.IsShellNamespacePath(path))
                 {
-                    // Le corps est rendu par la vue du shell : ni énumération, ni icônes. Le chemin
-                    // et l'historique doivent quand même suivre.
+                    // Corps shell, ou racine espace de noms (search-ms:) : pas d'énumération WPF.
                     _selectionAnchor = null;
                     CurrentPath = path;
                     OnPropertyChanged(nameof(CanNavigateBack));

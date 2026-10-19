@@ -211,6 +211,7 @@ namespace Naultinus.Properties
         public static string ManageSnapshotsNaultinusCountFormat => ResourceManager.GetString(nameof(ManageSnapshotsNaultinusCountFormat)) ?? string.Empty;
         public static string MenuAbout => ResourceManager.GetString(nameof(MenuAbout)) ?? string.Empty;
         public static string MenuDelete => ResourceManager.GetString(nameof(MenuDelete)) ?? string.Empty;
+        public static string MenuHide => ResourceManager.GetString(nameof(MenuHide)) ?? string.Empty;
         public static string MenuDeleteSelection => ResourceManager.GetString(nameof(MenuDeleteSelection)) ?? string.Empty;
         public static string MenuEdit => ResourceManager.GetString(nameof(MenuEdit)) ?? string.Empty;
         public static string MenuLayouts => ResourceManager.GetString(nameof(MenuLayouts)) ?? string.Empty;

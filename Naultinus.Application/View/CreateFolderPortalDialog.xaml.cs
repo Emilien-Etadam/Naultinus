@@ -1,4 +1,5 @@
 using System.Windows;
+using Naultinus.Helpers;
 using Naultinus.Properties;
 
 namespace Naultinus.View
@@ -11,6 +12,12 @@ namespace Naultinus.View
         public CreateFolderPortalDialog()
         {
             InitializeComponent();
+        }
+
+        /// <summary>Préremplit le chemin (héritage de racine entre onglets du même groupe).</summary>
+        public void PrefillPath(string path)
+        {
+            PathTextBox.Text = path ?? "";
         }
 
         private void BrowseButton_Click(object sender, RoutedEventArgs e)
@@ -46,7 +53,7 @@ namespace Naultinus.View
                 return;
             }
 
-            if (!System.IO.Directory.Exists(path))
+            if (!PortalFolderAccess.TryExists(path, out _))
             {
                 ValidationMessage.Text = Strings.BrowseNaultinusFolderNotFound;
                 ValidationMessage.Visibility = Visibility.Visible;

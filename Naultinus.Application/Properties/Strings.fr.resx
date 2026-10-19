@@ -619,6 +619,9 @@
   <data name="MenuDelete" xml:space="preserve">
     <value>Supprimer</value>
   </data>
+  <data name="MenuHide" xml:space="preserve">
+    <value>Masquer</value>
+  </data>
   <data name="MenuDeleteSelection" xml:space="preserve">
     <value>Supprimer la sélection</value>
   </data>

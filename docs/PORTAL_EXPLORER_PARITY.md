@@ -71,11 +71,12 @@ quitter la naultinus.
 **Cible**
 
 - [x] dossier local, chemin réseau, cible de recherche
-      (local + UNC ; `search-ms:` encore partiel)
+      (local + UNC + `search-ms:` / `shell:` via `SHParseDisplayName`)
 - [x] création par tracé, par menu, et par glisser-déposer d'un dossier sur le bureau
 - [x] modification du dossier racine sans recréer la naultinus (`ChangeRoot`)
 - [x] suppression de la naultinus **sans** supprimer le dossier
-- [ ] masquage de portails donnés, et héritage de la racine par les portails d'un même onglet
+- [x] masquage de portails donnés, et héritage de la racine par les portails d'un même onglet
+      (`IsHidden` + menu Masquer ; préremplissage racine à l'ajout d'onglet)
 
 **Navigation**
 
@@ -204,9 +205,11 @@ Reste à juger à la main, ce que la mesure automatique ne couvre pas :
       `DirectionalNavigation=None` ; détail dans [PORTAL_KEYBOARD.md](PORTAL_KEYBOARD.md)
 - [x] la flèche « remonter » suit les déplacements faits dans la vue (synchro
       `IExplorerBrowserEvents` + historique persisté)
-- [ ] la naultinus reste derrière les autres fenêtres malgré les clics dans la vue
+- [x] la naultinus reste derrière les autres fenêtres malgré les clics dans la vue
+      (`WindowSinker` : Activate sans `HWND_TOP` ; `SWP_NOZORDER`)
 - [x] la navigation de la barre d'adresse et l'onglet pilotent bien la vue
 - [ ] aucune fuite : ouvrir et fermer la naultinus une dizaine de fois ne laisse pas de fenêtre orpheline
+      (Dispose watchers/`HwndHost` en place ; validation manuelle restante)
 
 Ce que le banc d'essai couvre : création de la vue, chaîne de fenêtres, dimensionnement, thème
 sombre mesuré, livraison des notifications de `IExplorerBrowserEvents` et lecture du chemin affiché.
@@ -385,5 +388,6 @@ powershell -ExecutionPolicy Bypass -File .\run-portal-shellview.ps1 -Build
 - **Notifications shell** : `ShellChangeNotifyWatcher` (`SHChangeNotifyRegister`) prioritaire,
   repli `FileSystemWatcher` ; en vue shell, `ShellFolderNeedsRefresh` → `RefreshView` avec
   restauration d'index de sélection.
-- Bascules d'interaction + DPI PerMonitorV2 + auto-arrange + édition de racine + dbl-clic vide.
-- Restant : masquage/héritage racine onglet, `search-ms:` complet, Z-order/fuites spike.
+- Bascules, DPI, auto-arrange, racine éditable, dbl-clic vide, masquage/`IsHidden`, héritage
+  racine onglet, `search-ms:`, Z-order sans remontage.
+- Restant : preuve manuelle anti-fuite (ouvrir/fermer ×10).

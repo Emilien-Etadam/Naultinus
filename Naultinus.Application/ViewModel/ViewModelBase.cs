@@ -158,6 +158,7 @@ namespace Naultinus.ViewModel
         });
 
         public ICommand DeleteNaultinusCommand { get; } = new RelayCommand<string>(identifier => NaultinusManager.DeleteNaultinus(identifier));
+        public ICommand HideNaultinusCommand { get; } = new RelayCommand<string>(identifier => NaultinusManager.HideNaultinus(identifier));
 
         public ICommand OpenAboutCommand { get; } = new RelayCommand(() =>
         {
