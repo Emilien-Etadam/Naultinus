@@ -634,6 +634,27 @@
   <data name="MenuRefresh" xml:space="preserve">
     <value>Refresh</value>
   </data>
+  <data name="MenuView" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="MenuViewContent" xml:space="preserve">
+    <value>Content</value>
+  </data>
+  <data name="MenuViewDetails" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="MenuViewIcons" xml:space="preserve">
+    <value>Icons</value>
+  </data>
+  <data name="MenuViewList" xml:space="preserve">
+    <value>List</value>
+  </data>
+  <data name="MenuViewThumbnails" xml:space="preserve">
+    <value>Thumbnails</value>
+  </data>
+  <data name="MenuViewTiles" xml:space="preserve">
+    <value>Tiles</value>
+  </data>
   <data name="MenuSaveCurrentLayout" xml:space="preserve">
     <value>Save current layout…</value>
   </data>

@@ -49,11 +49,32 @@ namespace Naultinus.View
 
             if (useShellView)
             {
+                ViewModeMenu.Visibility = Visibility.Visible;
                 ComponentDispatcher.ThreadFilterMessage += OnShellBannerFilterMessage;
                 Closed += (_, _) => ComponentDispatcher.ThreadFilterMessage -= OnShellBannerFilterMessage;
+                PreviewMouseWheel += OnShellViewPreviewMouseWheel;
             }
 
             Show();
+        }
+
+        private void ViewModeMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (!useShellView || sender is not MenuItem item || item.Tag is not string tag
+                || !uint.TryParse(tag, out uint mode))
+                return;
+
+            bool showHeader = mode == ShellBrowserNative.FolderViewModes.Details;
+            ShellView.SetViewMode(mode, showHeader);
+        }
+
+        private void OnShellViewPreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (!useShellView || (Keyboard.Modifiers & ModifierKeys.Control) == 0)
+                return;
+
+            if (ShellView.TryAdjustIconSize(e.Delta))
+                e.Handled = true;
         }
 
         /// <summary>
@@ -82,13 +103,28 @@ namespace Naultinus.View
             if (handled || !useShellView)
                 return;
 
+            const int wmMouseWheel = 0x020A;
+            if (msg.message == wmMouseWheel)
+            {
+                // Quand le focus est dans DirectUIHWND, la molette n'arrive pas en PreviewMouseWheel.
+                long wp = msg.wParam.ToInt64();
+                int keys = unchecked((int)(wp & 0xffff));
+                if ((keys & 0x0008) == 0) // MK_CONTROL
+                    return;
+
+                short delta = unchecked((short)((wp >> 16) & 0xffff));
+                if (ShellView.TryAdjustIconSize(delta))
+                    handled = true;
+                return;
+            }
+
             const int wmKeyDown = 0x0100;
             const int wmSysKeyDown = 0x0104;
             if (msg.message != wmKeyDown && msg.message != wmSysKeyDown)
                 return;
 
             int vk = unchecked((int)(msg.wParam.ToInt64() & 0xffff));
-            bool alt = (System.Windows.Input.Keyboard.Modifiers & ModifierKeys.Alt) == ModifierKeys.Alt
+            bool alt = (Keyboard.Modifiers & ModifierKeys.Alt) == ModifierKeys.Alt
                 || msg.message == wmSysKeyDown;
 
             if (!alt)

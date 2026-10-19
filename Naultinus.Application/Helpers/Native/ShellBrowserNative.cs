@@ -365,6 +365,99 @@ namespace Naultinus.Helpers.Native
     }
 
     /// <summary>
+    /// <c>IFolderView2</c> : étend <c>IFolderView</c> (Vista+) pour le mode + taille d'icônes
+    /// (<c>SetViewModeAndIconSize</c> / <c>GetViewModeAndIconSize</c>). La partie <c>IFolderView</c>
+    /// reprend le même ordre que ci-dessus (sans <c>GetSelection</c> : celle-ci est plus bas).
+    /// </summary>
+    [ComImport]
+    [Guid("1af3a467-214f-4298-908e-06b03e0b39f9")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IFolderView2
+    {
+        // IFolderView
+        void GetCurrentViewMode(out uint viewMode);
+
+        void SetCurrentViewMode(uint viewMode);
+
+        void GetFolder([In] ref Guid riid, [MarshalAs(UnmanagedType.IUnknown)] out object folder);
+
+        void Item(int item, out IntPtr pidl);
+
+        void ItemCount(uint flags, out int count);
+
+        void Items(uint flags, [In] ref Guid riid, out IntPtr items);
+
+        void GetSelectionMarkedItem(out int index);
+
+        void GetFocusedItem(out int index);
+
+        void GetItemPosition(IntPtr pidl, out ShellBrowserNative.POINT position);
+
+        void GetSpacing(out ShellBrowserNative.POINT spacing);
+
+        void GetDefaultSpacing(out ShellBrowserNative.POINT spacing);
+
+        void GetAutoArrange();
+
+        void SelectItem(int index, uint flags);
+
+        void SelectAndPositionItems(uint count, IntPtr pidls, IntPtr points, uint flags);
+
+        // IFolderView2 — méthodes non utilisées : emplacements de table virtuelle uniquement.
+        void SetGroupBy(IntPtr key, [MarshalAs(UnmanagedType.Bool)] bool ascending);
+
+        void GetGroupBy(out IntPtr key, [MarshalAs(UnmanagedType.Bool)] out bool ascending);
+
+        void SetViewProperty(IntPtr pidl, IntPtr propkey, IntPtr propvar);
+
+        void GetViewProperty(IntPtr pidl, IntPtr propkey, out IntPtr propvar);
+
+        void SetTileViewProperties(IntPtr pidl, [MarshalAs(UnmanagedType.LPWStr)] string propList);
+
+        void SetExtendedTileViewProperties(IntPtr pidl, [MarshalAs(UnmanagedType.LPWStr)] string propList);
+
+        void SetText(int type, [MarshalAs(UnmanagedType.LPWStr)] string text);
+
+        void SetCurrentFolderFlags(uint mask, uint flags);
+
+        void GetCurrentFolderFlags(out uint flags);
+
+        void GetSortColumnCount(out int columns);
+
+        void SetSortColumns(IntPtr columns, int count);
+
+        void GetSortColumns(IntPtr columns, int count);
+
+        void GetItem(int item, [In] ref Guid riid, [MarshalAs(UnmanagedType.IUnknown)] out object result);
+
+        void GetVisibleItem(int start, [MarshalAs(UnmanagedType.Bool)] bool previous, out int item);
+
+        void GetSelectedItem(int start, out int item);
+
+        void GetSelection([MarshalAs(UnmanagedType.Bool)] bool noneImpliesFolder, [MarshalAs(UnmanagedType.IUnknown)] out object array);
+
+        void GetSelectionState(IntPtr pidl, out uint flags);
+
+        void InvokeVerbOnSelection([MarshalAs(UnmanagedType.LPWStr)] string? verb);
+
+        [PreserveSig]
+        int SetViewModeAndIconSize(int viewMode, int imageSize);
+
+        [PreserveSig]
+        int GetViewModeAndIconSize(out int viewMode, out int imageSize);
+
+        void SetGroupSubsetCount(uint visibleRows);
+
+        void GetGroupSubsetCount(out uint visibleRows);
+
+        void SetRedraw([MarshalAs(UnmanagedType.Bool)] bool redraw);
+
+        void IsMoveInSameFolder();
+
+        void DoRename();
+    }
+
+    /// <summary>
     /// <c>IShellItem</c> : un élément du shell. <c>GetDisplayName</c> rend sa chaîne, à libérer
     /// avec <c>CoTaskMemFree</c>.
     /// </summary>

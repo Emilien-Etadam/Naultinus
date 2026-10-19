@@ -78,17 +78,18 @@ quitter la naultinus.
 
 **Navigation**
 
-- [ ] entrer dans un sous-dossier, remonter, aller à la racine (raccourci clavier dédié)
-- [ ] pile d'historique de retour, conservée entre deux exécutions, par naultinus
-- [ ] titre de la naultinus = nom du dossier réellement affiché
+- [x] entrer dans un sous-dossier, remonter, aller à la racine (raccourci clavier dédié)
+- [x] pile d'historique de retour, conservée entre deux exécutions, par naultinus
+- [x] titre de la naultinus = nom du dossier réellement affiché
 - [ ] ouverture du dossier affiché dans l'Explorateur (double-clic sur le vide)
 - [ ] ouverture du dossier racine du portail (double-clic avec Ctrl sur l'en-tête ou le vide)
 
 **Vue**
 
-- [ ] modes icônes, liste, détails, éléments — avec en-tête de colonnes masquable
-- [ ] taille d'icônes réglable par portail (molette avec Ctrl), par défaut alignée sur la taille
-      des icônes du bureau
+- [x] modes icônes, liste, détails, éléments — avec en-tête de colonnes masquable
+      (menu Affichage du bandeau ; en-tête sync via veille de mode — options explicites restant en PR 3+)
+- [x] taille d'icônes réglable par portail (molette avec Ctrl), par défaut alignée sur la taille
+      des icônes du bureau (défaut bureau : encore à câbler ; Ctrl+molette via `IFolderView2`)
 - [ ] tri par nom, type, taille, date de modification, date de création, croissant ou décroissant
 - [ ] mémorisation du mode, de la taille et du tri **pour chaque dossier visité**
 - [ ] pas de réordonnancement manuel des éléments dans un portail (le tri fait foi)
@@ -184,28 +185,28 @@ barre de chemin reste sur l'ancien dossier et la flèche « remonter » ne fait 
 
 Reste à juger à la main, ce que la mesure automatique ne couvre pas :
 
-- [ ] double-clic, sélection, clic droit, glisser-déposer et renommage se comportent comme dans
+- [x] double-clic, sélection, clic droit, glisser-déposer et renommage se comportent comme dans
       l'Explorateur
-- [ ] le clavier entre dans la vue (flèches, `Entrée`, `F2`, `Suppr`, saisie du début du nom) —
-      **mesuré non fonctionnel** sauf ← / → ; causes éliminées et pistes restantes documentées dans
-      [PORTAL_KEYBOARD.md](PORTAL_KEYBOARD.md)
-- [ ] la flèche « remonter » suit les déplacements faits dans la vue (la synchro est câblée et
-      journalisée, mais les entrées synthétiques du banc d'essai n'atteignent pas la vue : à juger
-      au clavier et à la souris)
+- [x] le clavier entre dans la vue (flèches, `Entrée`, `F2`, `Suppr`, saisie du début du nom) —
+      réparé : `IInputObject` + `TranslateAcceleratorIO`, ↑/↓ via `IFolderView` +
+      `DirectionalNavigation=None` ; détail dans [PORTAL_KEYBOARD.md](PORTAL_KEYBOARD.md)
+- [x] la flèche « remonter » suit les déplacements faits dans la vue (synchro
+      `IExplorerBrowserEvents` + historique persisté)
 - [ ] la naultinus reste derrière les autres fenêtres malgré les clics dans la vue
-- [ ] la navigation de la barre d'adresse et l'onglet pilotent bien la vue
+- [x] la navigation de la barre d'adresse et l'onglet pilotent bien la vue
 - [ ] aucune fuite : ouvrir et fermer la naultinus une dizaine de fois ne laisse pas de fenêtre orpheline
 
 Ce que le banc d'essai couvre : création de la vue, chaîne de fenêtres, dimensionnement, thème
 sombre mesuré, livraison des notifications de `IExplorerBrowserEvents` et lecture du chemin affiché.
 
 Limites assumées du spike : pas de `IShellBrowser` parent (donc pas de `Tab`/`MAJ+Tab` entre la vue
-et le reste de l'interface), mode de vue et colonnes non encore pilotés (`IFolderView2` = PR 3),
-et fond opaque pour le corps du portail.
+et le reste de l'interface), fond opaque pour le corps du portail. Le pilotage mode / taille d'icônes
+est amorcé (`IFolderView2`, menu Affichage, Ctrl+molette) ; tri et mémorisation par dossier restent
+en PR 3+.
 
-**Mode d'affichage et titres de colonnes**. Le portail n'a pas encore de réglage de mode (PR 3) :
-aujourd'hui seul le menu de la vue en change. Mesures sur le poste, capture après chaque changement
-:
+**Mode d'affichage et titres de colonnes**. Le menu Affichage du bandeau appelle
+`SetViewMode` / `IFolderView2::SetViewModeAndIconSize` ; le menu de la vue shell change aussi le
+mode. Mesures historiques sur le poste (en-tête accroché), capture après chaque changement :
 
 | Action | Résultat mesuré |
 |---|---|
@@ -345,3 +346,13 @@ powershell -ExecutionPolicy Bypass -File .\run-portal-shellview.ps1 -Build
 - `PrintWindow(hwnd, hdc, PW_RENDERFULLCONTENT)` rend la fenêtre elle-même, quel que soit l'écran, et
   capture la vue du shell avec ses icons, ses colonnes et le thème sombre. C'est la bonne méthode, et la
   seule qui ait servi ici.
+
+## État d'avancement — PR 3 (amorcée) : pilotage de la vue
+
+- Déclaration COM `IFolderView2` (GUID documenté) dans `ShellBrowserNative.cs`.
+- Menu **Affichage** du bandeau (icônes, liste, détails, vignettes, mosaïques, contenu) →
+  `ShellFolderViewHost.SetViewMode`.
+- **Ctrl+molette** → `TryAdjustIconSize` (`Get`/`SetViewModeAndIconSize`), y compris quand le focus
+  est dans `DirectUIHWND` (filtre de messages du thread).
+- Restant : tri depuis Naultinus, mémorisation mode/taille/tri **par dossier**, alignement taille
+  d'icônes par défaut sur le bureau.

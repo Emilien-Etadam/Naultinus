@@ -694,6 +694,81 @@ namespace Naultinus.View
             ApplyViewMode();
         }
 
+        private const int MinIconSize = 16;
+        private const int MaxIconSize = 256;
+        private const int IconSizeStep = 16;
+
+        /// <summary>
+        /// Ctrl+molette : ajuste la taille d'icônes via <c>IFolderView2</c>. En mode liste / détails /
+        /// contenu, un zoom avant bascule en icônes ; un zoom arrière au minimum revient en détails.
+        /// </summary>
+        public bool TryAdjustIconSize(int wheelDelta)
+        {
+            if (wheelDelta == 0 || _browser is not IExplorerBrowser browser)
+                return false;
+
+            try
+            {
+                Guid folderView2Id = typeof(IFolderView2).GUID;
+                browser.GetCurrentView(ref folderView2Id, out object view);
+                if (view is not IFolderView2 folderView2)
+                    return false;
+
+                if (folderView2.GetViewModeAndIconSize(out int mode, out int size) != SOk)
+                    return false;
+
+                int steps = Math.Max(1, Math.Abs(wheelDelta) / 120);
+                int delta = (wheelDelta > 0 ? IconSizeStep : -IconSizeStep) * steps;
+                int newMode = mode;
+                int newSize = size;
+
+                bool listLike = mode == (int)ShellBrowserNative.FolderViewModes.Details
+                    || mode == (int)ShellBrowserNative.FolderViewModes.List
+                    || mode == (int)ShellBrowserNative.FolderViewModes.Content
+                    || mode == (int)ShellBrowserNative.FolderViewModes.SmallIcon;
+
+                if (listLike)
+                {
+                    if (delta <= 0)
+                        return true; // déjà compact : ne pas avaler sans effet utile au-delà
+
+                    newMode = (int)ShellBrowserNative.FolderViewModes.Icon;
+                    newSize = Math.Clamp(48 + delta, MinIconSize, MaxIconSize);
+                }
+                else
+                {
+                    newSize = size + delta;
+                    if (newSize < MinIconSize)
+                    {
+                        newMode = (int)ShellBrowserNative.FolderViewModes.Details;
+                        newSize = MinIconSize;
+                    }
+                    else
+                    {
+                        newSize = Math.Clamp(newSize, MinIconSize, MaxIconSize);
+                    }
+                }
+
+                if (newMode == mode && newSize == size)
+                    return true;
+
+                if (folderView2.SetViewModeAndIconSize(newMode, newSize) != SOk)
+                    return false;
+
+                _viewMode = (uint)newMode;
+                _showColumnHeader = newMode == (int)ShellBrowserNative.FolderViewModes.Details;
+                NaultinusDiagnostics.Log(
+                    "ShellFolderViewHost",
+                    "taille d'icônes : mode " + newMode + ", " + newSize + " px");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.TryAdjustIconSize", ex);
+                return false;
+            }
+        }
+
         /// <summary>
         /// Surveille le mode de la vue. Le menu de la vue change le mode sans prévenir personne, et
         /// comme il ne désactive pas le portail, un clic dedans ne déclenche pas non plus
@@ -1100,6 +1175,22 @@ namespace Naultinus.View
                 };
 
                 browser.SetFolderSettings(ref settings);
+
+                Guid folderView2Id = typeof(IFolderView2).GUID;
+                browser.GetCurrentView(ref folderView2Id, out object view2);
+                if (view2 is IFolderView2 folderView2
+                    && folderView2.GetViewModeAndIconSize(out _, out int iconSize) == SOk)
+                {
+                    int size = iconSize > 0 ? iconSize : 48;
+                    if (folderView2.SetViewModeAndIconSize((int)_viewMode, size) == SOk)
+                    {
+                        NaultinusDiagnostics.Log(
+                            "ShellFolderViewHost",
+                            "mode de vue demandé (IFolderView2) : " + _viewMode
+                            + ", titres de colonnes : " + _showColumnHeader);
+                        return;
+                    }
+                }
 
                 Guid folderViewId = typeof(IFolderView).GUID;
                 browser.GetCurrentView(ref folderViewId, out object view);

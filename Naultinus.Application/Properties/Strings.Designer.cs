@@ -216,6 +216,13 @@ namespace Naultinus.Properties
         public static string MenuOpenWebmail => ResourceManager.GetString(nameof(MenuOpenWebmail)) ?? string.Empty;
         public static string MenuPaste => ResourceManager.GetString(nameof(MenuPaste)) ?? string.Empty;
         public static string MenuRefresh => ResourceManager.GetString(nameof(MenuRefresh)) ?? string.Empty;
+        public static string MenuView => ResourceManager.GetString(nameof(MenuView)) ?? string.Empty;
+        public static string MenuViewContent => ResourceManager.GetString(nameof(MenuViewContent)) ?? string.Empty;
+        public static string MenuViewDetails => ResourceManager.GetString(nameof(MenuViewDetails)) ?? string.Empty;
+        public static string MenuViewIcons => ResourceManager.GetString(nameof(MenuViewIcons)) ?? string.Empty;
+        public static string MenuViewList => ResourceManager.GetString(nameof(MenuViewList)) ?? string.Empty;
+        public static string MenuViewThumbnails => ResourceManager.GetString(nameof(MenuViewThumbnails)) ?? string.Empty;
+        public static string MenuViewTiles => ResourceManager.GetString(nameof(MenuViewTiles)) ?? string.Empty;
         public static string MenuSaveCurrentLayout => ResourceManager.GetString(nameof(MenuSaveCurrentLayout)) ?? string.Empty;
         public static string MenuSortByDate => ResourceManager.GetString(nameof(MenuSortByDate)) ?? string.Empty;
 

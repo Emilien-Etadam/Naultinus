@@ -51,6 +51,14 @@
                         <MenuItem Header="{x:Static properties:Strings.MenuEdit}" Command="{Binding Path=Data.EditCommand, Source={StaticResource proxy}}" />
                         <MenuItem Header="{x:Static properties:Strings.MenuRefresh}" Command="{Binding Path=Data.RefreshCommand, Source={StaticResource proxy}}" />
                         <MenuItem Header="{x:Static properties:Strings.MenuOpenInExplorer}" Command="{Binding Path=Data.OpenInExplorerCommand, Source={StaticResource proxy}}" />
+                        <MenuItem x:Name="ViewModeMenu" Header="{x:Static properties:Strings.MenuView}" Visibility="Collapsed">
+                            <MenuItem Header="{x:Static properties:Strings.MenuViewIcons}" Tag="1" Click="ViewModeMenuItem_Click" />
+                            <MenuItem Header="{x:Static properties:Strings.MenuViewList}" Tag="3" Click="ViewModeMenuItem_Click" />
+                            <MenuItem Header="{x:Static properties:Strings.MenuViewDetails}" Tag="4" Click="ViewModeMenuItem_Click" />
+                            <MenuItem Header="{x:Static properties:Strings.MenuViewThumbnails}" Tag="5" Click="ViewModeMenuItem_Click" />
+                            <MenuItem Header="{x:Static properties:Strings.MenuViewTiles}" Tag="6" Click="ViewModeMenuItem_Click" />
+                            <MenuItem Header="{x:Static properties:Strings.MenuViewContent}" Tag="8" Click="ViewModeMenuItem_Click" />
+                        </MenuItem>
                         <Separator />
                         <MenuItem Header="{x:Static properties:Strings.MenuDelete}" Command="{Binding Path=Data.DeleteNaultinusCommand, Source={StaticResource proxy}}" CommandParameter="{Binding Identifier}" />
                         <Separator />
