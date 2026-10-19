@@ -24,13 +24,15 @@
             <Setter Property="Margin" Value="0,0,1,0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Chrome" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="2">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
-                                              TextElement.Foreground="{TemplateBinding Foreground}"/>
+                                              TextElement.Foreground="{TemplateBinding Foreground}"
+                                              TextElement.FontWeight="{TemplateBinding FontWeight}"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
