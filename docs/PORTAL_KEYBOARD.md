@@ -141,8 +141,8 @@ Commandes de jeu d'essai, dans l'ordre : clic sur un fichier → **↓ ↓ ↓**
 **Échap** → **Suppr**. Les lignes attendues et leur lecture sont celles du §2.
 
 Lancement depuis Windows (construction WSL, exécution sur copie locale) :
-`scripts/run-portal-shellview.ps1`, voir §Lancement de
-[PORTAL_EXPLORER_PARITY.md](PORTAL_EXPLORER_PARITY.md).
+`scripts/run-portal-shellview.ps1 -Build -Keys` (voir §Lancement de
+[PORTAL_EXPLORER_PARITY.md](PORTAL_EXPLORER_PARITY.md) pour les règles de lancement).
 
 ## 7. Acquis conservés (ne pas refaire)
 
