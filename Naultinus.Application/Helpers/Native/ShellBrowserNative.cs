@@ -268,6 +268,62 @@ namespace Naultinus.Helpers.Native
     }
 
     /// <summary>
+    /// <c>IShellView</c> : la vue shell sous <c>IExplorerBrowser</c>.
+    /// <c>GetCurrentInfo</c> lit les <c>FOLDERSETTINGS</c> réellement appliqués (y compris après un
+    /// changement via le menu de la vue, où <c>IFolderView::GetCurrentViewMode</c> peut rester figé).
+    /// </summary>
+    [ComImport]
+    [Guid("000214E3-0000-0000-C000-000000000046")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IShellView
+    {
+        [PreserveSig]
+        int GetWindow(out IntPtr hwnd);
+
+        [PreserveSig]
+        int ContextSensitiveHelp([MarshalAs(UnmanagedType.Bool)] bool enterMode);
+
+        [PreserveSig]
+        int TranslateAccelerator(IntPtr msg);
+
+        [PreserveSig]
+        int EnableModeless([MarshalAs(UnmanagedType.Bool)] bool enable);
+
+        [PreserveSig]
+        int UIActivate(uint state);
+
+        [PreserveSig]
+        int Refresh();
+
+        [PreserveSig]
+        int CreateViewWindow(
+            [MarshalAs(UnmanagedType.IUnknown)] object? previous,
+            IntPtr folderSettings,
+            [MarshalAs(UnmanagedType.IUnknown)] object? browser,
+            IntPtr viewRect,
+            out IntPtr hwnd);
+
+        [PreserveSig]
+        int DestroyViewWindow();
+
+        /// <summary>Remplit la structure fournie par l'appelant (pas un pointeur alloué).</summary>
+        [PreserveSig]
+        int GetCurrentInfo(ref ShellBrowserNative.FolderSettings settings);
+
+        [PreserveSig]
+        int AddPropertySheetPages(uint reserved, IntPtr pfn, IntPtr lparam);
+
+        [PreserveSig]
+        int SaveViewState();
+
+        [PreserveSig]
+        int SelectItem(IntPtr pidlItem, uint flags);
+
+        [PreserveSig]
+        int GetItemObject(uint item, ref Guid riid, [MarshalAs(UnmanagedType.IUnknown)] out object ppv);
+    }
+
+    /// <summary>
     /// <c>IFolderView</c> : la vue d'éléments. <c>GetFolder</c> donne le dossier affiché à l'instant
     /// où on l'interroge ; c'est ce qui sert à resynchroniser la barre de chemin.
     /// </summary>

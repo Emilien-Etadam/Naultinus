@@ -237,9 +237,9 @@ fausses et font tomber le mode « liste ». Autre mesure : demander le mode vign
 **1** quand le dossier n'a pas de gestionnaire de vignettes — la vue retombe sur les icônes, ce
 n'est pas un échec.
 
-Ce que la machine n'a pas pu prouver : le geste manuel dans le menu de la vue (les entrées
-synthétiques ne le pilotent pas) et le rendu final à l'écran. La chaine interne — changement de mode
-sans notification, détection, remise à l'heure des titres — est en revanche mesurée.
+La veille s'appuie aussi sur `IShellView::GetCurrentInfo` et une heuristique de disposition (positions
+des deux premiers éléments) : un changement via le menu de la vue laissait parfois
+`GetCurrentViewMode` à « détails » avec l'en-tête accroché.
 
 
 ### Lancer le spike sur un poste Windows

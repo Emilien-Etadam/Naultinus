@@ -124,7 +124,10 @@ Journal : `%TEMP%\Naultinus_startup.log`.
 - focus logique du portail laissé à l'hôte de vue ;
 - `IFolderView`/`IFolderView2` : sélection et renommage câblés côté managed.
 
-## 8. Annexe hors clavier
+## 8. Annexe hors clavier (mode / en-têtes)
 
-`CheckModeChanged` lit un mode qui ne bouge pas quand l'utilisateur change d'affichage à la main —
-à reprendre séparément.
+`IFolderView::GetCurrentViewMode` peut rester figé après un changement par le **menu de la vue**,
+alors que les éléments sont déjà en icônes et que l'en-tête `SysHeader32` reste visible. Correctif :
+lire le mode via `IShellView::GetCurrentInfo`, et si l'API dit encore « détails » alors que la
+disposition des deux premiers éléments n'est plus en colonne, masquer l'en-tête
+(`EnforceColumnHeader` + veille).

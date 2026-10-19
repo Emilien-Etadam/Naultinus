@@ -841,34 +841,25 @@ namespace Naultinus.View
 
         private void CheckModeChanged()
         {
-            if (_browser is not IExplorerBrowser browser)
-                return;
-
             try
             {
-                Guid folderViewId = typeof(IFolderView).GUID;
-                browser.GetCurrentView(ref folderViewId, out object view);
-                if (view is not IFolderView folderView)
+                uint mode = ReadViewMode();
+                bool headerVisible = IsColumnHeaderVisible();
+                bool layoutKnown = TryLayoutLooksLikeDetails(out bool layoutDetails);
+                // Mode API figé (menu de la vue) alors que la grille n'est plus en détails, ou
+                // en-tête encore visible hors détails : forcer la remise à l'heure.
+                bool staleHeader = headerVisible && mode != ShellBrowserNative.FolderViewModes.Details;
+                bool staleMode = layoutKnown && !layoutDetails && mode == ShellBrowserNative.FolderViewModes.Details;
+
+                if (mode == _lastKnownMode && !staleHeader && !staleMode)
                     return;
 
-                folderView.GetCurrentViewMode(out uint mode);
-                // IFolderView::GetSelection fait planter la vue en accès illégal sur ce poste : le
-                // compte de sélection n'est pas lu depuis cette interface.
-                int selected = -1;
-                NaultinusDiagnostics.LogDebug(
-                    "ShellFolderViewHost.CheckModeChanged : mode relu " + mode + ", dernière valeur connue " + _lastKnownMode
-                    + ", sélection " + selected
-                    + ", élément portant le focus " + FocusedItem()
-                    + ", focus clavier 0x" + GetFocus().ToInt64().ToString("X")
-                    + ", fenêtre de liste 0x" + FindListWindow().ToInt64().ToString("X")
-                    + ", fenêtre du portail 0x" + _siteHwnd.ToInt64().ToString("X")
-                    + ", fenêtre racine 0x" + GetAncestor(_siteHwnd, GaRoot).ToInt64().ToString("X")
-                    + ", au premier plan 0x" + GetForegroundWindow().ToInt64().ToString("X")
-                    + ", premier plan « " + WindowTitle(GetForegroundWindow()) + " »");
-                if (mode == _lastKnownMode)
-                    return;
-
-                NaultinusDiagnostics.Log("ShellFolderViewHost", "mode de la vue passé à " + mode + " sans nous dire bonjour");
+                NaultinusDiagnostics.Log(
+                    "ShellFolderViewHost",
+                    "mode de la vue passé à " + mode
+                    + " (dernier " + _lastKnownMode
+                    + ", en-tête visible=" + headerVisible
+                    + ", disposition détails=" + (layoutKnown ? layoutDetails.ToString() : "?") + ")");
                 EnforceColumnHeader();
             }
             catch (Exception ex)
@@ -909,6 +900,7 @@ namespace Naultinus.View
 
         /// <summary>
         /// Mode réellement affiché par la vue (0 si la vue n'est pas joignable).
+        /// Préfère <c>IShellView::GetCurrentInfo</c> : plus fidèle après un changement par le menu.
         /// </summary>
         private uint ReadViewMode()
         {
@@ -917,6 +909,15 @@ namespace Naultinus.View
 
             try
             {
+                Guid shellViewId = typeof(IShellView).GUID;
+                browser.GetCurrentView(ref shellViewId, out object shellViewObj);
+                if (shellViewObj is IShellView shellView)
+                {
+                    var settings = new ShellBrowserNative.FolderSettings();
+                    if (shellView.GetCurrentInfo(ref settings) == SOk && settings.ViewMode != 0)
+                        return (uint)settings.ViewMode;
+                }
+
                 Guid folderViewId = typeof(IFolderView).GUID;
                 browser.GetCurrentView(ref folderViewId, out object view);
                 if (view is IFolderView folderView)
@@ -931,6 +932,77 @@ namespace Naultinus.View
             }
 
             return 0;
+        }
+
+        /// <summary>La vue details affiche un <c>SysHeader32</c> ; s'il reste après un passage en icônes, bug.</summary>
+        private bool IsColumnHeaderVisible()
+        {
+            if (_siteHwnd == IntPtr.Zero)
+                return false;
+
+            IntPtr header = IntPtr.Zero;
+            EnumChildWindows(_siteHwnd, (h, _) =>
+            {
+                var sb = new System.Text.StringBuilder(64);
+                _ = GetClassName(h, sb, sb.Capacity);
+                if (string.Equals(sb.ToString(), "SysHeader32", StringComparison.Ordinal)
+                    && IsWindowVisible(h))
+                {
+                    header = h;
+                    return false;
+                }
+
+                return true;
+            }, IntPtr.Zero);
+
+            return header != IntPtr.Zero;
+        }
+
+        /// <summary>
+        /// Heuristique de disposition : deux premiers éléments sur la même colonne ⇒ détails/liste.
+        /// Sert quand <c>GetCurrentViewMode</c> reste à « détails » après un changement par le menu.
+        /// </summary>
+        private bool TryLayoutLooksLikeDetails(out bool looksLikeDetails)
+        {
+            looksLikeDetails = false;
+            if (_browser is not IExplorerBrowser browser)
+                return false;
+
+            IntPtr pidl0 = IntPtr.Zero;
+            IntPtr pidl1 = IntPtr.Zero;
+            try
+            {
+                Guid folderViewId = typeof(IFolderView).GUID;
+                browser.GetCurrentView(ref folderViewId, out object view);
+                if (view is not IFolderView folderView)
+                    return false;
+
+                folderView.ItemCount(ShellBrowserNative.SvgIoAllView, out int count);
+                if (count < 2)
+                    return false;
+
+                folderView.Item(0, out pidl0);
+                folderView.Item(1, out pidl1);
+                if (pidl0 == IntPtr.Zero || pidl1 == IntPtr.Zero)
+                    return false;
+
+                folderView.GetItemPosition(pidl0, out ShellBrowserNative.POINT a);
+                folderView.GetItemPosition(pidl1, out ShellBrowserNative.POINT b);
+                looksLikeDetails = Math.Abs(a.X - b.X) <= 2 && Math.Abs(a.Y - b.Y) > 2;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.TryLayoutLooksLikeDetails", ex);
+                return false;
+            }
+            finally
+            {
+                if (pidl0 != IntPtr.Zero)
+                    ShellBrowserNative.ILFree(pidl0);
+                if (pidl1 != IntPtr.Zero)
+                    ShellBrowserNative.ILFree(pidl1);
+            }
         }
 
         /// <summary>
@@ -962,7 +1034,8 @@ namespace Naultinus.View
         /// <summary>
         /// Les titres de colonnes n'ont rien à faire dans un mode qui n'est pas « détails ». Mesuré :
         /// un mode changé par nos soins masque d'office les titres ; un mode changé par le menu de la
-        /// vue, lui, laisse l'en-tête en place. On recopie donc les réglages selon le mode réel.
+        /// vue, lui, laisse l'en-tête en place. On recopie donc les réglages selon le mode réel, en
+        /// corrigeant le cas où l'API reste à « détails » alors que la disposition ne l'est plus.
         /// </summary>
         private void EnforceColumnHeader()
         {
@@ -971,21 +1044,29 @@ namespace Naultinus.View
 
             try
             {
-                Guid folderViewId = typeof(IFolderView).GUID;
-                browser.GetCurrentView(ref folderViewId, out object view);
-                if (view is not IFolderView folderView)
+                uint mode = ReadViewMode();
+                if (mode == 0)
                     return;
 
-                folderView.GetCurrentViewMode(out uint mode);
+                bool showHeader = mode == ShellBrowserNative.FolderViewModes.Details;
+                if (showHeader && TryLayoutLooksLikeDetails(out bool layoutDetails) && !layoutDetails)
+                {
+                    // Menu de la vue : mode API encore à 4, éléments déjà en grille.
+                    showHeader = false;
+                    mode = ShellBrowserNative.FolderViewModes.Icon;
+                }
+
                 var settings = new ShellBrowserNative.FolderSettings
                 {
                     ViewMode = (int)mode,
-                    Flags = mode == ShellBrowserNative.FolderViewModes.Details ? 0u : ShellBrowserNative.FolderViewFlags.NoColumnHeader,
+                    Flags = showHeader ? 0u : ShellBrowserNative.FolderViewFlags.NoColumnHeader,
                 };
 
                 browser.SetFolderSettings(ref settings);
                 _lastKnownMode = mode;
-                NaultinusDiagnostics.Log("ShellFolderViewHost", "mode relevé dans la vue : " + mode + ", titres de colonnes : " + (mode == ShellBrowserNative.FolderViewModes.Details));
+                NaultinusDiagnostics.Log(
+                    "ShellFolderViewHost",
+                    "mode relevé dans la vue : " + mode + ", titres de colonnes : " + showHeader);
             }
             catch (Exception ex)
             {
