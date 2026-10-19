@@ -3,6 +3,7 @@ using Naultinus.Helpers.Native;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -30,6 +31,7 @@ namespace Naultinus.View
         private const int CsHredraw = 0x0002;
         private const int CsVredraw = 0x0001;
         private const uint WmSize = 0x0005;
+        private const uint WmSetFocus = 0x0007;
 
         private static readonly string ClassName = "NaultinusShellViewSite";
         private static readonly WndProcDelegate StaticWndProc = WndProcThunk;
@@ -100,6 +102,12 @@ namespace Naultinus.View
         {
             try
             {
+                // IExplorerBrowser est un objet OLE en place : sans OleInitialize sur le thread, la
+                // vue reçoit la souris mais son activation en place — donc tout son routage clavier —
+                // ne s'arme jamais (F2, Suppr, Ctrl+A et les flèches restent sans effet).
+                int ole = OleInitialize(IntPtr.Zero);
+                NaultinusDiagnostics.Log("ShellFolderViewHost.TryPrepare", "OleInitialize : 0x" + ole.ToString("X8"));
+
                 RegisterWindowClass();
                 return true;
             }
@@ -145,6 +153,7 @@ namespace Naultinus.View
             }
 
             Instances[_siteHwnd] = this;
+            AttachRootFocusGuard();
             TryCreateBrowser();
             return new HandleRef(this, _siteHwnd);
         }
@@ -152,6 +161,8 @@ namespace Naultinus.View
         protected override void DestroyWindowCore(HandleRef hwnd)
         {
             Instances.TryRemove(hwnd.Handle, out _);
+            _rootSource?.RemoveHook(RootFocusGuard);
+            _rootSource = null;
             Microsoft.Win32.SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
             StopModeWatch();
             ReleaseBrowser();
@@ -164,6 +175,118 @@ namespace Naultinus.View
         /// <summary>La fenêtre créée pour la vue (different de la fenêtre de gestion WPF).</summary>
         public IntPtr ViewWindow => _siteHwnd;
 
+        #region Garde du focus
+
+        private HwndSource? _rootSource;
+        private DateTime _lastFocusRelay = DateTime.MinValue;
+
+        /// <summary><c>NAULTINUS_SHELLVIEW_KEYS=1</c> : sonde les messages des fenêtres de la vue.</summary>
+        private static readonly bool ProbeKeys =
+            Environment.GetEnvironmentVariable("NAULTINUS_SHELLVIEW_KEYS") == "1";
+
+        /// <summary>
+        /// <c>NAULTINUS_SHELLVIEW_GUARD=1</c> : rend le focus à la vue quand WPF le reprend pour lui.
+        /// Mesuré inefficace sur le clavier (voir docs/PORTAL_KEYBOARD.md), gardé comme banc d'essai.
+        /// </summary>
+        private static readonly bool FocusGuard =
+            Environment.GetEnvironmentVariable("NAULTINUS_SHELLVIEW_GUARD") == "1";
+
+        /// <summary>
+        /// WPF rend le focus à sa fenêtre racine après un clic ou une activation : les touches
+        /// n'atteignent plus la liste et les flèches, F2, Suppr, Ctrl+A restent sans effet (mesuré :
+        /// focus clavier sur la fenêtre racine pendant la frappe). Le portail n'a aucune zone de
+        /// saisie WPF, ce focus y est donc perdu : on le rend à la vue.
+        /// </summary>
+        private void AttachRootFocusGuard()
+        {
+            if (_rootSource != null)
+                return;
+
+            _rootSource = PresentationSource.FromVisual(this) as HwndSource;
+            _rootSource?.AddHook(RootFocusGuard);
+        }
+
+        private IntPtr RootFocusGuard(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            // WPF ne répercute pas WM_ACTIVATE sur ses fenêtres enfants : ni la fenêtre site ni
+            // SHELLDLL_DefView ne sont jamais activées, et la vue du shell n'arme pas son routage
+            // clavier (la souris, elle, fonctionne). On relaie le message ; DefWindowProc le propage
+            // ensuite dans toute la hiérarchie hébergée.
+            if (msg == 0x0111 && ProbeKeys)
+                NaultinusDiagnostics.Log(
+                    "SondeClavier",
+                    $"fenêtre WPF 0x{hwnd.ToInt64():X} WM_COMMAND {CommandName((ushort)(wParam.ToInt64() & 0xffff))}");
+
+            if (msg == WmActivate && _siteHwnd != IntPtr.Zero)
+                _ = SendMessage(_siteHwnd, WmActivate, wParam, lParam);
+            if (msg == (int)WmSetFocus && FocusGuard && WantsListFocus())
+            {
+                DateTime now = DateTime.UtcNow;
+                if (now - _lastFocusRelay >= TimeSpan.FromMilliseconds(150))
+                {
+                    _lastFocusRelay = now;
+                    string pile = Environment.StackTrace;
+                    string[] lignes = pile.Split('\n');
+                    NaultinusDiagnostics.Log(
+                        "ShellFolderViewHost.GardeFocus",
+                        $"fenêtre racine 0x{hwnd.ToInt64():X} saisie par WPF ; focus logique WPF="
+                        + (System.Windows.Input.Keyboard.FocusedElement?.GetType().Name ?? "aucun")
+                        + " ; rendu à la vue. Pile : "
+                        + string.Join(" | ", lignes.Skip(1).Take(26).Select(t => t.Trim())));
+                    Dispatcher.BeginInvoke(new Action(FocusView), System.Windows.Threading.DispatcherPriority.Input);
+                }
+            }
+
+            return IntPtr.Zero;
+        }
+
+        /// <summary>
+        /// Fenêtre à laquelle le focus clavier doit être donné. Banc d'essai : NAULTINUS_SHELLVIEW_FOCUS
+        /// vaut « browser » (la fenêtre du navigateur, qui sait activer sa vue elle-même), « defview »
+        /// ou rien du tout (la fenêtre de liste, comportement par défaut).
+        /// </summary>
+        private IntPtr FocusTarget()
+        {
+            string want = Environment.GetEnvironmentVariable("NAULTINUS_SHELLVIEW_FOCUS") ?? string.Empty;
+            if (want.Length == 0 || _siteHwnd == IntPtr.Zero)
+                return FindListWindow();
+
+            string wantedClass = want switch
+            {
+                "browser" => "ExplorerBrowserControl",
+                "defview" => "SHELLDLL_DefView",
+                _ => "DirectUIHWND",
+            };
+
+            IntPtr found = IntPtr.Zero;
+            EnumChildWindows(_siteHwnd, (h, l) =>
+            {
+                var sb = new System.Text.StringBuilder(256);
+                _ = GetClassName(h, sb, sb.Capacity);
+                if (string.Equals(sb.ToString(), wantedClass, StringComparison.Ordinal))
+                {
+                    found = h;
+                    return false;
+                }
+
+                return true;
+            }, IntPtr.Zero);
+
+            return found != IntPtr.Zero ? found : FindListWindow();
+        }
+
+        /// <summary>Le clavier est-il libre côté WPF (aucune zone de saisie ne le réclame) ?</summary>
+        private static bool WantsListFocus()
+        {
+            object? focused = System.Windows.Input.Keyboard.FocusedElement;
+            return focused is null
+                || focused is System.Windows.Window
+                || (focused is System.Windows.FrameworkElement fe && !fe.Focusable);
+        }
+
+        #endregion
+
+
         protected override IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
             if (msg == (int)WmSize)
@@ -174,6 +297,38 @@ namespace Naultinus.View
             }
 
             return base.WndProc(hwnd, msg, wParam, lParam, ref handled);
+        }
+
+        /// <summary>
+        /// Donne le focus clavier à la fenêtre de liste de la vue (F2, Suppr, Ctrl+A, saisie du début
+        /// du nom). À appeler après l'activation de la fenêtre, pas pendant : WPF rend le focus à son
+        /// propre contenu au moment de l'activation.
+        /// </summary>
+        public void FocusView()
+        {
+            IntPtr list = FocusTarget();
+            if (list != IntPtr.Zero)
+                _ = SetFocus(list);
+
+            // Le focus Win32 ne prévient pas le shell : sans UIActivateIO, la vue reste sourde au
+            // clavier (F2, Suppr, Ctrl+A, saisie du début du nom) tout en répondant à la souris.
+            if (_browser is Naultinus.Helpers.Native.IInputObject input)
+            {
+                try
+                {
+                    var msg = new System.Windows.Interop.MSG();
+                    input.UIActivateIO(1, ref msg);
+                    NaultinusDiagnostics.Log(
+                        "ShellFolderViewHost.FocusView",
+                        $"UIActivateIO fait, vue activée au sens shell={input.HasIOFocus()}, focus 0x{GetFocus().ToInt64():X}");
+                }
+                catch (Exception ex)
+                {
+                    NaultinusDiagnostics.LogDebug("ShellFolderViewHost.FocusView", ex);
+                }
+            }
+
+            InstallKeyProbe();
         }
 
         #endregion
@@ -231,26 +386,6 @@ namespace Naultinus.View
                 if (pidl != IntPtr.Zero)
                     ShellBrowserNative.ILFree(pidl);
             }
-        }
-
-        /// <summary>Donne le focus clavier à la vue hébergée (F2, Ctrl+C, saisie du début du nom…).</summary>
-        public void FocusView()
-        {
-            if (_siteHwnd == IntPtr.Zero)
-                return;
-
-            // Le focus doit aller à la fenêtre la plus profonde (la liste elle-même), pas à la
-            // fenêtre hôte qui ne reçoit que les messages de dimensionnement.
-            IntPtr target = _siteHwnd;
-            while (true)
-            {
-                IntPtr child = ShellBrowserNative.GetWindow(target, ShellBrowserNative.GwChild);
-                if (child == IntPtr.Zero)
-                    break;
-                target = child;
-            }
-
-            SetFocus(target);
         }
 
         #endregion
@@ -513,6 +648,31 @@ namespace Naultinus.View
             return -2;
         }
 
+        /// <summary>Index de l'élément qui porte le focus dans la vue (-2 si la vue n'est pas joignable).</summary>
+        private int FocusedItem()
+        {
+            if (_browser is not IExplorerBrowser browser)
+                return -2;
+
+            try
+            {
+                Guid folderViewId = typeof(IFolderView).GUID;
+                browser.GetCurrentView(ref folderViewId, out object view);
+                if (view is IFolderView folderView)
+                {
+                    folderView.GetFocusedItem(out int index);
+                    return index;
+                }
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.FocusedItem", ex);
+            }
+
+            return -2;
+        }
+
+
         private void CheckModeChanged()
         {
             if (_browser is not IExplorerBrowser browser)
@@ -526,7 +686,19 @@ namespace Naultinus.View
                     return;
 
                 folderView.GetCurrentViewMode(out uint mode);
-                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.CheckModeChanged : mode relu " + mode + ", dernière valeur connue " + _lastKnownMode);
+                // IFolderView::GetSelection fait planter la vue en accès illégal sur ce poste : le
+                // compte de sélection n'est pas lu depuis cette interface.
+                int selected = -1;
+                NaultinusDiagnostics.LogDebug(
+                    "ShellFolderViewHost.CheckModeChanged : mode relu " + mode + ", dernière valeur connue " + _lastKnownMode
+                    + ", sélection " + selected
+                    + ", élément portant le focus " + FocusedItem()
+                    + ", focus clavier 0x" + GetFocus().ToInt64().ToString("X")
+                    + ", fenêtre de liste 0x" + FindListWindow().ToInt64().ToString("X")
+                    + ", fenêtre du portail 0x" + _siteHwnd.ToInt64().ToString("X")
+                    + ", fenêtre racine 0x" + GetAncestor(_siteHwnd, GaRoot).ToInt64().ToString("X")
+                    + ", au premier plan 0x" + GetForegroundWindow().ToInt64().ToString("X")
+                    + ", premier plan « " + WindowTitle(GetForegroundWindow()) + " »");
                 if (mode == _lastKnownMode)
                     return;
 
@@ -570,15 +742,55 @@ namespace Naultinus.View
         }
 
         /// <summary>
+        /// Mode réellement affiché par la vue (0 si la vue n'est pas joignable).
+        /// </summary>
+        private uint ReadViewMode()
+        {
+            if (_browser is not IExplorerBrowser browser)
+                return 0;
+
+            try
+            {
+                Guid folderViewId = typeof(IFolderView).GUID;
+                browser.GetCurrentView(ref folderViewId, out object view);
+                if (view is IFolderView folderView)
+                {
+                    folderView.GetCurrentViewMode(out uint mode);
+                    return mode;
+                }
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.ReadViewMode", ex);
+            }
+
+            return 0;
+        }
+
+        /// <summary>
         /// Remet l'en-tête de colonnes d'accord avec le mode affiché. À appeler quand on a une raison
         /// de croire que la vue a changé d'avis toute seule (menu contextuel de la vue).
         /// </summary>
         public void ReconcileViewMode()
         {
             if (_viewMode != 0)
+            {
                 ApplyViewMode();
-            else
-                EnforceColumnHeader();
+                return;
+            }
+
+            // Repousser les réglages de dossier recharge la vue et efface la sélection : le faire à
+            // chaque activation faisait perdre la sélection à chaque clic dans le corps (mesuré :
+            // rectangle de focus sur l'élément 2, aucune ligne surlignée, F2 sans effet). On ne
+            // corrige donc que si le mode a réellement bougé — la veille du mode s'en charge.
+            uint mode = ReadViewMode();
+            if (mode == _lastKnownMode)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.ReconcileViewMode : mode " + mode + " inchangé, rien poussé");
+                return;
+            }
+
+            EnforceColumnHeader();
         }
 
         /// <summary>
@@ -693,6 +905,7 @@ namespace Naultinus.View
             ApplyViewTheme();
             ApplyViewMode();
             StartModeWatch();
+
         }
 
         private void OnNavigationFailed(IntPtr pidlFolder)
@@ -754,17 +967,13 @@ namespace Naultinus.View
                 return;
 
             _themeApplied = true;
-            ApplyTheme(_siteHwnd, ThemeWatcher.IsDarkMode());
-        }
 
-        private static void ApplyTheme(IntPtr hwnd, bool dark)
-        {
-            // Sous-thème « Explorer » et liste de parties vide : c'est la recette qui fait basculer
-            // les vues de dossiers. En clair on rend son thème par défaut à la fenêtre.
-            _ = ShellBrowserNative.SetWindowTheme(hwnd, dark ? "Explorer" : null, dark ? string.Empty : null);
-
-            for (IntPtr child = ShellBrowserNative.GetWindow(hwnd, ShellBrowserNative.GwChild); child != IntPtr.Zero; child = ShellBrowserNative.GetWindow(child, ShellBrowserNative.GwHwndNext))
-                ApplyTheme(child, dark);
+            // Pas de SetWindowTheme ici : mesuré sur le poste, la vue de dossier suit déjà le thème
+            // (sombre ou clair) déclaré par Windows pour les applications. Lui imposer le sous-thème
+            // « Explorer » ne la noircissait pas davantage mais écrasait les brosses de la sélection
+            // et du survol : les lignes restaient cliquables et sélectionnables, sans aucun retour
+            // visuel. Le thème de la vue ne se pilote donc pas depuis Naultinus.
+            NaultinusDiagnostics.LogDebug("ShellFolderViewHost.ApplyViewTheme : thème laissé à Windows");
         }
 
         /// <summary>
@@ -856,7 +1065,260 @@ namespace Naultinus.View
                 return IntPtr.Zero;
             }
 
+            // Le focus donné à la fenêtre site doit redescendre jusqu'à la liste : c'est elle qui
+            // traite les touches. Sans ce relais, WPF reprend le focus à l'activation de la fenêtre
+            // et F2 comme Suppr restent sans effet tant qu'on ne clique pas une deuxième fois.
+            if (msg == WmSetFocus && Instances.TryGetValue(hwnd, out ShellFolderViewHost? focused))
+            {
+                IntPtr list = focused.FindListWindow();
+                if (list != IntPtr.Zero)
+                    _ = SetFocus(list);
+            }
+
             return DefWindowProc(hwnd, msg, wParam, lParam);
+        }
+
+        #endregion
+
+        #region Sonde clavier (temporaire)
+
+        /// <summary>Arbre complet des fenêtres hébergées : permet de vérifier qu'on cible la liste.</summary>
+        private void LogChildTree()
+        {
+            var sb = new System.Text.StringBuilder();
+            AppendChildren(sb, _siteHwnd, 0);
+            IntPtr site = _siteHwnd;
+            if (site != IntPtr.Zero && ShellBrowserNative.GetClientRect(site, out ShellBrowserNative.RECT rc))
+            {
+                var pt = new POINT { x = rc.Right / 2, y = rc.Bottom / 2 };
+                _ = ClientToScreen(site, ref pt);
+                IntPtr under = WindowFromPoint(pt);
+                sb.Append($" | au centre du site : 0x{under.ToInt64():X}");
+            }
+
+            NaultinusDiagnostics.Log("ArbreFenetres", sb.ToString());
+        }
+
+        private void AppendChildren(System.Text.StringBuilder sb, IntPtr parent, int depth)
+        {
+            for (IntPtr child = ShellBrowserNative.GetWindow(parent, ShellBrowserNative.GwChild); child != IntPtr.Zero; child = ShellBrowserNative.GetWindow(child, ShellBrowserNative.GwHwndNext))
+            {
+                var sbName = new System.Text.StringBuilder(256);
+                _ = GetClassName(child, sbName, sbName.Capacity);
+                bool vis = IsWindowVisible(child);
+                GetWindowRect(child, out WinRect r);
+                sb.Append(new string(' ', depth * 2)).Append($"{sbName} 0x{child.ToInt64():X} {(vis ? "visible" : "masquée")} {r.Right - r.Left}x{r.Bottom - r.Top}; ");
+                AppendChildren(sb, child, depth + 1);
+            }
+        }
+
+        [DllImport("user32.dll")]
+        private static extern bool IsWindowVisible(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetWindowRect(IntPtr hWnd, out WinRect lpRect);
+
+        [DllImport("user32.dll")]
+        private static extern bool ClientToScreen(IntPtr hWnd, ref POINT lpPoint);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr WindowFromPoint(POINT pt);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct POINT
+        {
+            public int x;
+            public int y;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct WinRect
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        private delegate IntPtr ProbeWndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+        private static readonly ProbeWndProc StaticProbe = ProbeThunk;
+        private static readonly System.Collections.Generic.Dictionary<IntPtr, (IntPtr Prev, bool Unicode)> ProbePrev = new();
+
+        private IntPtr _probeHwnd;
+
+        /// <summary>La sous-classe ne fait qu'enregistrer : elle rend tous les messages à la procédure d'origine.</summary>
+        private static IntPtr ProbeThunk(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam)
+        {
+            if (msg is 0x0006 or 0x0007 or 0x0008 or 0x0100 or 0x0101 or 0x0102 or 0x0104 or 0x0106
+                or 0x0111 or 0x0116 or 0x0120 or 0x0081 or 0x0210)
+            {
+                var name = new System.Text.StringBuilder(256);
+                _ = GetClassName(hwnd, name, name.Capacity);
+                string details = msg == 0x0111
+                    ? "WM_COMMAND " + CommandName((ushort)(wParam.ToInt64() & 0xffff)) + " depuis 0x" + ((lParam.ToInt64() & 0xffffffff)).ToString("X")
+                    : $"msg 0x{msg:X4} wParam 0x{wParam.ToInt64():X}";
+                NaultinusDiagnostics.Log("SondeClavier", $"{name} 0x{hwnd.ToInt64():X} {details}");
+            }
+
+            if (ProbePrev.TryGetValue(hwnd, out (IntPtr Prev, bool Unicode) prev))
+                return prev.Unicode ? CallWindowProcW(prev.Prev, hwnd, msg, wParam, lParam) : CallWindowProcA(prev.Prev, hwnd, msg, wParam, lParam);
+
+            return DefWindowProc(hwnd, msg, wParam, lParam);
+        }
+
+        private void InstallKeyProbe()
+        {
+            if (!ProbeKeys || _probeHwnd != IntPtr.Zero)
+                return;
+
+            IntPtr list = FindListWindow();
+            if (list == IntPtr.Zero)
+                return;
+
+            // Toutes les fenêtres de la vue sont surveillées : les touches peuvent être relayées vers
+            // une fenêtre parente avant d'arriver au traitement des commandes.
+            EnumChildWindows(_siteHwnd, (h, l) =>
+            {
+                SubclassProbe(h);
+                return true;
+            }, IntPtr.Zero);
+
+            SubclassProbe(_siteHwnd);
+            _probeHwnd = list;
+            LogChildTree();
+            NaultinusDiagnostics.Log(
+                "SondeClavier",
+                $"sonde posée sur {ProbePrev.Count} fenêtres à partir de la liste 0x{list.ToInt64():X}");
+        }
+
+        /// <summary>Noms des commandes que la vue du shell envoie à son cadre (WM_COMMAND).</summary>
+        private static string CommandName(ushort id) => id switch
+        {
+            0x7D00 => "VCMD_EMPTYMENU",
+            0x7D01 => "VCMD_FINDFILE",
+            0x7D02 => "VCMD_SELECTALL",
+            0x7D03 => "VCMD_SELECTONE",
+            0x7D04 => "VCMD_UNSELECTALL",
+            0x7D05 => "VCMD_DELETE",
+            0x7D06 => "VCMD_SETFOCUS",
+            0x7D07 => "VCMD_ADVANCESELECT",
+            0x7D15 => "VCMD_RENAME",
+            0x7D16 => "VCMD_PASTEOBJECTS",
+            0x7D17 => "VCMD_MOVEOBJECTS",
+            0x7D18 => "VCMD_REFRESH",
+            0x7D20 => "VCMD_GETSELECTION",
+            0x7D28 => "VCMD_SELECTITEM",
+            0x7D29 => "VCMD_SETITEMFOCUS",
+            0x7D30 => "VCMD_INVERTSELECTION",
+            0x7D31 => "VCMD_KILLFOCUS",
+            _ => "0x" + id.ToString("X4"),
+        };
+
+        private void SubclassProbe(IntPtr hwnd)
+        {
+            if (hwnd == IntPtr.Zero || ProbePrev.ContainsKey(hwnd))
+                return;
+
+            bool unicode = IsWindowUnicode(hwnd);
+            IntPtr fn = Marshal.GetFunctionPointerForDelegate(StaticProbe);
+            IntPtr prev = unicode ? SetWindowLongPtrW(hwnd, GwlpWndProc, fn) : SetWindowLongPtrA(hwnd, GwlpWndProc, fn);
+            if (prev == IntPtr.Zero)
+                return;
+
+            ProbePrev[hwnd] = (prev, unicode);
+        }
+
+        [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
+        private static extern IntPtr SetWindowLongPtrW(IntPtr hWnd, int nIndex, IntPtr lpNewLong);
+
+        [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrA")]
+        private static extern IntPtr SetWindowLongPtrA(IntPtr hWnd, int nIndex, IntPtr lpNewLong);
+
+        [DllImport("user32.dll", EntryPoint = "CallWindowProcW")]
+        private static extern IntPtr CallWindowProcW(IntPtr lpPrevWndProc, IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll", EntryPoint = "CallWindowProcA")]
+        private static extern IntPtr CallWindowProcA(IntPtr lpPrevWndProc, IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsWindowUnicode(IntPtr hWnd);
+
+        private const int GwlpWndProc = -4;
+        private const int WmActivate = 0x0006;
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("ole32.dll")]
+        private static extern int OleInitialize(IntPtr reserved);
+
+        #endregion
+
+        #region Fenêtre de liste
+
+        private delegate bool EnumChildProc(IntPtr hWnd, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        private static extern bool EnumChildWindows(IntPtr hWndParent, EnumChildProc lpEnumFunc, IntPtr lParam);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SetFocus(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetFocus();
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetAncestor(IntPtr hwnd, uint flags);
+
+        private const uint GaRoot = 2;
+
+        /// <summary>Titre d'une fenêtre, pour savoir qui tient le premier plan.</summary>
+        private static string WindowTitle(IntPtr hwnd)
+        {
+            if (hwnd == IntPtr.Zero)
+                return string.Empty;
+
+            var sb = new System.Text.StringBuilder(256);
+            _ = GetWindowTextW(hwnd, sb, sb.Capacity);
+            return sb.ToString();
+        }
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern int GetWindowTextW(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
+
+        /// <summary>
+        /// Fenêtre de liste de la vue (<c>DirectUIHWND</c>) sous la fenêtre site. C'est elle qui traite
+        /// les touches et la sélection ; la fenêtre site et les barres de défilement qui l'entourent
+        /// ne peuvent pas recevoir le clavier.
+        /// </summary>
+        private IntPtr FindListWindow()
+        {
+            IntPtr site = _siteHwnd;
+            if (site == IntPtr.Zero)
+                return IntPtr.Zero;
+
+            IntPtr found = IntPtr.Zero;
+            EnumChildWindows(site, (h, l) =>
+            {
+                var sb = new System.Text.StringBuilder(256);
+                _ = GetClassName(h, sb, sb.Capacity);
+                if (string.Equals(sb.ToString(), "DirectUIHWND", StringComparison.Ordinal))
+                {
+                    found = h;
+                    return false;
+                }
+
+                return true;
+            }, IntPtr.Zero);
+
+            return found;
         }
 
         #endregion
@@ -911,9 +1373,6 @@ namespace Naultinus.View
 
         [DllImport("user32.dll")]
         private static extern IntPtr LoadCursor(IntPtr instance, int resource);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr SetFocus(IntPtr hWnd);
 
         #endregion
     }

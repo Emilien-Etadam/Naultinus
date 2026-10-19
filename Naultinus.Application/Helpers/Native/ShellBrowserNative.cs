@@ -124,14 +124,6 @@ namespace Naultinus.Helpers.Native
         /// <summary><c>SIGDN_FILESYSPATH</c> : chemin complet, pour les éléments du système de fichiers.</summary>
         internal const uint SigdnFilePath = 0x80058000;
 
-        /// <summary>
-        /// Applique un sous-thème à une fenêtre. C'est par là que la vue hébergée bascule en sombre :
-        /// le shell ne suit le thème sombre que si on lui demande explicitement l'apparence « Explorer ».
-        /// Les deux paramètres à <c>null</c> reviennent au thème par défaut.
-        /// </summary>
-        [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)]
-        internal static extern int SetWindowTheme(IntPtr hwnd, string? subAppName, string? subIdList);
-
         [DllImport("ole32.dll")]
         internal static extern void CoTaskMemFree(IntPtr pv);
 
@@ -169,6 +161,24 @@ namespace Naultinus.Helpers.Native
         internal static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
 
         #endregion
+    }
+
+    /// <summary>
+    /// <c>IInputObject</c> : le contrat de conteneur qui déclare à un objet hébergé qu'il tient le
+    /// focus du clavier. Le focus Win32 seul ne suffit pas : sans cet appel, la vue traite bien la
+    /// souris mais ignore les touches (mesuré : F2, Suppr, Ctrl+A et la saisie du début du nom sans
+    /// effet alors que la fenêtre de liste est en focus et la fenêtre au premier plan).
+    /// </summary>
+    [ComImport]
+    [Guid("775E27B4-3A73-4A45-808B-AC83A3878F94")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IInputObject
+    {
+        void UIActivateIO(int activate, ref System.Windows.Interop.MSG msg);
+
+        int HasIOFocus();
+
+        void QueryObjects(ref Guid riid, out IntPtr ppv);
     }
 
     /// <summary>
@@ -260,6 +270,9 @@ namespace Naultinus.Helpers.Native
 
         void Items(uint flags, [In] ref Guid riid, out IntPtr items);
 
+        // IFolderView::GetSelection n'est PAS déclaré ici : mesuré sur le poste, le compte rendu par
+        // la vue à cet emplacement est GetSelectionMarkedItem (GetSelection appelé là fait planter la
+        // vue en accès illégal, et les deux méthodes de sélection répondent correctement sans lui).
         void GetSelectionMarkedItem(out int index);
 
         void GetFocusedItem(out int index);

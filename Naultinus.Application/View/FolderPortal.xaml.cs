@@ -52,6 +52,14 @@ namespace Naultinus.View
             WpfGridView.Visibility = Visibility.Collapsed;
             ShellView.Visibility = Visibility.Visible;
 
+            // WPF pré-traite tout le clavier du thread, y compris les touches destinées à la vue
+            // hébergée. Faute d'élément focalisé, il y déclenche une navigation clavier qui rend le
+            // focus à la fenêtre : le WM_KEYDOWN est avalé pendant le transfert et la vue ne reçoit
+            // que le WM_KEYUP (mesuré sur le poste). Le focus logique reste donc sur l'hôte, qui le
+            // transmet à la fenêtre de liste ; la navigation n'a nulle part où aller.
+            System.Windows.Input.KeyboardNavigation.SetTabNavigation(ShellView, System.Windows.Input.KeyboardNavigationMode.None);
+            System.Windows.Input.KeyboardNavigation.SetIsTabStop(ShellView, true);
+
             if (viewModel != null)
             {
                 // La grille WPF est masquée : le modèle arrête de charger le dossier et ses icônes,
@@ -63,18 +71,28 @@ namespace Naultinus.View
             }
 
             // La vue peut changer de mode par son propre menu, et l'en-tête de colonnes reste alors
-            // accroché : on le remet d'accord avec le mode à chaque activation du portail.
+            // accroché : on le remet d'accord avec le mode à chaque activation du portail. Le focus
+            // clavier doit finir sur la fenêtre de liste, sinon F2 et Suppr ne répondent pas : appelé
+            // pendant l'activation, il était écrasé par la restauration du focus côté WPF et ne
+            // marchait qu'au deuxième clic — il est donc différé derrière elle.
             Activated += (_, _) =>
             {
-                ShellView.FocusView();
                 ShellView.ReconcileViewMode();
                 ShellView.StartModeWatch();
+                Dispatcher.BeginInvoke(
+                    new Action(() =>
+                    {
+                        System.Windows.Input.Keyboard.Focus(ShellView);
+                        ShellView.FocusView();
+                    }),
+                    System.Windows.Threading.DispatcherPriority.Background);
             };
             Deactivated += (_, _) => ShellView.SlowModeWatch();
 
             if (Environment.GetEnvironmentVariable("NAULTINUS_SHELLVIEW_DIAGMODE") == "cycle"
                 || string.Equals(Environment.GetEnvironmentVariable("NAULTINUS_SHELLVIEW_DIAGMODE"), "menu", StringComparison.OrdinalIgnoreCase))
                 StartModeCycleForDiagnostics();
+
         }
 
         /// <summary>
