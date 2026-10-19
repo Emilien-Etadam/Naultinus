@@ -263,6 +263,7 @@ namespace Naultinus.View
                 cm.Placement = PlacementMode.Bottom;
                 cm.IsOpen = true;
             }
+
             e.Handled = true;
         }
 
