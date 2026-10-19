@@ -72,6 +72,9 @@ namespace Naultinus.View
         /// <summary>Filtre de nom (IFolderFilter), vivant tant que l'hôte existe.</summary>
         private PortalFolderNameFilter? _nameFilter;
 
+        /// <summary>Index à resélectionner après un rafraîchissement par renavigation (−1 = rien).</summary>
+        private int _restoreSelectionIndex = -1;
+
         /// <summary>Faux si l'hôte de vue n'a pas pu être créé : l'affichage WPF prend le relais.</summary>
         public bool IsAvailable => _initialized;
 
@@ -1068,19 +1071,22 @@ namespace Naultinus.View
             try
             {
                 // Banc d'essai : « com » appelle IExplorerBrowser::Refresh, « navigate » (le défaut
-                // retenu) redirige la vue vers le même dossier. Mesure sur 400 fichiers : Refresh
-                // ne change rien d'observable (le fichier créé pendant la course n'apparaît pas, la
-                // capture reste identique pixel à pixel), la renavigation l'affiche à sa place.
+                // retenu) redirige la vue vers le même dossier. Mesure : Refresh seul n'affiche pas
+                // un fichier créé pendant la course ; la renavigation l'affiche. On restaure ensuite
+                // l'index de sélection (best-effort) dans OnNavigationComplete.
                 string how = Environment.GetEnvironmentVariable("NAULTINUS_SHELLVIEW_REFRESH") ?? "navigate";
                 if (!string.Equals(how, "com", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(_displayedPath))
                 {
                     int before = SelectionMarkedItem();
+                    if (before < 0)
+                        before = FocusedItem();
+                    _restoreSelectionIndex = before >= 0 ? before : -1;
                     string saved = _displayedPath;
                     _displayedPath = "";
                     Navigate(saved);
                     NaultinusDiagnostics.LogDebug(
                         "ShellFolderViewHost.RefreshView : renavigation vers " + saved
-                        + ", élément sélectionné avant " + before + ", après " + SelectionMarkedItem());
+                        + ", restauration prévue index " + _restoreSelectionIndex);
                     return;
                 }
 
@@ -1090,6 +1096,26 @@ namespace Naultinus.View
             catch (Exception ex)
             {
                 NaultinusDiagnostics.Log("ShellFolderViewHost", "Rafraîchissement de la vue impossible", ex);
+            }
+        }
+
+        private void TryRestoreSelectionAfterRefresh()
+        {
+            int index = _restoreSelectionIndex;
+            _restoreSelectionIndex = -1;
+            if (index < 0 || _browser is not IExplorerBrowser browser)
+                return;
+
+            try
+            {
+                Guid folderViewId = typeof(IFolderView).GUID;
+                browser.GetCurrentView(ref folderViewId, out object view);
+                if (view is IFolderView folderView)
+                    folderView.SelectItem(index, ShellBrowserNative.SvsiKeyboardMove);
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.TryRestoreSelectionAfterRefresh", ex);
             }
         }
 
@@ -1545,6 +1571,7 @@ namespace Naultinus.View
             }
 
             BrowseSucceeded?.Invoke();
+            TryRestoreSelectionAfterRefresh();
 
             if (initiatedByApp)
                 return;

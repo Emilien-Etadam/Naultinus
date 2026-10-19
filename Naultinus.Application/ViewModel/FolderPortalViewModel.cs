@@ -1,5 +1,6 @@
 using GongSolutions.Wpf.DragDrop;
 using Naultinus.Helpers;
+using Naultinus.Helpers.Native;
 using Naultinus.Properties;
 using Naultinus.Model;
 using Naultinus.Services;
@@ -26,10 +27,16 @@ namespace Naultinus.ViewModel
         private string _currentFolderName;
         private string _errorMessage;
         private FileSystemWatcher? _watcher;
+        private ShellChangeNotifyWatcher? _shellWatcher;
         private string? _watchedPath;
         private System.Threading.Timer? _fsDebounceTimer;
         private readonly object _fsTimerLock = new object();
         private bool _disposed;
+
+        /// <summary>
+        /// Demande un rafraîchissement de la vue shell (sans réécrire <see cref="CurrentPath"/>).
+        /// </summary>
+        internal event Action? ShellFolderNeedsRefresh;
         private PortalSortField _sortField = PortalSortField.Name;
         private FolderPortalItem? _selectionAnchor;
         /// <summary>Dispatcher UI capturé à la construction : le debounce timer s’exécute sur le pool de threads,
@@ -537,8 +544,68 @@ namespace Naultinus.ViewModel
         {
             // Recharger le même dossier ne doit pas détruire le watcher : le rafraîchissement
             // est souvent déclenché par son propre callback.
-            if (_watcher != null && PortalPathGuard.AreSame(_watchedPath, path))
+            bool shellActive = _shellWatcher != null && _shellWatcher.IsActive
+                && PortalPathGuard.AreSame(_shellWatcher.Path, path);
+            bool fswActive = _watcher != null && PortalPathGuard.AreSame(_watchedPath, path);
+            if (shellActive || fswActive)
                 return;
+
+            StopWatchers();
+
+            if (string.IsNullOrEmpty(path) || !PortalFolderAccess.TryExists(path, out _))
+            {
+                NaultinusDiagnostics.Log(
+                    "FolderPortal.SetupWatcher",
+                    "path not found or inaccessible: " + (path ?? "(null)"));
+                return;
+            }
+
+            _shellWatcher ??= new ShellChangeNotifyWatcher(_uiDispatcher);
+            if (_shellWatcher.TryStart(path, OnFolderContentsChanged))
+            {
+                _watchedPath = path;
+                return;
+            }
+
+            // Repli : FileSystemWatcher (tests / environnements où le notify shell échoue).
+            try
+            {
+                var w = new FileSystemWatcher(path)
+                {
+                    IncludeSubdirectories = false,
+                    NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite,
+                };
+                w.Created += (_, _) => OnFileSystemEvent();
+                w.Deleted += (_, _) => OnFileSystemEvent();
+                w.Renamed += (_, _) => OnFileSystemEvent();
+                w.Changed += (_, _) => OnFileSystemEvent();
+                w.Error += (_, args) => OnWatcherError(path, args.GetException());
+                w.EnableRaisingEvents = true;
+                _watcher = w;
+                _watchedPath = path;
+                NaultinusDiagnostics.Log("FolderPortal.SetupWatcher", "repli FileSystemWatcher : " + path);
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.Log("FolderPortal.SetupWatcher", "FileSystemWatcher init failed.", ex);
+                _watcher = null;
+                ErrorMessage = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    Strings.PortalFolderUnreachableFormat,
+                    path);
+            }
+        }
+
+        private void StopWatchers()
+        {
+            try
+            {
+                _shellWatcher?.Stop();
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.Log("FolderPortal.SetupWatcher", "Stop shell watcher", ex);
+            }
 
             try
             {
@@ -565,40 +632,21 @@ namespace Naultinus.ViewModel
 
                 _fsDebounceTimer = null;
             }
+        }
 
-            if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+        private void OnFolderContentsChanged()
+        {
+            if (_disposed)
+                return;
+
+            if (BodyRenderedByShell)
             {
-                NaultinusDiagnostics.Log(
-                    "FolderPortal.SetupWatcher",
-                    "path not found or inaccessible: " + (path ?? "(null)"));
+                ShellFolderNeedsRefresh?.Invoke();
                 return;
             }
 
-            try
-            {
-                var w = new FileSystemWatcher(path)
-                {
-                    IncludeSubdirectories = false,
-                    NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite,
-                };
-                w.Created += (_, _) => OnFileSystemEvent();
-                w.Deleted += (_, _) => OnFileSystemEvent();
-                w.Renamed += (_, _) => OnFileSystemEvent();
-                w.Changed += (_, _) => OnFileSystemEvent();
-                w.Error += (_, args) => OnWatcherError(path, args.GetException());
-                w.EnableRaisingEvents = true;
-                _watcher = w;
-                _watchedPath = path;
-            }
-            catch (Exception ex)
-            {
-                NaultinusDiagnostics.Log("FolderPortal.SetupWatcher", "FileSystemWatcher init failed.", ex);
-                _watcher = null;
-                ErrorMessage = string.Format(
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    Strings.PortalFolderUnreachableFormat,
-                    path);
-            }
+            if (!string.IsNullOrEmpty(CurrentPath))
+                LoadFolder(CurrentPath, fromHistory: true);
         }
 
         private void OnWatcherError(string path, Exception? exception)
@@ -612,17 +660,7 @@ namespace Naultinus.ViewModel
                     System.Globalization.CultureInfo.CurrentCulture,
                     Strings.PortalFolderUnreachableFormat,
                     path);
-                try
-                {
-                    _watcher?.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    NaultinusDiagnostics.LogDebug("FolderPortal.OnWatcherError.Dispose", ex);
-                }
-
-                _watcher = null;
-                _watchedPath = null;
+                StopWatchers();
             });
         }
 
@@ -643,15 +681,7 @@ namespace Naultinus.ViewModel
         {
             try
             {
-                // BeginInvoke : le thread du timer ne doit pas attendre le thread UI.
-                // Un Invoke synchrone pendant que l'UI recrée le watcher (ou résout le chemin)
-                // peut bloquer les deux côtés, et le processus de test ne se termine plus.
-                _uiDispatcher.BeginInvoke(() =>
-                {
-                    if (_disposed)
-                        return;
-                    if (!string.IsNullOrEmpty(CurrentPath)) LoadFolder(CurrentPath);
-                });
+                _uiDispatcher.BeginInvoke(new Action(OnFolderContentsChanged));
             }
             catch (Exception ex)
             {
@@ -664,23 +694,17 @@ namespace Naultinus.ViewModel
             if (_disposed)
                 return;
             _disposed = true;
-            _watchedPath = null;
             try
             {
-                _watcher?.Dispose();
+                StopWatchers();
+                _shellWatcher?.Dispose();
             }
             catch (Exception ex)
             {
-                NaultinusDiagnostics.Log("FolderPortal", "Dispose watcher (Dispose)", ex);
+                NaultinusDiagnostics.Log("FolderPortal", "Dispose watchers", ex);
             }
 
-            _watcher = null;
-            lock (_fsTimerLock)
-            {
-                _fsDebounceTimer?.Dispose();
-                _fsDebounceTimer = null;
-            }
-
+            _shellWatcher = null;
             base.Dispose();
             GC.SuppressFinalize(this);
         }

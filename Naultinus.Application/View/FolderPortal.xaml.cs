@@ -221,6 +221,8 @@ namespace Naultinus.View
                 ShellView.Navigated += ShellView_Navigated;
                 ShellView.BrowseFailed += ShellView_BrowseFailed;
                 ShellView.BrowseSucceeded += ShellView_BrowseSucceeded;
+                viewModel.ShellFolderNeedsRefresh += ShellView_NeedsRefresh;
+                Closed += (_, _) => viewModel.ShellFolderNeedsRefresh -= ShellView_NeedsRefresh;
                 Loaded += (_, _) =>
                 {
                     ShellView.SetNameFilter(viewModel.FilterQuery);
@@ -337,6 +339,11 @@ namespace Naultinus.View
         {
             if (!string.IsNullOrEmpty(viewModel.ErrorMessage))
                 viewModel.ErrorMessage = "";
+        }
+
+        private void ShellView_NeedsRefresh()
+        {
+            ShellView.RefreshView();
         }
 
         private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

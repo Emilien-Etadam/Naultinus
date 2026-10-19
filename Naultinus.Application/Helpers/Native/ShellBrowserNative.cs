@@ -216,6 +216,50 @@ namespace Naultinus.Helpers.Native
         [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
         internal static extern int SHGetNameFromIDList(IntPtr pidl, uint sigdnName, out IntPtr ppszName);
 
+        /// <summary><c>SHChangeNotifyEntry</c> pour <c>SHChangeNotifyRegister</c>.</summary>
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct SHChangeNotifyEntry
+        {
+            public IntPtr Pidl;
+            [MarshalAs(UnmanagedType.Bool)]
+            public bool Recursive;
+        }
+
+        /// <summary>Sources de notification (<c>SHCNRF_*</c>).</summary>
+        internal static class ChangeNotifySources
+        {
+            public const int InterruptLevel = 0x0001;
+            public const int ShellLevel = 0x0002;
+            public const int NewDelivery = 0x8000;
+        }
+
+        /// <summary>Événements disque utiles pour un portail (<c>SHCNE_*</c>).</summary>
+        internal const int ShcneDiskEvents = 0x0002381F;
+
+        [DllImport("shell32.dll")]
+        internal static extern uint SHChangeNotifyRegister(
+            IntPtr hwnd,
+            int sources,
+            int events,
+            uint message,
+            int entryCount,
+            [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 4)] SHChangeNotifyEntry[] entries);
+
+        [DllImport("shell32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool SHChangeNotifyDeregister(uint notifyId);
+
+        [DllImport("shell32.dll")]
+        internal static extern IntPtr SHChangeNotification_Lock(
+            IntPtr changeHandle,
+            uint processId,
+            out IntPtr pidls,
+            out int eventId);
+
+        [DllImport("shell32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool SHChangeNotification_Unlock(IntPtr lockHandle);
+
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool MoveWindow(IntPtr hWnd, int x, int y, int width, int height, [MarshalAs(UnmanagedType.Bool)] bool repaint);

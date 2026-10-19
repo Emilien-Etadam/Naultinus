@@ -116,9 +116,10 @@ quitter la naultinus.
 
 **Robustesse**
 
-- [ ] rafraîchissement déclenché par les notifications de modification du shell, pas par
+- [x] rafraîchissement déclenché par les notifications de modification du shell, pas par
       ré-interrogation périodique du disque ; sélection et défilement conservés
-      (aujourd'hui : `FileSystemWatcher` + renavigation ; `SHChangeNotifyRegister` reste à faire)
+      (`SHChangeNotifyRegister` + debounce ; repli `FileSystemWatcher` ; restauration d'index
+      de sélection après renavigation — le défilement reste best-effort)
 - [x] dossier supprimé, renommé, réseau déconnecté, droits manquants : message clair, pas de plantage
       (bandeau d'erreur visible en vue shell ; `BrowseFailed` / `SetEmptyText` ; watcher `Error`)
 - [ ] DPI et multi-moniteur : aucune mise à l'échelle floue, aucun saut de position
@@ -378,5 +379,8 @@ powershell -ExecutionPolicy Bypass -File .\run-portal-shellview.ps1 -Build
 - **Messages d'erreur** visibles au-dessus du corps (shell et WPF) : dossier disparu, accès refusé,
   partage inaccessible ; `IExplorerBrowser::SetEmptyText` + événements `BrowseFailed` /
   `BrowseSucceeded`.
+- **Notifications shell** : `ShellChangeNotifyWatcher` (`SHChangeNotifyRegister`) prioritaire,
+  repli `FileSystemWatcher` ; en vue shell, `ShellFolderNeedsRefresh` → `RefreshView` avec
+  restauration d'index de sélection.
 - Restant : cibles de recherche / racines PIDL, masquage des superpositions, bascules
-  d'interaction, `SHChangeNotifyRegister`, audit DPI.
+  d'interaction, audit DPI.
