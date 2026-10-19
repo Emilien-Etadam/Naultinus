@@ -131,8 +131,9 @@ virtualisé pour les icônes), au prix de la reprise en main du glisser-déposer
 tri.
 
 La PR 2 a porté d'abord sur la **cohérence entre le bandeau et le corps** (rafraîchissement quand le
-disque bouge, arrêt du scan WPF inutile) : c'est ce que l'usage rendait visible. L'historique persisté
-par naultinus et l'alignement du titre sur le dossier affiché restent à prendre.
+disque bouge, arrêt du scan WPF inutile), puis l'**historique de navigation persisté**, le **titre =
+dossier affiché**, et **Alt+Home / Alt+←** (racine / retour). La vue shell est **activée par défaut**
+(`NAULTINUS_SHELLVIEW=0` pour revenir à la grille WPF).
 
 ## État d'avancement — PR 1 (spike) : architecture validée
 
@@ -140,8 +141,8 @@ par naultinus et l'alignement du titre sur le dossier affiché restent à prendr
 `View/ShellFolderViewHost.cs` (hôte `HwndHost` : fenêtre site, création de l'hôte de vue,
 dimensionnement, navigation par PIDL, repli silencieux sur l'affichage WPF en cas d'échec).
 Le portail monte l'hôte à la place de sa grille quand la variable d'environnement
-`NAULTINUS_SHELLVIEW` vaut `1` ; il passe alors en fenêtre opaque, faute de quoi Windows n'affiche
-pas le contenu hébergé.
+`NAULTINUS_SHELLVIEW` n'est pas à `0` (défaut : activée) ; il passe alors en fenêtre opaque, faute
+de quoi Windows n'affiche pas le contenu hébergé.
 
 ![Corps de portail rendu par la vue d'éléments du shell](portal-shell-view.png)
 

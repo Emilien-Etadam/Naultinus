@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 
 namespace Naultinus.View
@@ -31,12 +32,60 @@ namespace Naultinus.View
 
             PreviewKeyDown += (_, e) =>
             {
+                // Raccourcis du bandeau : même sous vue shell (Alt+← / Alt+Home), car DirectUIHWND
+                // ne les traduit pas en navigation Naultinus.
+                if (PortalFolderInput.TryHandleBannerKeys(viewModel, e))
+                {
+                    e.Handled = true;
+                    return;
+                }
+
                 if (useShellView)
-                    return; // la vue hébergée traite ses propres touches
+                    return; // le reste du clavier est pour la vue hébergée
                 if (PortalFolderInput.TryHandle(viewModel, this, e))
                     e.Handled = true;
             };
+
+            if (useShellView)
+            {
+                ComponentDispatcher.ThreadFilterMessage += OnShellBannerFilterMessage;
+                Closed += (_, _) => ComponentDispatcher.ThreadFilterMessage -= OnShellBannerFilterMessage;
+            }
+
             Show();
+        }
+
+        /// <summary>
+        /// Alt+← / Alt+Home n'arrivent pas toujours en <c>PreviewKeyDown</c> quand le focus Win32
+        /// est dans la vue : on les prend dans le filtre de messages du thread.
+        /// </summary>
+        private void OnShellBannerFilterMessage(ref System.Windows.Interop.MSG msg, ref bool handled)
+        {
+            if (handled || !useShellView)
+                return;
+
+            const int wmKeyDown = 0x0100;
+            const int wmSysKeyDown = 0x0104;
+            if (msg.message != wmKeyDown && msg.message != wmSysKeyDown)
+                return;
+
+            int vk = unchecked((int)(msg.wParam.ToInt64() & 0xffff));
+            bool alt = (System.Windows.Input.Keyboard.Modifiers & ModifierKeys.Alt) == ModifierKeys.Alt
+                || msg.message == wmSysKeyDown;
+
+            if (!alt)
+                return;
+
+            if (vk == 0x24) // VK_HOME
+            {
+                viewModel.NavigateToRootCommand.Execute(null);
+                handled = true;
+            }
+            else if (vk == 0x25 && viewModel.CanNavigateBack) // VK_LEFT
+            {
+                viewModel.NavigateBackCommand.Execute(null);
+                handled = true;
+            }
         }
 
         /// <summary>

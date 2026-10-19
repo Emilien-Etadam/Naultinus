@@ -14,7 +14,9 @@ namespace Naultinus.Tests.Models
             {
                 Name = "Portal",
                 RootPath = @"C:\Users\Test\Documents",
-                CurrentPath = @"C:\Users\Test\Documents\Sub"
+                CurrentPath = @"C:\Users\Test\Documents\Sub",
+                NavigationHistory = { @"C:\Users\Test\Documents", @"C:\Users\Test\Documents\Sub" },
+                NavigationIndex = 1,
             };
             using var writer = new StringWriter();
             ViewModelBase.SharedSerializer.Serialize(writer, model);
@@ -24,6 +26,8 @@ namespace Naultinus.Tests.Models
             Assert.Equal(model.Name, d.Name);
             Assert.Equal(model.RootPath, d.RootPath);
             Assert.Equal(model.CurrentPath, d.CurrentPath);
+            Assert.Equal(model.NavigationHistory, d.NavigationHistory);
+            Assert.Equal(model.NavigationIndex, d.NavigationIndex);
         }
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Xml.Serialization;
 
 namespace Naultinus.Model
@@ -15,5 +16,13 @@ namespace Naultinus.Model
 
         public string RootPath { get => _rootPath; set => _rootPath = value ?? ""; }
         public string CurrentPath { get => _currentPath; set => _currentPath = value ?? ""; }
+
+        /// <summary>Pile de navigation (chemins visités), persistée avec le portail.</summary>
+        [XmlArray("NavigationHistory")]
+        [XmlArrayItem("Path")]
+        public List<string> NavigationHistory { get; set; } = new List<string>();
+
+        /// <summary>Index courant dans <see cref="NavigationHistory"/> (-1 si vide).</summary>
+        public int NavigationIndex { get; set; } = -1;
     }
 }

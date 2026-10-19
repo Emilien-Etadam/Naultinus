@@ -12,12 +12,36 @@ namespace Naultinus.View
     /// </summary>
     internal static class PortalFolderInput
     {
+        /// <summary>Alt+← (historique) et Alt+Home (racine), y compris quand la vue shell a le focus.</summary>
+        internal static bool TryHandleBannerKeys(FolderPortalViewModel portal, KeyEventArgs e)
+        {
+            if (Keyboard.Modifiers != ModifierKeys.Alt)
+                return false;
+
+            if (e.Key == Key.Home)
+            {
+                portal.NavigateToRootCommand.Execute(null);
+                return true;
+            }
+
+            if (e.Key == Key.Left && portal.CanNavigateBack)
+            {
+                portal.NavigateBackCommand.Execute(null);
+                return true;
+            }
+
+            return false;
+        }
+
         internal static bool TryHandle(FolderPortalViewModel portal, Window owner, KeyEventArgs e)
         {
             if (e.OriginalSource is TextBox)
                 return false;
             if (e.OriginalSource is Button && e.Key is Key.Enter or Key.Space)
                 return false;
+
+            if (TryHandleBannerKeys(portal, e))
+                return true;
 
             ModifierKeys modifiers = Keyboard.Modifiers;
             if (modifiers == ModifierKeys.Control && e.Key == Key.C)

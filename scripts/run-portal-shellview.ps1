@@ -47,6 +47,7 @@ if (-not $KeepRunning) {
     }
 }
 
+# Vue shell active par défaut dans l'app ; le script force 1 pour le banc d'essai explicite.
 $env:NAULTINUS_SHELLVIEW = '1'
 if ($Keys) {
     $env:NAULTINUS_SHELLVIEW_KEYS = '1'

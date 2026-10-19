@@ -72,8 +72,8 @@ namespace Naultinus.ViewModel
 
         /// <summary>
         /// Enregistre le dossier que la vue d'éléments du shell affiche réellement, sans renvoyer de
-        /// navigation à la vue. Garde la barre de chemin et la flèche « remonter » justes quand
-        /// l'utilisateur double-clique un dossier.
+        /// navigation à la vue. Garde la barre de chemin et l'historique justes quand l'utilisateur
+        /// double-clique un dossier.
         /// </summary>
         public void AdoptShellPath(string path)
         {
@@ -83,6 +83,7 @@ namespace Naultinus.ViewModel
             _adoptingShellPath = true;
             try
             {
+                PushHistory(path);
                 CurrentPath = path;
             }
             finally
@@ -90,6 +91,10 @@ namespace Naultinus.ViewModel
                 _adoptingShellPath = false;
             }
         }
+
+        /// <summary>Titre du bandeau : dossier affiché, ou le nom du portail s'il n'y en a pas.</summary>
+        public string HeaderTitle =>
+            string.IsNullOrEmpty(CurrentFolderName) ? Name : CurrentFolderName;
 
         public ObservableCollection<FolderPortalItem> Items
         {
@@ -113,6 +118,7 @@ namespace Naultinus.ViewModel
                 _currentFolderName = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(TabBarLabel));
+                OnPropertyChanged(nameof(HeaderTitle));
             }
         }
 
@@ -122,15 +128,8 @@ namespace Naultinus.ViewModel
             set { _errorMessage = value; OnPropertyChanged(); }
         }
 
-        public bool CanNavigateBack
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(RootPath) || string.IsNullOrEmpty(CurrentPath))
-                    return false;
-                return !PortalPathGuard.AreSame(RootPath, CurrentPath);
-            }
-        }
+        /// <summary>Vrai s'il reste une entrée précédente dans l'historique de navigation.</summary>
+        public bool CanNavigateBack => _model.NavigationIndex > 0;
 
         public FolderPortalViewModel() : this(new FolderPortalModel { Name = Strings.FolderDefaultName })
         { }
@@ -149,6 +148,7 @@ namespace Naultinus.ViewModel
             if (!TryLoadContained(model.CurrentPath))
                 TryLoadContained(model.RootPath);
 
+            SeedHistoryFromCurrentPath();
             UpdateBreadcrumb();
 
             // Assigné avant les commandes qui l'invoquent (CreateNewFolder/File, Paste) pour que
@@ -217,10 +217,12 @@ namespace Naultinus.ViewModel
 
             NavigateBackCommand = new RelayCommand(() =>
             {
-                if (!CanNavigateBack) return;
-                string? parent = Directory.GetParent(CurrentPath)?.FullName;
-                if (parent != null && PortalPathGuard.IsAllowed(RootPath, parent))
-                    LoadFolder(parent);
+                if (!CanNavigateBack)
+                    return;
+
+                _model.NavigationIndex--;
+                string previous = _model.NavigationHistory[_model.NavigationIndex];
+                LoadFolder(previous, fromHistory: true);
             });
 
             OpenInExplorerCommand = new RelayCommand(() =>
@@ -259,7 +261,9 @@ namespace Naultinus.ViewModel
             return true;
         }
 
-        public void LoadFolder(string path)
+        public void LoadFolder(string path) => LoadFolder(path, fromHistory: false);
+
+        private void LoadFolder(string path, bool fromHistory)
         {
             ErrorMessage = "";
 
@@ -278,10 +282,13 @@ namespace Naultinus.ViewModel
 
             try
             {
+                if (!fromHistory)
+                    PushHistory(path);
+
                 if (BodyRenderedByShell)
                 {
                     // Le corps est rendu par la vue du shell : ni énumération, ni icônes. Le chemin
-                    // et la flèche « remonter » doivent quand même suivre.
+                    // et l'historique doivent quand même suivre.
                     _selectionAnchor = null;
                     CurrentPath = path;
                     OnPropertyChanged(nameof(CanNavigateBack));
@@ -426,6 +433,41 @@ namespace Naultinus.ViewModel
                     return Name;
                 return $"{Name} — {CurrentFolderName}";
             }
+        }
+
+        /// <summary>Ajoute un chemin à l'historique et tronque la branche « avant ».</summary>
+        private void PushHistory(string path)
+        {
+            string normalized = Path.TrimEndingDirectorySeparator(path.Trim());
+            List<string> hist = _model.NavigationHistory;
+            int idx = _model.NavigationIndex;
+
+            if (idx >= 0 && idx < hist.Count && PortalPathGuard.AreSame(hist[idx], normalized))
+                return;
+
+            if (idx >= 0 && idx < hist.Count - 1)
+                hist.RemoveRange(idx + 1, hist.Count - idx - 1);
+
+            hist.Add(normalized);
+            _model.NavigationIndex = hist.Count - 1;
+        }
+
+        /// <summary>Au chargement : amorce la pile depuis <see cref="CurrentPath"/> si elle est vide.</summary>
+        private void SeedHistoryFromCurrentPath()
+        {
+            if (string.IsNullOrEmpty(CurrentPath))
+                return;
+
+            List<string> hist = _model.NavigationHistory;
+            if (hist.Count == 0)
+            {
+                hist.Add(Path.TrimEndingDirectorySeparator(CurrentPath.Trim()));
+                _model.NavigationIndex = 0;
+                return;
+            }
+
+            if (_model.NavigationIndex < 0 || _model.NavigationIndex >= hist.Count)
+                _model.NavigationIndex = hist.Count - 1;
         }
 
         private void UpdateBreadcrumb()

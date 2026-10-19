@@ -680,7 +680,7 @@
     <value>Force sync</value>
   </data>
   <data name="PortalGoUp" xml:space="preserve">
-    <value>Up one folder</value>
+    <value>Back</value>
   </data>
   <data name="PortalHome" xml:space="preserve">
     <value>Home</value>
@@ -695,7 +695,7 @@
     <value>Menu</value>
   </data>
   <data name="TooltipNavigateBack" xml:space="preserve">
-    <value>Up one folder</value>
+    <value>Go back</value>
   </data>
   <data name="TooltipRefresh" xml:space="preserve">
     <value>Refresh</value>

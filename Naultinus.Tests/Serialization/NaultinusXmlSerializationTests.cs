@@ -69,6 +69,8 @@ namespace Naultinus.Tests.Serialization
                 Height = 500,
                 GroupId = "g-fp",
                 TabOrder = 3,
+                NavigationHistory = { @"D:\Roots\Share", @"D:\Roots\Share\Projects" },
+                NavigationIndex = 1,
             };
 
             var roundTrip = RoundTrip(model);
@@ -84,6 +86,8 @@ namespace Naultinus.Tests.Serialization
             Assert.Equal(model.GroupId, roundTrip.GroupId);
             Assert.Equal(model.TabOrder, roundTrip.TabOrder);
             Assert.Equal(NaultinusType.FolderPortal, roundTrip.Type);
+            Assert.Equal(model.NavigationHistory, roundTrip.NavigationHistory);
+            Assert.Equal(model.NavigationIndex, roundTrip.NavigationIndex);
         }
 
         [Fact]

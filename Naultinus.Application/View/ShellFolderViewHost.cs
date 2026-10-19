@@ -85,13 +85,21 @@ namespace Naultinus.View
         }
 
         /// <summary>
-        /// Mode expérimental demandé par variable d'environnement, le temps de valider l'architecture.
+        /// Vue shell activée par défaut. Opt-out : <c>NAULTINUS_SHELLVIEW=0</c> (ou <c>false</c>/<c>off</c>).
+        /// En cas d'échec de <see cref="TryPrepare"/>, le portail garde la grille WPF.
         /// </summary>
         internal static bool IsRequested()
         {
             string? value = Environment.GetEnvironmentVariable("NAULTINUS_SHELLVIEW");
-            return string.Equals(value, "1", StringComparison.Ordinal)
-                || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+            if (string.IsNullOrEmpty(value))
+                return true;
+
+            if (string.Equals(value, "0", StringComparison.Ordinal)
+                || string.Equals(value, "false", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(value, "off", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            return true;
         }
 
         /// <summary>

@@ -680,7 +680,7 @@
     <value>Forcer la synchronisation</value>
   </data>
   <data name="PortalGoUp" xml:space="preserve">
-    <value>Remonter d'un dossier</value>
+    <value>Retour</value>
   </data>
   <data name="PortalHome" xml:space="preserve">
     <value>Accueil</value>
@@ -695,7 +695,7 @@
     <value>Menu</value>
   </data>
   <data name="TooltipNavigateBack" xml:space="preserve">
-    <value>Remonter d'un dossier</value>
+    <value>Revenir en arrière</value>
   </data>
   <data name="TooltipRefresh" xml:space="preserve">
     <value>Actualiser</value>

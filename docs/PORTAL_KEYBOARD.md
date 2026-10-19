@@ -111,7 +111,7 @@ Journal : `%TEMP%\Naultinus_startup.log`.
 
 | Variable | Effet |
 |----------|-------|
-| `NAULTINUS_SHELLVIEW=1` | corps de portail rendu par la vue shell |
+| `NAULTINUS_SHELLVIEW=0` | forcer la grille WPF (la vue shell est le défaut) |
 | `NAULTINUS_SHELLVIEW_KEYS=1` | sonde clavier / focus / `WM_COMMAND` (`SondeClavier`) |
 | `NAULTINUS_SHELLVIEW_GUARD=1` | rejoue la garde du focus (§3.11) |
 | `NAULTINUS_SHELLVIEW_FOCUS=browser\|defview\|list` | cible du `SetFocus` de test |
