@@ -51,6 +51,49 @@ namespace Naultinus.Helpers.Native
             public uint Flags;
         }
 
+        /// <summary><c>PROPERTYKEY</c> (propkey.h) : identifiant d'une propriété shell.</summary>
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        internal struct PropertyKey
+        {
+            public Guid FormatId;
+            public uint PropertyId;
+
+            public PropertyKey(Guid formatId, uint propertyId)
+            {
+                FormatId = formatId;
+                PropertyId = propertyId;
+            }
+        }
+
+        /// <summary><c>SORTCOLUMN</c> : clé + sens pour <c>IFolderView2::SetSortColumns</c>.</summary>
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        internal struct SortColumn
+        {
+            public PropertyKey PropertyKey;
+            public int Direction;
+        }
+
+        /// <summary>Sens de tri (<c>SORTDIRECTION</c>) : 1 croissant, −1 décroissant.</summary>
+        internal static class SortDirections
+        {
+            public const int Ascending = 1;
+            public const int Descending = -1;
+        }
+
+        /// <summary>Clés de tri courantes (propkey.h), alignées sur le menu du portail.</summary>
+        internal static class SortPropertyKeys
+        {
+            private static readonly Guid Storage = new Guid("B725F130-47EF-101A-A5F1-02608C9EEBAC");
+            private static readonly Guid Misc = new Guid("28636AA6-953D-11D2-B5D6-00C04FD918D0");
+
+            public static readonly PropertyKey ItemNameDisplay = new PropertyKey(Storage, 10);
+            public static readonly PropertyKey ItemTypeText = new PropertyKey(Storage, 4);
+            public static readonly PropertyKey Size = new PropertyKey(Storage, 12);
+            public static readonly PropertyKey DateModified = new PropertyKey(Storage, 14);
+            public static readonly PropertyKey DateCreated = new PropertyKey(Storage, 15);
+            public static readonly PropertyKey ItemType = new PropertyKey(Misc, 11);
+        }
+
         #endregion
 
         #region Options et indicateurs

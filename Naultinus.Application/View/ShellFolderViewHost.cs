@@ -586,6 +586,9 @@ namespace Naultinus.View
                 // shell applique ceux mémorisés pour le dossier, comme dans l'Explorateur.
                 ShellBrowserNative.GetClientRect(_siteHwnd, out ShellBrowserNative.RECT rect);
                 explorerBrowser.Initialize(_siteHwnd, ref rect, IntPtr.Zero);
+                // Sac à dos dédié : mode, taille d'icônes et tri mémorisés par dossier (pas le magasin Explorer.exe).
+                explorerBrowser.SetPropertyBag("Naultinus.FolderPortal");
+                // Persistance activée (pas de EBO_NOPERSITVIEWSTATE / NoPersistViewState).
                 explorerBrowser.SetOptions(ShellBrowserNative.ExplorerBrowserOptions.None);
 
                 _initialized = true;
@@ -684,19 +687,120 @@ namespace Naultinus.View
         }
 
         /// <summary>
-        /// Mode d'affichage de la vue et titres de colonnes. Le shell rétablit ses propres réglages
-        /// mémorisés par dossier à chaque navigation : ils sont donc redemandés après chacune.
+        /// Mode d'affichage pour le dossier courant. Le réglage est ensuite laissé au sac à dos
+        /// du shell (pas de réimposition à chaque navigation).
         /// </summary>
         public void SetViewMode(uint viewMode, bool showColumnHeader)
         {
             _viewMode = viewMode;
             _showColumnHeader = showColumnHeader;
             ApplyViewMode();
+            _lastKnownMode = viewMode;
+            // Délégation au sac à dos : ne pas forcer ce mode sur les dossiers suivants.
+            _viewMode = 0;
+        }
+
+        private ShellBrowserNative.PropertyKey? _lastSortKey;
+        private int _lastSortDirection = ShellBrowserNative.SortDirections.Ascending;
+
+        /// <summary>
+        /// Tri de la vue courante via <c>IFolderView2::SetSortColumns</c>. Un second appel sur le
+        /// même critère inverse le sens. Persistance : sac à dos du shell.
+        /// </summary>
+        internal bool TrySetSort(PortalSortField field)
+        {
+            if (_browser is not IExplorerBrowser browser)
+                return false;
+
+            try
+            {
+                ShellBrowserNative.PropertyKey key = field switch
+                {
+                    PortalSortField.Type => ShellBrowserNative.SortPropertyKeys.ItemTypeText,
+                    PortalSortField.Date => ShellBrowserNative.SortPropertyKeys.DateModified,
+                    _ => ShellBrowserNative.SortPropertyKeys.ItemNameDisplay,
+                };
+
+                int direction;
+                if (_lastSortKey.HasValue
+                    && _lastSortKey.Value.FormatId == key.FormatId
+                    && _lastSortKey.Value.PropertyId == key.PropertyId)
+                {
+                    direction = -_lastSortDirection;
+                }
+                else
+                {
+                    // Aligné sur la grille WPF : date = plus récents d'abord.
+                    direction = field == PortalSortField.Date
+                        ? ShellBrowserNative.SortDirections.Descending
+                        : ShellBrowserNative.SortDirections.Ascending;
+                }
+
+                var column = new ShellBrowserNative.SortColumn
+                {
+                    PropertyKey = key,
+                    Direction = direction,
+                };
+
+                Guid folderView2Id = typeof(IFolderView2).GUID;
+                browser.GetCurrentView(ref folderView2Id, out object view);
+                if (view is not IFolderView2 folderView2)
+                    return false;
+
+                IntPtr buffer = Marshal.AllocHGlobal(Marshal.SizeOf<ShellBrowserNative.SortColumn>());
+                try
+                {
+                    Marshal.StructureToPtr(column, buffer, false);
+                    folderView2.SetSortColumns(buffer, 1);
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(buffer);
+                }
+
+                _lastSortKey = key;
+                _lastSortDirection = direction;
+                NaultinusDiagnostics.Log(
+                    "ShellFolderViewHost",
+                    "tri demandé : " + field + ", sens " + direction);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.TrySetSort", ex);
+                return false;
+            }
         }
 
         private const int MinIconSize = 16;
         private const int MaxIconSize = 256;
         private const int IconSizeStep = 16;
+
+        /// <summary>
+        /// Taille d'icônes du bureau (sac à dos Shell Bags\1\Desktop), repli 48 px.
+        /// </summary>
+        internal static int GetDesktopIconSize()
+        {
+            try
+            {
+                using Microsoft.Win32.RegistryKey? key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(
+                    @"Software\Microsoft\Windows\Shell\Bags\1\Desktop");
+                object? value = key?.GetValue("IconSize");
+                if (value is int pixels && pixels >= MinIconSize && pixels <= MaxIconSize)
+                    return pixels;
+                if (value != null
+                    && int.TryParse(value.ToString(), out int parsed)
+                    && parsed >= MinIconSize
+                    && parsed <= MaxIconSize)
+                    return parsed;
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.GetDesktopIconSize", ex);
+            }
+
+            return 48;
+        }
 
         /// <summary>
         /// Ctrl+molette : ajuste la taille d'icônes via <c>IFolderView2</c>. En mode liste / détails /
@@ -733,7 +837,8 @@ namespace Naultinus.View
                         return true; // déjà compact : ne pas avaler sans effet utile au-delà
 
                     newMode = (int)ShellBrowserNative.FolderViewModes.Icon;
-                    newSize = Math.Clamp(48 + delta, MinIconSize, MaxIconSize);
+                    int baseline = size > 0 ? size : GetDesktopIconSize();
+                    newSize = Math.Clamp(baseline + delta, MinIconSize, MaxIconSize);
                 }
                 else
                 {
@@ -755,7 +860,9 @@ namespace Naultinus.View
                 if (folderView2.SetViewModeAndIconSize(newMode, newSize) != SOk)
                     return false;
 
-                _viewMode = (uint)newMode;
+                // Sac à dos : ne pas réimposer ce mode aux dossiers suivants.
+                _viewMode = 0;
+                _lastKnownMode = (uint)newMode;
                 _showColumnHeader = newMode == (int)ShellBrowserNative.FolderViewModes.Details;
                 NaultinusDiagnostics.Log(
                     "ShellFolderViewHost",
@@ -1181,7 +1288,7 @@ namespace Naultinus.View
                 if (view2 is IFolderView2 folderView2
                     && folderView2.GetViewModeAndIconSize(out _, out int iconSize) == SOk)
                 {
-                    int size = iconSize > 0 ? iconSize : 48;
+                    int size = iconSize > 0 ? iconSize : GetDesktopIconSize();
                     if (folderView2.SetViewModeAndIconSize((int)_viewMode, size) == SOk)
                     {
                         NaultinusDiagnostics.Log(

@@ -224,6 +224,7 @@ namespace Naultinus.Properties
         public static string MenuViewThumbnails => ResourceManager.GetString(nameof(MenuViewThumbnails)) ?? string.Empty;
         public static string MenuViewTiles => ResourceManager.GetString(nameof(MenuViewTiles)) ?? string.Empty;
         public static string MenuSaveCurrentLayout => ResourceManager.GetString(nameof(MenuSaveCurrentLayout)) ?? string.Empty;
+        public static string MenuSort => ResourceManager.GetString(nameof(MenuSort)) ?? string.Empty;
         public static string MenuSortByDate => ResourceManager.GetString(nameof(MenuSortByDate)) ?? string.Empty;
 
         public static string MenuSortByName => ResourceManager.GetString(nameof(MenuSortByName)) ?? string.Empty;

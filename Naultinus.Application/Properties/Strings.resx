@@ -658,6 +658,9 @@
   <data name="MenuSaveCurrentLayout" xml:space="preserve">
     <value>Save current layout…</value>
   </data>
+  <data name="MenuSort" xml:space="preserve">
+    <value>Sort</value>
+  </data>
   <data name="MenuSortByDate" xml:space="preserve">
     <value>Sort by date</value>
   </data>

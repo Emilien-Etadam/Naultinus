@@ -776,9 +776,21 @@ namespace Naultinus.ViewModel
 
         #endregion
 
+        /// <summary>
+        /// Demandé quand le corps est rendu par la vue shell : le portail applique le tri via
+        /// <c>IFolderView2</c> plutôt que de réordonner la grille WPF masquée.
+        /// </summary>
+        internal event Action<PortalSortField>? ShellSortRequested;
+
         private void SortBy(PortalSortField field)
         {
             _sortField = field;
+            if (BodyRenderedByShell)
+            {
+                ShellSortRequested?.Invoke(field);
+                return;
+            }
+
             FolderPortalItem? anchor = _selectionAnchor;
             Items = new ObservableCollection<FolderPortalItem>(PortalItemSort.Order(Items, field));
             _selectionAnchor = anchor != null && Items.Contains(anchor) ? anchor : null;

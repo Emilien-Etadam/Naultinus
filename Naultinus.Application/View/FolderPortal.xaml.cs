@@ -1,3 +1,4 @@
+using Naultinus.Helpers;
 using Naultinus.Helpers.Native;
 using Naultinus.ViewModel;
 using Naultinus;
@@ -50,6 +51,9 @@ namespace Naultinus.View
             if (useShellView)
             {
                 ViewModeMenu.Visibility = Visibility.Visible;
+                SortMenu.Visibility = Visibility.Visible;
+                viewModel.ShellSortRequested += OnShellSortRequested;
+                Closed += (_, _) => viewModel.ShellSortRequested -= OnShellSortRequested;
                 ComponentDispatcher.ThreadFilterMessage += OnShellBannerFilterMessage;
                 Closed += (_, _) => ComponentDispatcher.ThreadFilterMessage -= OnShellBannerFilterMessage;
                 PreviewMouseWheel += OnShellViewPreviewMouseWheel;
@@ -66,6 +70,11 @@ namespace Naultinus.View
 
             bool showHeader = mode == ShellBrowserNative.FolderViewModes.Details;
             ShellView.SetViewMode(mode, showHeader);
+        }
+
+        private void OnShellSortRequested(PortalSortField field)
+        {
+            ShellView.TrySetSort(field);
         }
 
         private void OnShellViewPreviewMouseWheel(object sender, MouseWheelEventArgs e)

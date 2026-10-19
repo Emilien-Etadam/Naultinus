@@ -59,6 +59,11 @@
                             <MenuItem Header="{x:Static properties:Strings.MenuViewTiles}" Tag="6" Click="ViewModeMenuItem_Click" />
                             <MenuItem Header="{x:Static properties:Strings.MenuViewContent}" Tag="8" Click="ViewModeMenuItem_Click" />
                         </MenuItem>
+                        <MenuItem x:Name="SortMenu" Header="{x:Static properties:Strings.MenuSort}" Visibility="Collapsed">
+                            <MenuItem Header="{x:Static properties:Strings.MenuSortByName}" Command="{Binding Path=Data.SortByNameCommand, Source={StaticResource proxy}}" />
+                            <MenuItem Header="{x:Static properties:Strings.MenuSortByType}" Command="{Binding Path=Data.SortByTypeCommand, Source={StaticResource proxy}}" />
+                            <MenuItem Header="{x:Static properties:Strings.MenuSortByDate}" Command="{Binding Path=Data.SortByDateCommand, Source={StaticResource proxy}}" />
+                        </MenuItem>
                         <Separator />
                         <MenuItem Header="{x:Static properties:Strings.MenuDelete}" Command="{Binding Path=Data.DeleteNaultinusCommand, Source={StaticResource proxy}}" CommandParameter="{Binding Identifier}" />
                         <Separator />

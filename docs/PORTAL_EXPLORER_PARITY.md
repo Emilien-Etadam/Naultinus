@@ -87,11 +87,13 @@ quitter la naultinus.
 **Vue**
 
 - [x] modes icônes, liste, détails, éléments — avec en-tête de colonnes masquable
-      (menu Affichage du bandeau ; en-tête sync via veille de mode — options explicites restant en PR 3+)
+      (menu Affichage du bandeau ; en-tête sync via veille de mode)
 - [x] taille d'icônes réglable par portail (molette avec Ctrl), par défaut alignée sur la taille
-      des icônes du bureau (défaut bureau : encore à câbler ; Ctrl+molette via `IFolderView2`)
-- [ ] tri par nom, type, taille, date de modification, date de création, croissant ou décroissant
-- [ ] mémorisation du mode, de la taille et du tri **pour chaque dossier visité**
+      des icônes du bureau (`Bags\1\Desktop\IconSize` ; Ctrl+molette via `IFolderView2`)
+- [x] tri par nom, type, taille, date de modification, date de création, croissant ou décroissant
+      (menu Trier : nom / type / date ; re-clic inverse le sens ; taille et date de création via colonnes shell)
+- [x] mémorisation du mode, de la taille et du tri **pour chaque dossier visité**
+      (`IExplorerBrowser::SetPropertyBag("Naultinus.FolderPortal")`, sans magasin maison)
 - [ ] pas de réordonnancement manuel des éléments dans un portail (le tri fait foi)
 - [ ] superpositions d'icônes affichées, avec options pour masquer celles de synchro et la flèche
       de raccourci
@@ -347,12 +349,11 @@ powershell -ExecutionPolicy Bypass -File .\run-portal-shellview.ps1 -Build
   capture la vue du shell avec ses icons, ses colonnes et le thème sombre. C'est la bonne méthode, et la
   seule qui ait servi ici.
 
-## État d'avancement — PR 3 (amorcée) : pilotage de la vue
+## État d'avancement — PR 3 : pilotage de la vue
 
 - Déclaration COM `IFolderView2` (GUID documenté) dans `ShellBrowserNative.cs`.
-- Menu **Affichage** du bandeau (icônes, liste, détails, vignettes, mosaïques, contenu) →
-  `ShellFolderViewHost.SetViewMode`.
-- **Ctrl+molette** → `TryAdjustIconSize` (`Get`/`SetViewModeAndIconSize`), y compris quand le focus
-  est dans `DirectUIHWND` (filtre de messages du thread).
-- Restant : tri depuis Naultinus, mémorisation mode/taille/tri **par dossier**, alignement taille
-  d'icônes par défaut sur le bureau.
+- Menu **Affichage** du bandeau → `SetViewMode` (une fois, puis sac à dos).
+- Menu **Trier** → `TrySetSort` / `SetSortColumns` (nom, type, date ; bascule du sens).
+- **Ctrl+molette** → `TryAdjustIconSize` ; taille de départ = icônes du bureau si besoin.
+- **Sac à dos** : `SetPropertyBag("Naultinus.FolderPortal")` — mode, taille et tri par dossier,
+  sans magasin Naultinus à migrer.
