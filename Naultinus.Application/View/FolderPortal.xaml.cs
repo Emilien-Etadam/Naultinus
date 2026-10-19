@@ -9,6 +9,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Shell;
 
 namespace Naultinus.View
 {
@@ -56,6 +57,23 @@ namespace Naultinus.View
         }
 
         /// <summary>
+        /// Persiste largeur/hauteur et force <c>SetRect</c> sur la vue : le binding TwoWay ne suffit
+        /// pas toujours pendant un drag de bordure avec un HwndHost.
+        /// </summary>
+        private void OnShellViewWindowSizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (!IsLoaded || !useShellView)
+                return;
+
+            int w = (int)Math.Round(ActualWidth);
+            int h = (int)Math.Round(ActualHeight);
+            if (w > 0 && w != viewModel.Width)
+                viewModel.Width = w;
+            if (h > 0 && h != viewModel.Height)
+                viewModel.Height = h;
+        }
+
+        /// <summary>
         /// Alt+← / Alt+Home n'arrivent pas toujours en <c>PreviewKeyDown</c> quand le focus Win32
         /// est dans la vue : on les prend dans le filtre de messages du thread.
         /// </summary>
@@ -98,8 +116,25 @@ namespace Naultinus.View
             Background = TryFindResource("NaultinusWindowBrush") as Brush
                 ?? SystemColors.WindowBrush;
 
+            // L'HwndHost de la vue shell mange les hits souris sur toute sa surface : sans marge,
+            // il recouvre la bande de redimensionnement de WindowChrome (mesuré : impossible de
+            // saisir les bords gauche / droit / bas). On laisse 6 px de WPF autour.
+            const double resizeBand = 6;
+            ShellView.Margin = new Thickness(resizeBand);
+            WindowChrome.SetWindowChrome(this, new WindowChrome
+            {
+                CaptionHeight = 0,
+                ResizeBorderThickness = new Thickness(resizeBand),
+                CornerRadius = new CornerRadius(0),
+                GlassFrameThickness = new Thickness(0),
+                NonClientFrameEdges = NonClientFrameEdges.None,
+                UseAeroCaptionButtons = false,
+            });
+
             WpfGridView.Visibility = Visibility.Collapsed;
             ShellView.Visibility = Visibility.Visible;
+
+            SizeChanged += OnShellViewWindowSizeChanged;
 
             // WPF pré-traite tout le clavier du thread (HwndSource.OnPreprocessMessage). Sans
             // DirectionalNavigation=None, ↑/↓ déclenchent KeyboardNavigation.Navigate : le focus

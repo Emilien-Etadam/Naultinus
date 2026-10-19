@@ -53,9 +53,9 @@ Ce que Windows fournit du même coup, et qu'il ne faudra plus entretenir :
    `ComponentDispatcher.ThreadPreprocessMessage` pour chaque touche destinée à la vue. Sans cela :
    plus de flèches verticales, plus de F2, plus de saisie du début du nom. Correctif et diagnostic
    dans [PORTAL_KEYBOARD.md](PORTAL_KEYBOARD.md).
-4. **Redimensionnement et DPI.** Appeler `IExplorerBrowser::OnSizing` sur `WM_SIZE` et gérer le
-   DPI par fenêtre (`GetWindowDpiAwarenessContext`) : la vue shell est respectueuse du DPI, le
-   conteneur doit l'être aussi.
+4. **Redimensionnement et DPI.** Sur `WM_SIZE`, `SetRect` (déjà branché dans l'hôte). L'`HwndHost`
+   ne doit pas recouvrir la bande `WindowChrome` : marge de 6 px autour de la vue shell. DPI par
+   fenêtre à peaufiner si besoin (`GetWindowDpiAwarenessContext`).
 
 ### Ce que l'on garde à notre charge
 

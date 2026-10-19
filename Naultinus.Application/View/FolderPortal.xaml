@@ -21,7 +21,7 @@
         UseLayoutRounding="True"
         >
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="0" ResizeBorderThickness="5" CornerRadius="0" GlassFrameThickness="0" NonClientFrameEdges="None" UseAeroCaptionButtons="False" />
+        <WindowChrome CaptionHeight="0" ResizeBorderThickness="6" CornerRadius="0" GlassFrameThickness="0" NonClientFrameEdges="None" UseAeroCaptionButtons="False" />
     </WindowChrome.WindowChrome>
     <Window.DataContext>
         <viewModel:FolderPortalViewModel />
