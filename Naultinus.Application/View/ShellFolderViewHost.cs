@@ -85,6 +85,12 @@ namespace Naultinus.View
         /// <summary>Menus contextuels DefView autorisés (best-effort : filtre WM_CONTEXTMENU).</summary>
         public bool AllowContextMenu { get; set; } = true;
 
+        /// <summary>Dépôt dans la vue (RevokeDragDrop sur DefView / DirectUIHWND si faux).</summary>
+        public bool AllowShellDrop { get; set; } = true;
+
+        /// <summary>Glisser hors de la vue (annule le geste souris avant le seuil de drag OLE).</summary>
+        public bool AllowShellDragOut { get; set; } = true;
+
         /// <summary>Faux si l'hôte de vue n'a pas pu être créé : l'affichage WPF prend le relais.</summary>
         public bool IsAvailable => _initialized;
 
@@ -415,8 +421,19 @@ namespace Naultinus.View
         }
 
         private const int WmLButtonDblClk = 0x0203;
+        private const int WmLButtonDown = 0x0201;
+        private const int WmLButtonUp = 0x0202;
+        private const int WmMouseMove = 0x0200;
         private const int WmContextMenu = 0x007B;
         private const int WmRButtonUp = 0x0205;
+        private const int SmCxDrag = 68;
+        private const int SmCyDrag = 69;
+
+        /// <summary>Suivi du geste souris pour bloquer un glisser-déposer sortant.</summary>
+        private bool _trackingPotentialDrag;
+        private int _dragStartX;
+        private int _dragStartY;
+        private bool _dropTargetsRevoked;
 
         private void OnThreadFilterMessage(ref MSG msg, ref bool handled)
         {
@@ -424,6 +441,12 @@ namespace Naultinus.View
             {
                 if (!AllowContextMenu
                     && (msg.message == WmContextMenu || msg.message == WmRButtonUp))
+                {
+                    handled = true;
+                    return;
+                }
+
+                if (!AllowShellDragOut && TrySuppressDragOut(ref msg))
                 {
                     handled = true;
                     return;
@@ -1679,12 +1702,115 @@ namespace Naultinus.View
 
             BrowseSucceeded?.Invoke();
             TryRestoreSelectionAfterRefresh();
+            ApplyDropPolicy();
 
             if (initiatedByApp)
                 return;
 
             if (!string.IsNullOrEmpty(path))
                 Navigated?.Invoke(path);
+        }
+
+        /// <summary>
+        /// Applique dépôt / glisser sortant selon la politique du portail. À rappeler après
+        /// navigation (les cibles OLE sont recréées) et quand l'utilisateur change les bascules.
+        /// </summary>
+        public void ApplyInteractionPolicy()
+        {
+            if (!AllowShellDragOut)
+                _trackingPotentialDrag = false;
+
+            ApplyDropPolicy();
+        }
+
+        private void ApplyDropPolicy()
+        {
+            if (_siteHwnd == IntPtr.Zero)
+                return;
+
+            if (!AllowShellDrop)
+            {
+                foreach (IntPtr hwnd in EnumDropTargetWindows())
+                    _ = RevokeDragDrop(hwnd);
+                _dropTargetsRevoked = true;
+                return;
+            }
+
+            if (!_dropTargetsRevoked)
+                return;
+
+            // RevokeDragDrop est irréversible pour la vue courante : on renavigue pour que le shell
+            // réenregistre ses IDropTarget (API documentée OleInitialize / RegisterDragDrop).
+            _dropTargetsRevoked = false;
+            string path = _displayedPath;
+            if (!string.IsNullOrEmpty(path))
+                Navigate(path);
+        }
+
+        private IntPtr[] EnumDropTargetWindows()
+        {
+            var list = new System.Collections.Generic.List<IntPtr>();
+            if (_siteHwnd == IntPtr.Zero)
+                return list.ToArray();
+
+            EnumChildWindows(_siteHwnd, (h, _) =>
+            {
+                var sb = new System.Text.StringBuilder(64);
+                _ = GetClassName(h, sb, sb.Capacity);
+                string name = sb.ToString();
+                if (name is "SHELLDLL_DefView" or "DirectUIHWND" or "ExplorerBrowserControl")
+                    list.Add(h);
+                return true;
+            }, IntPtr.Zero);
+
+            return list.ToArray();
+        }
+
+        /// <summary>
+        /// Empêche le démarrage d'un glisser OLE : dès que le seuil système est franchi, on relâche
+        /// la capture souris pour que DefView n'appelle pas DoDragDrop.
+        /// </summary>
+        private bool TrySuppressDragOut(ref MSG msg)
+        {
+            if (msg.message == WmLButtonDown)
+            {
+                _trackingPotentialDrag = true;
+                UnpackMessagePoint(msg.lParam, out _dragStartX, out _dragStartY);
+                return false;
+            }
+
+            if (msg.message == WmLButtonUp || msg.message == WmLButtonDblClk)
+            {
+                _trackingPotentialDrag = false;
+                return false;
+            }
+
+            if (msg.message != WmMouseMove || !_trackingPotentialDrag)
+                return false;
+
+            // Bouton gauche toujours enfoncé (MK_LBUTTON = 0x0001).
+            if ((msg.wParam.ToInt64() & 0x0001) == 0)
+            {
+                _trackingPotentialDrag = false;
+                return false;
+            }
+
+            UnpackMessagePoint(msg.lParam, out int x, out int y);
+            int thresholdX = Math.Max(1, GetSystemMetrics(SmCxDrag));
+            int thresholdY = Math.Max(1, GetSystemMetrics(SmCyDrag));
+            if (Math.Abs(x - _dragStartX) < thresholdX && Math.Abs(y - _dragStartY) < thresholdY)
+                return false;
+
+            _trackingPotentialDrag = false;
+            _ = ReleaseCapture();
+            return true;
+        }
+
+        private static void UnpackMessagePoint(IntPtr lParam, out int x, out int y)
+        {
+            int packed = unchecked((int)(lParam.ToInt64() & 0xffffffff));
+            x = (short)(packed & 0xffff);
+            y = (short)((packed >> 16) & 0xffff);
         }
 
         private void OnUserPreferenceChanged(object? sender, Microsoft.Win32.UserPreferenceChangedEventArgs e)
@@ -1992,6 +2118,16 @@ namespace Naultinus.View
 
         [DllImport("ole32.dll")]
         private static extern int OleInitialize(IntPtr reserved);
+
+        [DllImport("ole32.dll")]
+        private static extern int RevokeDragDrop(IntPtr hwnd);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool ReleaseCapture();
+
+        [DllImport("user32.dll")]
+        private static extern int GetSystemMetrics(int nIndex);
 
         #endregion
 

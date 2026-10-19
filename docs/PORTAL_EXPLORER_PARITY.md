@@ -99,7 +99,8 @@ quitter la naultinus.
 - [x] pas de réordonnancement manuel des éléments dans un portail (le tri fait foi)
       (`FWF_AUTOARRANGE` | `FWF_SNAPTOGRID`)
 - [x] superpositions d'icônes affichées, avec options pour masquer celles de synchro et la flèche
-      de raccourci (overlays DefView natifs ; options WPF persistées dans Éditer)
+      de raccourci (DefView : overlays natifs, pas de masquage via API documentée ; grille WPF :
+      `HideShortcutOverlay` / `HideSyncOverlay` via `SHGFI_*` dans `IconExtractor`)
 
 **Opérations sur les fichiers**
 
@@ -128,7 +129,8 @@ quitter la naultinus.
 - [x] DPI et multi-moniteur : aucune mise à l'échelle floue, aucun saut de position
       (`ApplicationHighDpiMode=PerMonitorV2` ; marge resize HwndHost)
 - [x] fonctions désactivables une par une (double-clic, sortie de glisser-déposer, dépôt, clic
-      droit, clavier) pour les environnements gérés (dialogue Éditer + filtre messages shell)
+      droit, clavier) pour les environnements gérés (dialogue Éditer ; shell : filtre messages +
+      `RevokeDragDrop` / annulation du geste avant seuil OLE ; grille WPF : commandes maison)
 
 ## Plan de travail
 | PR | Contenu | Risque |
@@ -209,7 +211,8 @@ Reste à juger à la main, ce que la mesure automatique ne couvre pas :
       (`WindowSinker` : Activate sans `HWND_TOP` ; `SWP_NOZORDER`)
 - [x] la navigation de la barre d'adresse et l'onglet pilotent bien la vue
 - [ ] aucune fuite : ouvrir et fermer la naultinus une dizaine de fois ne laisse pas de fenêtre orpheline
-      (Dispose watchers/`HwndHost` en place ; validation manuelle restante)
+      (`DestroyWindowCore` : Unadvise + `IExplorerBrowser.Destroy` + `ReleaseComObject` +
+      `DestroyWindow` + arrêt veille/notify — preuve manuelle ×10 encore requise)
 
 Ce que le banc d'essai couvre : création de la vue, chaîne de fenêtres, dimensionnement, thème
 sombre mesuré, livraison des notifications de `IExplorerBrowserEvents` et lecture du chemin affiché.

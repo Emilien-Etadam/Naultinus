@@ -7,38 +7,85 @@ namespace Naultinus.Helpers
 {
     internal class IconExtractor
     {
-        internal static Bitmap? GetFileImageFromPath(string filepath, IconSizeEnum iconsize)
+        /// <summary>
+        /// Icône shell. Par défaut les superpositions (raccourci + synchro) sont demandées via
+        /// <c>SHGFI_ICON</c> / <c>SHGFI_ADDOVERLAYS</c> ; les masquer utilise
+        /// <c>SHGFI_SYSICONINDEX</c> (Raymond Chen / Old New Thing) ou omet ADDOVERLAYS.
+        /// </summary>
+        internal static Bitmap? GetFileImageFromPath(
+            string filepath,
+            IconSizeEnum iconsize,
+            bool hideShortcutOverlay = false,
+            bool hideSyncOverlay = false)
         {
             IntPtr hIcon = IntPtr.Zero;
             if (System.IO.Directory.Exists(filepath))
             {
-                hIcon = GetIconHandleFromFolderPath(filepath, iconsize);
+                hIcon = GetIconHandleFromFolderPath(filepath, iconsize, hideShortcutOverlay, hideSyncOverlay);
             }
             else if (System.IO.File.Exists(filepath))
             {
-                hIcon = GetIconHandleFromFilePath(filepath, iconsize);
+                hIcon = GetIconHandleFromFilePath(filepath, iconsize, hideShortcutOverlay, hideSyncOverlay);
             }
             return GetBitmapFromIconHandle(hIcon);
         }
 
-        internal static IntPtr GetIconHandleFromFilePath(string filepath, IconSizeEnum iconsize)
+        internal static IntPtr GetIconHandleFromFilePath(
+            string filepath,
+            IconSizeEnum iconsize,
+            bool hideShortcutOverlay = false,
+            bool hideSyncOverlay = false)
         {
             SHFILEINFO shinfo = new();
             const uint SHGFI_SYSICONINDEX = 0x4000;
+            const uint SHGFI_ICON = 0x000000100;
+            const uint SHGFI_ADDOVERLAYS = 0x000000020;
             const int FILE_ATTRIBUTE_NORMAL = 0x80;
-            uint flags = SHGFI_SYSICONINDEX;
+
+            // Masquer la flèche de raccourci : index seul + ImageList (sans SHGFI_ICON).
+            // Masquer seulement la synchro : SHGFI_ICON (raccourci seul) sans ADDOVERLAYS.
+            uint flags = hideShortcutOverlay
+                ? SHGFI_SYSICONINDEX
+                : hideSyncOverlay
+                    ? SHGFI_ICON
+                    : SHGFI_ICON | SHGFI_ADDOVERLAYS;
+
+            if ((flags & SHGFI_ICON) != 0)
+            {
+                Bindings.SHGetFileInfo(filepath, FILE_ATTRIBUTE_NORMAL, ref shinfo, (uint)Marshal.SizeOf(shinfo), flags);
+                return shinfo.hIcon;
+            }
+
             return GetIconHandleFromFilePathWithFlags(filepath, iconsize, ref shinfo, FILE_ATTRIBUTE_NORMAL, flags);
         }
 
-        internal static IntPtr GetIconHandleFromFolderPath(string folderpath, IconSizeEnum iconsize)
+        internal static IntPtr GetIconHandleFromFolderPath(
+            string folderpath,
+            IconSizeEnum iconsize,
+            bool hideShortcutOverlay = false,
+            bool hideSyncOverlay = false)
         {
             SHFILEINFO shinfo = new();
 
             const uint SHGFI_ICON = 0x000000100;
             const uint SHGFI_USEFILEATTRIBUTES = 0x000000010;
+            const uint SHGFI_ADDOVERLAYS = 0x000000020;
+            const uint SHGFI_SYSICONINDEX = 0x4000;
             const int FILE_ATTRIBUTE_DIRECTORY = 0x00000010;
-            uint flags = SHGFI_ICON | SHGFI_USEFILEATTRIBUTES;
-            return GetIconHandleFromFilePathWithFlags(folderpath, iconsize, ref shinfo, FILE_ATTRIBUTE_DIRECTORY, flags);
+
+            if (hideShortcutOverlay)
+            {
+                uint flags = SHGFI_SYSICONINDEX | SHGFI_USEFILEATTRIBUTES;
+                return GetIconHandleFromFilePathWithFlags(
+                    folderpath, iconsize, ref shinfo, FILE_ATTRIBUTE_DIRECTORY, flags);
+            }
+
+            uint folderFlags = hideSyncOverlay
+                ? SHGFI_ICON | SHGFI_USEFILEATTRIBUTES
+                : SHGFI_ICON | SHGFI_USEFILEATTRIBUTES | SHGFI_ADDOVERLAYS;
+            Bindings.SHGetFileInfo(
+                folderpath, FILE_ATTRIBUTE_DIRECTORY, ref shinfo, (uint)Marshal.SizeOf(shinfo), folderFlags);
+            return shinfo.hIcon;
         }
 
         internal static System.Drawing.Bitmap? GetBitmapFromIconHandle(IntPtr hIcon)

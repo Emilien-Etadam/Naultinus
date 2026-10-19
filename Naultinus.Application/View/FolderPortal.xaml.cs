@@ -232,7 +232,8 @@ namespace Naultinus.View
                     if (e.PropertyName is nameof(FolderPortalViewModel.AllowDoubleClick)
                         or nameof(FolderPortalViewModel.AllowKeyboard)
                         or nameof(FolderPortalViewModel.AllowContextMenu)
-                        or nameof(FolderPortalViewModel.AllowDrop))
+                        or nameof(FolderPortalViewModel.AllowDrop)
+                        or nameof(FolderPortalViewModel.AllowDragOut))
                         ApplyShellInteractionPolicy();
                 };
                 Loaded += (_, _) =>
@@ -363,6 +364,9 @@ namespace Naultinus.View
             ShellView.AllowDoubleClick = viewModel.AllowDoubleClick;
             ShellView.AllowKeyboard = viewModel.AllowKeyboard;
             ShellView.AllowContextMenu = viewModel.AllowContextMenu;
+            ShellView.AllowShellDrop = viewModel.AllowDrop;
+            ShellView.AllowShellDragOut = viewModel.AllowDragOut;
+            ShellView.ApplyInteractionPolicy();
         }
 
         private void ShellView_EmptyBackgroundDoubleClick(bool control)

@@ -158,13 +158,29 @@ namespace Naultinus.ViewModel
         public bool HideShortcutOverlay
         {
             get => _model.HideShortcutOverlay;
-            set { if (_model.HideShortcutOverlay == value) return; _model.HideShortcutOverlay = value; OnPropertyChanged(); Save(); }
+            set
+            {
+                if (_model.HideShortcutOverlay == value) return;
+                _model.HideShortcutOverlay = value;
+                OnPropertyChanged();
+                Save();
+                if (!BodyRenderedByShell)
+                    LoadFolder(CurrentPath);
+            }
         }
 
         public bool HideSyncOverlay
         {
             get => _model.HideSyncOverlay;
-            set { if (_model.HideSyncOverlay == value) return; _model.HideSyncOverlay = value; OnPropertyChanged(); Save(); }
+            set
+            {
+                if (_model.HideSyncOverlay == value) return;
+                _model.HideSyncOverlay = value;
+                OnPropertyChanged();
+                Save();
+                if (!BodyRenderedByShell)
+                    LoadFolder(CurrentPath);
+            }
         }
 
         /// <summary>
@@ -404,7 +420,8 @@ namespace Naultinus.ViewModel
                     string dirName = Path.GetFileName(dir);
                     if (!MatchesFilter(dirName, filter))
                         continue;
-                    string iconPath = AppPaths.GetOrCreateIcon(dir, "folder_", iconsDir);
+                    string iconPath = AppPaths.GetOrCreateIcon(
+                        dir, "folder_", iconsDir, HideShortcutOverlay, HideSyncOverlay);
                     found.Add(new FolderPortalItem(dirName, dir, true, iconPath) { LastWriteUtc = LastWriteUtc(dir) });
                 }
 
@@ -415,7 +432,8 @@ namespace Naultinus.ViewModel
                         continue;
                     if (!MatchesFilter(fileName, filter))
                         continue;
-                    string iconPath = AppPaths.GetOrCreateIcon(file, "file_", iconsDir);
+                    string iconPath = AppPaths.GetOrCreateIcon(
+                        file, "file_", iconsDir, HideShortcutOverlay, HideSyncOverlay);
                     found.Add(new FolderPortalItem(fileName, file, false, iconPath) { LastWriteUtc = LastWriteUtc(file) });
                 }
 
