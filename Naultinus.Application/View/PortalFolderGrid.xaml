@@ -15,21 +15,9 @@
         <converters:PathToImageConverter x:Key="PathToImage"/>
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
     </UserControl.Resources>
-    <Border Background="{DynamicResource NaultinusControlBrush}" ClipToBounds="True">
-        <Border.ContextMenu>
-            <ContextMenu>
-                <MenuItem Header="{x:Static properties:Strings.MenuNewFolder}" Command="{Binding CreateNewFolderCommand}"/>
-                <MenuItem Header="{x:Static properties:Strings.MenuNewTextFile}" Command="{Binding CreateNewFileCommand}"/>
-                <MenuItem Header="{x:Static properties:Strings.MenuPaste}" Command="{Binding PasteFromClipboardCommand}"/>
-                <Separator/>
-                <MenuItem Header="{x:Static properties:Strings.MenuSortByName}" Command="{Binding SortByNameCommand}"/>
-                <MenuItem Header="{x:Static properties:Strings.MenuSortByType}" Command="{Binding SortByTypeCommand}"/>
-                <MenuItem Header="{x:Static properties:Strings.MenuSortByDate}" Command="{Binding SortByDateCommand}"/>
-                <Separator/>
-                <MenuItem Header="{x:Static properties:Strings.MenuRefresh}" Command="{Binding RefreshCommand}"/>
-                <MenuItem Header="{x:Static properties:Strings.MenuOpenInExplorer}" Command="{Binding OpenInExplorerCommand}"/>
-            </ContextMenu>
-        </Border.ContextMenu>
+    <Border Background="{DynamicResource NaultinusControlBrush}"
+            ClipToBounds="True"
+            MouseRightButtonUp="Background_MouseRightButtonUp">
         <Grid>
             <TextBlock Text="{Binding ErrorMessage, Mode=OneWay}"
                        Foreground="{DynamicResource NaultinusErrorBrush}"

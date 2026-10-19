@@ -17,6 +17,7 @@ namespace Naultinus.Tests.Models
                 CurrentPath = @"C:\Users\Test\Documents\Sub",
                 NavigationHistory = { @"C:\Users\Test\Documents", @"C:\Users\Test\Documents\Sub" },
                 NavigationIndex = 1,
+                FilterQuery = "rap",
             };
             using var writer = new StringWriter();
             ViewModelBase.SharedSerializer.Serialize(writer, model);
@@ -28,6 +29,7 @@ namespace Naultinus.Tests.Models
             Assert.Equal(model.CurrentPath, d.CurrentPath);
             Assert.Equal(model.NavigationHistory, d.NavigationHistory);
             Assert.Equal(model.NavigationIndex, d.NavigationIndex);
+            Assert.Equal(model.FilterQuery, d.FilterQuery);
         }
     }
 }

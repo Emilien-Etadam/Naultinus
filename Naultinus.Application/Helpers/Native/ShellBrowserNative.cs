@@ -164,6 +164,9 @@ namespace Naultinus.Helpers.Native
 
         #region Thème et chemins
 
+        /// <summary><c>SIGDN_NORMALDISPLAY</c> : nom affiché (filtre de vue).</summary>
+        internal const uint SigdnNormalDisplay = 0x00000000;
+
         /// <summary><c>SIGDN_FILESYSPATH</c> : chemin complet, pour les éléments du système de fichiers.</summary>
         internal const uint SigdnFilePath = 0x80058000;
 
@@ -206,6 +209,12 @@ namespace Naultinus.Helpers.Native
 
         [DllImport("shell32.dll")]
         internal static extern IntPtr ILFree(IntPtr pidl);
+
+        [DllImport("shell32.dll")]
+        internal static extern IntPtr ILCombine(IntPtr pidl1, IntPtr pidl2);
+
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+        internal static extern int SHGetNameFromIDList(IntPtr pidl, uint sigdnName, out IntPtr ppszName);
 
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -405,6 +414,32 @@ namespace Naultinus.Helpers.Native
         void SelectItem(int index, uint flags);
 
         void SelectAndPositionItems(uint count, IntPtr pidls, IntPtr points, uint flags);
+    }
+
+    /// <summary>
+    /// <c>IFolderFilterSite</c> : l'hôte de vue (ou la DefView) accepte un filtre d'éléments.
+    /// </summary>
+    [ComImport]
+    [Guid("C0A651F5-B48B-11d2-B5ED-006097C686F6")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IFolderFilterSite
+    {
+        void SetFilter([MarshalAs(UnmanagedType.IUnknown)] object? filter);
+    }
+
+    /// <summary>
+    /// <c>IFolderFilter</c> : décide quels éléments la vue énumère / affiche.
+    /// </summary>
+    [ComImport]
+    [Guid("9CC22886-DC8E-11d2-B1D0-00C04F8EEB3E")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IFolderFilter
+    {
+        [PreserveSig]
+        int ShouldShow(IntPtr shellFolder, IntPtr pidlFolder, IntPtr pidlItem);
+
+        [PreserveSig]
+        int GetEnumFlags(IntPtr shellFolder, IntPtr pidlFolder, out IntPtr hwnd, ref uint flags);
     }
 
     /// <summary>

@@ -42,6 +42,13 @@ namespace Naultinus.View
                     return;
                 }
 
+                if (e.Key == Key.F && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+                {
+                    FocusPortalFilterBox();
+                    e.Handled = true;
+                    return;
+                }
+
                 if (useShellView)
                     return; // le reste du clavier est pour la vue hébergée
                 if (PortalFolderInput.TryHandle(viewModel, this, e))
@@ -75,6 +82,12 @@ namespace Naultinus.View
         private void OnShellSortRequested(PortalSortField field)
         {
             ShellView.TrySetSort(field);
+        }
+
+        private void FocusPortalFilterBox()
+        {
+            if (Header.Child is PortalPathBar bar)
+                bar.FocusFilter();
         }
 
         private void OnShellViewPreviewMouseWheel(object sender, MouseWheelEventArgs e)
@@ -133,6 +146,14 @@ namespace Naultinus.View
                 return;
 
             int vk = unchecked((int)(msg.wParam.ToInt64() & 0xffff));
+            bool ctrl = (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control;
+            if (ctrl && vk == 0x46) // VK_F — focus filtre (sinon DefView mange Ctrl+F)
+            {
+                Dispatcher.BeginInvoke(new Action(FocusPortalFilterBox));
+                handled = true;
+                return;
+            }
+
             bool alt = (Keyboard.Modifiers & ModifierKeys.Alt) == ModifierKeys.Alt
                 || msg.message == wmSysKeyDown;
 
@@ -198,7 +219,11 @@ namespace Naultinus.View
                 viewModel.BodyRenderedByShell = true;
                 viewModel.PropertyChanged += ViewModel_PropertyChanged;
                 ShellView.Navigated += ShellView_Navigated;
-                Loaded += (_, _) => ShellView.Navigate(viewModel.CurrentPath);
+                Loaded += (_, _) =>
+                {
+                    ShellView.SetNameFilter(viewModel.FilterQuery);
+                    ShellView.Navigate(viewModel.CurrentPath);
+                };
             }
 
             // La vue peut changer de mode par son propre menu, et l'en-tête de colonnes reste alors
@@ -269,6 +294,12 @@ namespace Naultinus.View
 
         private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
+            if (e.PropertyName == nameof(FolderPortalViewModel.FilterQuery))
+            {
+                ShellView.SetNameFilter(viewModel.FilterQuery);
+                return;
+            }
+
             if (e.PropertyName != nameof(FolderPortalViewModel.CurrentPath))
                 return;
 

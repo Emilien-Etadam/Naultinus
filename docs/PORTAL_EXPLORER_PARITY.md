@@ -100,15 +100,19 @@ quitter la naultinus.
 
 **Opérations sur les fichiers**
 
-- [ ] glisser depuis et vers l'Explorateur et le bureau, avec Ctrl / Maj / Alt pour copier,
-      déplacer, créer un lien
-- [ ] dépôt sur un sous-dossier affiché = dépôt **dans** ce sous-dossier
-- [ ] copier / couper / coller, y compris en provenance et à destination de l'Explorateur
-- [ ] renommage en place, création de dossier et de fichier, mise à la corbeille avec confirmation
-- [ ] menu contextuel de l'Explorateur sur les éléments **et** sur le vide (dont le sous-menu
-      « Nouveau »)
-- [ ] fenêtre de propriétés (Alt+Entrée), infobulles du shell
-- [ ] recherche et filtre dans le dossier, requête conservée
+- [x] glisser depuis et vers l'Explorateur et le bureau, avec Ctrl / Maj / Alt pour copier,
+      déplacer, créer un lien (natif DefView ; grille WPF : Ctrl=copier, sinon déplacer)
+- [x] dépôt sur un sous-dossier affiché = dépôt **dans** ce sous-dossier
+      (natif DefView ; grille WPF : cible = dossier sous le curseur)
+- [x] copier / couper / coller, y compris en provenance et à destination de l'Explorateur
+      (natif DefView via accélérateurs ; grille WPF : presse-papiers fichiers)
+- [x] renommage en place, création de dossier et de fichier, mise à la corbeille avec confirmation
+      (natif DefView ; grille WPF : dialogue / commandes maison)
+- [x] menu contextuel de l'Explorateur sur les éléments **et** sur le vide (dont le sous-menu
+      « Nouveau ») — DefView natif ; grille WPF : `ShellContextMenu` + `CreateViewObject`
+- [x] fenêtre de propriétés (Alt+Entrée), infobulles du shell (natif DefView)
+- [x] recherche et filtre dans le dossier, requête conservée
+      (bandeau + `IFolderFilter` / filtre WPF ; `FilterQuery` persisté)
 
 **Robustesse**
 
@@ -357,3 +361,12 @@ powershell -ExecutionPolicy Bypass -File .\run-portal-shellview.ps1 -Build
 - **Ctrl+molette** → `TryAdjustIconSize` ; taille de départ = icônes du bureau si besoin.
 - **Sac à dos** : `SetPropertyBag("Naultinus.FolderPortal")` — mode, taille et tri par dossier,
   sans magasin Naultinus à migrer.
+
+## État d'avancement — PR 4 : interactions
+
+- **DefView** (vue shell) : DnD, dépôt dans un sous-dossier, menus élément/vide, F2, Alt+Entrée,
+  infobulles, Ctrl+C/X/V — fournis par l'hôte, pas de réimplémentation managed.
+- **Filtre** : zone dans le bandeau (Ctrl+F), `IFolderFilter` + `IFolderFilterSite`, requête
+  `FilterQuery` persistée avec le portail ; même filtre sur la grille WPF.
+- **Grille WPF** (opt-out) : menu du vide via `IShellFolder::CreateViewObject`, dépôt sur un
+  sous-dossier sous le curseur.

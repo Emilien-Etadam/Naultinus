@@ -71,6 +71,7 @@ namespace Naultinus.Tests.Serialization
                 TabOrder = 3,
                 NavigationHistory = { @"D:\Roots\Share", @"D:\Roots\Share\Projects" },
                 NavigationIndex = 1,
+                FilterQuery = "draft",
             };
 
             var roundTrip = RoundTrip(model);
@@ -88,6 +89,7 @@ namespace Naultinus.Tests.Serialization
             Assert.Equal(NaultinusType.FolderPortal, roundTrip.Type);
             Assert.Equal(model.NavigationHistory, roundTrip.NavigationHistory);
             Assert.Equal(model.NavigationIndex, roundTrip.NavigationIndex);
+            Assert.Equal(model.FilterQuery, roundTrip.FilterQuery);
         }
 
         [Fact]

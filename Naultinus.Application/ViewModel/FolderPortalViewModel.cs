@@ -71,6 +71,26 @@ namespace Naultinus.ViewModel
         public bool BodyRenderedByShell { get; set; }
 
         /// <summary>
+        /// Filtre de nom (sous-chaîne). Persisté ; appliqué à la vue shell via
+        /// <c>IFolderFilter</c>, ou à la grille WPF à l'énumération.
+        /// </summary>
+        public string FilterQuery
+        {
+            get => _model.FilterQuery ?? "";
+            set
+            {
+                string next = value ?? "";
+                if (string.Equals(_model.FilterQuery, next, StringComparison.Ordinal))
+                    return;
+                _model.FilterQuery = next;
+                OnPropertyChanged();
+                Save();
+                if (!BodyRenderedByShell && !string.IsNullOrEmpty(CurrentPath))
+                    LoadFolder(CurrentPath, fromHistory: true);
+            }
+        }
+
+        /// <summary>
         /// Enregistre le dossier que la vue d'éléments du shell affiche réellement, sans renvoyer de
         /// navigation à la vue. Garde la barre de chemin et l'historique justes quand l'utilisateur
         /// double-clique un dossier.
@@ -299,11 +319,14 @@ namespace Naultinus.ViewModel
                 string iconsDir = AppPaths.GetNaultinusIconsDirectory(Identifier);
                 var loadingStarted = Stopwatch.StartNew();
 
+                string filter = FilterQuery;
                 foreach (string dir in Directory.GetDirectories(path))
                 {
                     if (IsHiddenOrSystemEntry(dir))
                         continue;
                     string dirName = Path.GetFileName(dir);
+                    if (!MatchesFilter(dirName, filter))
+                        continue;
                     string iconPath = AppPaths.GetOrCreateIcon(dir, "folder_", iconsDir);
                     found.Add(new FolderPortalItem(dirName, dir, true, iconPath) { LastWriteUtc = LastWriteUtc(dir) });
                 }
@@ -312,6 +335,8 @@ namespace Naultinus.ViewModel
                 {
                     string fileName = Path.GetFileName(file);
                     if (fileName.StartsWith("~$", StringComparison.Ordinal) || IsHiddenOrSystemEntry(file))
+                        continue;
+                    if (!MatchesFilter(fileName, filter))
                         continue;
                     string iconPath = AppPaths.GetOrCreateIcon(file, "file_", iconsDir);
                     found.Add(new FolderPortalItem(fileName, file, false, iconPath) { LastWriteUtc = LastWriteUtc(file) });
@@ -489,6 +514,12 @@ namespace Naultinus.ViewModel
             }
 
             OnPropertyChanged(nameof(CanNavigateBack));
+        }
+
+        private static bool MatchesFilter(string name, string filter)
+        {
+            return string.IsNullOrEmpty(filter)
+                || name.Contains(filter, StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsHiddenOrSystemEntry(string path)
@@ -711,19 +742,22 @@ namespace Naultinus.ViewModel
                 return;
 
             bool isCopy = (dropInfo.KeyStates & DragDropKeyStates.ControlKey) != 0;
-            ImportFileSystemPaths(files, isCopy);
+            string? intoFolder = dropInfo.TargetItem is FolderPortalItem folder && folder.IsDirectory
+                ? folder.FullPath
+                : null;
+            ImportFileSystemPaths(files, isCopy, intoFolder);
         }
 
-        public void ImportExplorerFileDrop(string[] files, bool isCopy)
+        public void ImportExplorerFileDrop(string[] files, bool isCopy, string? targetDirectory = null)
         {
             if (files == null || files.Length == 0)
                 return;
-            ImportFileSystemPaths(files, isCopy);
+            ImportFileSystemPaths(files, isCopy, targetDirectory);
         }
 
-        private void ImportFileSystemPaths(string[] files, bool isCopy)
+        private void ImportFileSystemPaths(string[] files, bool isCopy, string? targetDirectory = null)
         {
-            string targetDir = CurrentPath;
+            string targetDir = string.IsNullOrEmpty(targetDirectory) ? CurrentPath : targetDirectory;
             if (string.IsNullOrEmpty(targetDir) || !Directory.Exists(targetDir) || !PortalPathGuard.IsAllowed(RootPath, targetDir))
                 return;
 

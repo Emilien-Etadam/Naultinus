@@ -24,5 +24,8 @@ namespace Naultinus.Model
 
         /// <summary>Index courant dans <see cref="NavigationHistory"/> (-1 si vide).</summary>
         public int NavigationIndex { get; set; } = -1;
+
+        /// <summary>Filtre de nom du portail (sous-chaîne), conservé entre deux exécutions.</summary>
+        public string FilterQuery { get; set; } = "";
     }
 }

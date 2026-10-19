@@ -69,6 +69,9 @@ namespace Naultinus.View
         /// <summary>Dossier réellement affiché par la vue, sans le séparateur final.</summary>
         private string _displayedPath = "";
 
+        /// <summary>Filtre de nom (IFolderFilter), vivant tant que l'hôte existe.</summary>
+        private PortalFolderNameFilter? _nameFilter;
+
         /// <summary>Faux si l'hôte de vue n'a pas pu être créé : l'affichage WPF prend le relais.</summary>
         public bool IsAvailable => _initialized;
 
@@ -877,6 +880,103 @@ namespace Naultinus.View
         }
 
         /// <summary>
+        /// Filtre les éléments affichés par libellé (sous-chaîne, insensible à la casse).
+        /// Chaîne vide = tout afficher. Réappliqué après chaque navigation.
+        /// </summary>
+        public void SetNameFilter(string? query)
+        {
+            _nameFilter ??= new PortalFolderNameFilter();
+            string next = (query ?? string.Empty).Trim();
+            if (string.Equals(_nameFilter.Query, next, StringComparison.Ordinal))
+                return;
+
+            _nameFilter.Query = next;
+            ApplyNameFilter(refresh: true);
+        }
+
+        private void ApplyNameFilter(bool refresh)
+        {
+            if (_browser == null || _nameFilter == null)
+                return;
+
+            try
+            {
+                if (!TryGetFolderFilterSite(out IFolderFilterSite site))
+                {
+                    NaultinusDiagnostics.LogDebug(
+                        "ShellFolderViewHost.ApplyNameFilter : IFolderFilterSite indisponible");
+                    return;
+                }
+
+                object? filter = string.IsNullOrEmpty(_nameFilter.Query) ? null : _nameFilter;
+                site.SetFilter(filter);
+                NaultinusDiagnostics.Log(
+                    "ShellFolderViewHost",
+                    "filtre de nom : " + (filter == null ? "(aucun)" : _nameFilter.Query));
+
+                if (refresh)
+                    RefreshView();
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.ApplyNameFilter", ex);
+            }
+        }
+
+        private bool TryGetFolderFilterSite(out IFolderFilterSite site)
+        {
+            site = null!;
+            if (_browser == null)
+                return false;
+
+            if (TryQueryInterface(_browser, out site))
+                return true;
+
+            try
+            {
+                if (_browser is not IExplorerBrowser browser)
+                    return false;
+
+                Guid folderViewId = typeof(IFolderView).GUID;
+                browser.GetCurrentView(ref folderViewId, out object view);
+                return view != null && TryQueryInterface(view, out site);
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.TryGetFolderFilterSite", ex);
+                return false;
+            }
+        }
+
+        private static bool TryQueryInterface<T>(object comObject, out T iface)
+            where T : class
+        {
+            iface = null!;
+            IntPtr unknown = Marshal.GetIUnknownForObject(comObject);
+            try
+            {
+                Guid iid = typeof(T).GUID;
+                int hr = Marshal.QueryInterface(unknown, ref iid, out IntPtr pointer);
+                if (hr != 0 || pointer == IntPtr.Zero)
+                    return false;
+
+                try
+                {
+                    iface = (T)Marshal.GetTypedObjectForIUnknown(pointer, typeof(T));
+                    return iface != null;
+                }
+                finally
+                {
+                    Marshal.Release(pointer);
+                }
+            }
+            finally
+            {
+                Marshal.Release(unknown);
+            }
+        }
+
+        /// <summary>
         /// Surveille le mode de la vue. Le menu de la vue change le mode sans prévenir personne, et
         /// comme il ne désactive pas le portail, un clic dedans ne déclenche pas non plus
         /// l'activation : sans cette veille, les titres de colonnes restent accrochés jusqu'au
@@ -1357,8 +1457,8 @@ namespace Naultinus.View
             NaultinusDiagnostics.Log("ShellFolderViewHost", "vue créée par l'hôte de navigation.");
             ApplyViewTheme();
             ApplyViewMode();
+            ApplyNameFilter(refresh: false);
             StartModeWatch();
-
         }
 
         private void OnNavigationFailed(IntPtr pidlFolder)
@@ -1387,6 +1487,8 @@ namespace Naultinus.View
 
             // Le shell rétablit le mode mémorisé pour ce dossier : on redemande le nôtre.
             ReconcileViewMode();
+            // Le filtre n'est pas dans le sac à dos de vue : on le réapplique à chaque dossier.
+            ApplyNameFilter(refresh: false);
 
             string? path = CurrentFolderPath();
             NaultinusDiagnostics.Log("ShellFolderViewHost", "dossier réellement affiché : " + (path ?? "(élément hors système de fichiers)"));

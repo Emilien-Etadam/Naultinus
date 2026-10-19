@@ -102,6 +102,19 @@ namespace Naultinus.View
             portal.RefreshCommand.Execute(null);
         }
 
+        private void Background_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (FindItem(e.OriginalSource as DependencyObject) != null)
+                return;
+            if (Portal is not FolderPortalViewModel portal || string.IsNullOrEmpty(portal.CurrentPath))
+                return;
+
+            e.Handled = true;
+            Window? owner = Window.GetWindow(this);
+            if (owner != null)
+                ShellContextMenu.ShowBackground(portal.CurrentPath, owner);
+        }
+
         private void OnExternalFileDragOver(object sender, DragEventArgs e)
         {
             if (!e.Data.GetDataPresent(DataFormats.FileDrop))
@@ -120,7 +133,9 @@ namespace Naultinus.View
                 return;
 
             bool isCopy = (e.KeyStates & DragDropKeyStates.ControlKey) != 0;
-            portal.ImportExplorerFileDrop(files, isCopy);
+            FolderPortalItem? over = FindItem(e.OriginalSource as DependencyObject);
+            string? into = over is { IsDirectory: true } ? over.FullPath : null;
+            portal.ImportExplorerFileDrop(files, isCopy, into);
             e.Handled = true;
         }
 

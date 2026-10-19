@@ -51,8 +51,8 @@
         </Style>
         </ResourceDictionary>
     </UserControl.Resources>
-    <!-- Une seule bande : menu · racine · retour · chemin · nouvel onglet -->
-    <Grid ColumnDefinitions="Auto,Auto,*,Auto" Height="28">
+    <!-- Une seule bande : menu · racine · retour · chemin · filtre · nouvel onglet -->
+    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" Height="28">
         <Button Grid.Column="0"
                 x:Name="MenuButton"
                 Style="{StaticResource PortalBannerIconButton}"
@@ -111,7 +111,19 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </ScrollViewer>
-        <Button Grid.Column="3"
+        <TextBox Grid.Column="3"
+                 x:Name="FilterBox"
+                 Width="120"
+                 Height="22"
+                 Margin="0,0,4,0"
+                 VerticalAlignment="Center"
+                 VerticalContentAlignment="Center"
+                 Padding="4,0"
+                 FontSize="11"
+                 Text="{Binding FilterQuery, UpdateSourceTrigger=PropertyChanged}"
+                 ToolTip="{x:Static properties:Strings.TooltipPortalFilter}"
+                 AutomationProperties.Name="{x:Static properties:Strings.TooltipPortalFilter}"/>
+        <Button Grid.Column="4"
                 x:Name="AddTabButton"
                 Style="{StaticResource PortalBannerIconButton}"
                 Margin="0,0,6,0"

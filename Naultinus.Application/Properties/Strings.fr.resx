@@ -712,6 +712,9 @@
   <data name="TooltipGoToRoot" xml:space="preserve">
     <value>Aller au dossier racine</value>
   </data>
+  <data name="TooltipPortalFilter" xml:space="preserve">
+    <value>Filtrer les éléments par nom (Ctrl+F)</value>
+  </data>
   <data name="TooltipImapHostExample" xml:space="preserve">
     <value>Ex. : imap.example.com</value>
   </data>

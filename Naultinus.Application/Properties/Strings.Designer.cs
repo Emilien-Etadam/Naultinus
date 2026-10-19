@@ -249,6 +249,7 @@ namespace Naultinus.Properties
         public static string PortalGoUp => ResourceManager.GetString(nameof(PortalGoUp)) ?? string.Empty;
         public static string PortalHome => ResourceManager.GetString(nameof(PortalHome)) ?? string.Empty;
         public static string TooltipGoToRoot => ResourceManager.GetString(nameof(TooltipGoToRoot)) ?? string.Empty;
+        public static string TooltipPortalFilter => ResourceManager.GetString(nameof(TooltipPortalFilter)) ?? string.Empty;
         public static string TooltipImapHostExample => ResourceManager.GetString(nameof(TooltipImapHostExample)) ?? string.Empty;
         public static string TooltipMenu => ResourceManager.GetString(nameof(TooltipMenu)) ?? string.Empty;
         public static string TooltipNavigateBack => ResourceManager.GetString(nameof(TooltipNavigateBack)) ?? string.Empty;
