@@ -70,10 +70,11 @@ quitter la naultinus.
 
 **Cible**
 
-- [ ] dossier local, chemin réseau, cible de recherche
-- [ ] création par tracé, par menu, et par glisser-déposer d'un dossier sur le bureau
-- [ ] modification du dossier racine sans recréer la naultinus
-- [ ] suppression de la naultinus **sans** supprimer le dossier
+- [x] dossier local, chemin réseau, cible de recherche
+      (local + UNC ; `search-ms:` encore partiel)
+- [x] création par tracé, par menu, et par glisser-déposer d'un dossier sur le bureau
+- [x] modification du dossier racine sans recréer la naultinus (`ChangeRoot`)
+- [x] suppression de la naultinus **sans** supprimer le dossier
 - [ ] masquage de portails donnés, et héritage de la racine par les portails d'un même onglet
 
 **Navigation**
@@ -81,8 +82,8 @@ quitter la naultinus.
 - [x] entrer dans un sous-dossier, remonter, aller à la racine (raccourci clavier dédié)
 - [x] pile d'historique de retour, conservée entre deux exécutions, par naultinus
 - [x] titre de la naultinus = nom du dossier réellement affiché
-- [ ] ouverture du dossier affiché dans l'Explorateur (double-clic sur le vide)
-- [ ] ouverture du dossier racine du portail (double-clic avec Ctrl sur l'en-tête ou le vide)
+- [x] ouverture du dossier affiché dans l'Explorateur (double-clic sur le vide)
+- [x] ouverture du dossier racine du portail (double-clic avec Ctrl sur l'en-tête ou le vide)
 
 **Vue**
 
@@ -94,9 +95,10 @@ quitter la naultinus.
       (menu Trier : nom / type / date ; re-clic inverse le sens ; taille et date de création via colonnes shell)
 - [x] mémorisation du mode, de la taille et du tri **pour chaque dossier visité**
       (`IExplorerBrowser::SetPropertyBag("Naultinus.FolderPortal")`, sans magasin maison)
-- [ ] pas de réordonnancement manuel des éléments dans un portail (le tri fait foi)
-- [ ] superpositions d'icônes affichées, avec options pour masquer celles de synchro et la flèche
-      de raccourci
+- [x] pas de réordonnancement manuel des éléments dans un portail (le tri fait foi)
+      (`FWF_AUTOARRANGE` | `FWF_SNAPTOGRID`)
+- [x] superpositions d'icônes affichées, avec options pour masquer celles de synchro et la flèche
+      de raccourci (overlays DefView natifs ; options WPF persistées dans Éditer)
 
 **Opérations sur les fichiers**
 
@@ -122,9 +124,10 @@ quitter la naultinus.
       de sélection après renavigation — le défilement reste best-effort)
 - [x] dossier supprimé, renommé, réseau déconnecté, droits manquants : message clair, pas de plantage
       (bandeau d'erreur visible en vue shell ; `BrowseFailed` / `SetEmptyText` ; watcher `Error`)
-- [ ] DPI et multi-moniteur : aucune mise à l'échelle floue, aucun saut de position
-- [ ] fonctions désactivables une par une (double-clic, sortie de glisser-déposer, dépôt, clic
-      droit, clavier) pour les environnements gérés
+- [x] DPI et multi-moniteur : aucune mise à l'échelle floue, aucun saut de position
+      (`ApplicationHighDpiMode=PerMonitorV2` ; marge resize HwndHost)
+- [x] fonctions désactivables une par une (double-clic, sortie de glisser-déposer, dépôt, clic
+      droit, clavier) pour les environnements gérés (dialogue Éditer + filtre messages shell)
 
 ## Plan de travail
 | PR | Contenu | Risque |
@@ -382,5 +385,5 @@ powershell -ExecutionPolicy Bypass -File .\run-portal-shellview.ps1 -Build
 - **Notifications shell** : `ShellChangeNotifyWatcher` (`SHChangeNotifyRegister`) prioritaire,
   repli `FileSystemWatcher` ; en vue shell, `ShellFolderNeedsRefresh` → `RefreshView` avec
   restauration d'index de sélection.
-- Restant : cibles de recherche / racines PIDL, masquage des superpositions, bascules
-  d'interaction, audit DPI.
+- Bascules d'interaction + DPI PerMonitorV2 + auto-arrange + édition de racine + dbl-clic vide.
+- Restant : masquage/héritage racine onglet, `search-ms:` complet, Z-order/fuites spike.

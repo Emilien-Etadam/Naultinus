@@ -547,6 +547,30 @@
   <data name="LabelRootPath" xml:space="preserve">
     <value>Root path</value>
   </data>
+  <data name="LabelPortalInteractions" xml:space="preserve">
+    <value>Interactions</value>
+  </data>
+  <data name="LabelAllowDoubleClick" xml:space="preserve">
+    <value>Allow double-click</value>
+  </data>
+  <data name="LabelAllowDragOut" xml:space="preserve">
+    <value>Allow drag out</value>
+  </data>
+  <data name="LabelAllowDrop" xml:space="preserve">
+    <value>Allow drop</value>
+  </data>
+  <data name="LabelAllowContextMenu" xml:space="preserve">
+    <value>Allow context menu</value>
+  </data>
+  <data name="LabelAllowKeyboard" xml:space="preserve">
+    <value>Allow keyboard in body</value>
+  </data>
+  <data name="LabelHideShortcutOverlay" xml:space="preserve">
+    <value>Hide shortcut arrow overlay (WPF grid)</value>
+  </data>
+  <data name="LabelHideSyncOverlay" xml:space="preserve">
+    <value>Hide sync overlays (WPF grid)</value>
+  </data>
   <data name="LabelStartDate" xml:space="preserve">
     <value>Start date</value>
   </data>

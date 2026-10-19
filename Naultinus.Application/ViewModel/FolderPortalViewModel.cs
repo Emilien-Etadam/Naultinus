@@ -46,7 +46,35 @@ namespace Naultinus.ViewModel
         public string RootPath
         {
             get => _model.RootPath;
-            set { _model.RootPath = value; OnPropertyChanged(); Save(); }
+            set
+            {
+                if (string.Equals(_model.RootPath, value, StringComparison.OrdinalIgnoreCase))
+                    return;
+                _model.RootPath = value ?? "";
+                OnPropertyChanged();
+                Save();
+            }
+        }
+
+        /// <summary>Change la racine du portail et y navigue, sans recréer la naultinus.</summary>
+        public void ChangeRoot(string newRoot)
+        {
+            if (string.IsNullOrWhiteSpace(newRoot))
+                return;
+            if (!PortalFolderAccess.TryExists(newRoot, out string? error))
+            {
+                ErrorMessage = error ?? string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    Strings.FolderNotFoundFormat,
+                    newRoot);
+                return;
+            }
+
+            RootPath = newRoot;
+            _model.NavigationHistory.Clear();
+            _model.NavigationIndex = -1;
+            LoadFolder(newRoot);
+            OnPropertyChanged(nameof(CanNavigateBack));
         }
 
         public string CurrentPath
@@ -95,6 +123,48 @@ namespace Naultinus.ViewModel
                 if (!BodyRenderedByShell && !string.IsNullOrEmpty(CurrentPath))
                     LoadFolder(CurrentPath, fromHistory: true);
             }
+        }
+
+        public bool AllowDoubleClick
+        {
+            get => _model.AllowDoubleClick;
+            set { if (_model.AllowDoubleClick == value) return; _model.AllowDoubleClick = value; OnPropertyChanged(); Save(); }
+        }
+
+        public bool AllowDragOut
+        {
+            get => _model.AllowDragOut;
+            set { if (_model.AllowDragOut == value) return; _model.AllowDragOut = value; OnPropertyChanged(); Save(); }
+        }
+
+        public bool AllowDrop
+        {
+            get => _model.AllowDrop;
+            set { if (_model.AllowDrop == value) return; _model.AllowDrop = value; OnPropertyChanged(); Save(); }
+        }
+
+        public bool AllowContextMenu
+        {
+            get => _model.AllowContextMenu;
+            set { if (_model.AllowContextMenu == value) return; _model.AllowContextMenu = value; OnPropertyChanged(); Save(); }
+        }
+
+        public bool AllowKeyboard
+        {
+            get => _model.AllowKeyboard;
+            set { if (_model.AllowKeyboard == value) return; _model.AllowKeyboard = value; OnPropertyChanged(); Save(); }
+        }
+
+        public bool HideShortcutOverlay
+        {
+            get => _model.HideShortcutOverlay;
+            set { if (_model.HideShortcutOverlay == value) return; _model.HideShortcutOverlay = value; OnPropertyChanged(); Save(); }
+        }
+
+        public bool HideSyncOverlay
+        {
+            get => _model.HideSyncOverlay;
+            set { if (_model.HideSyncOverlay == value) return; _model.HideSyncOverlay = value; OnPropertyChanged(); Save(); }
         }
 
         /// <summary>
@@ -743,7 +813,8 @@ namespace Naultinus.ViewModel
             dragInfo.Effects = DragDropEffects.Copy | DragDropEffects.Move;
         }
 
-        public bool CanStartDrag(IDragInfo dragInfo) => dragInfo.SourceItem is FolderPortalItem;
+        public bool CanStartDrag(IDragInfo dragInfo) =>
+            AllowDragOut && dragInfo.SourceItem is FolderPortalItem;
 
         public void Dropped(IDropInfo dropInfo) { }
 
@@ -761,6 +832,12 @@ namespace Naultinus.ViewModel
         #region IDropTarget
         public void DragOver(IDropInfo dropInfo)
         {
+            if (!AllowDrop)
+            {
+                dropInfo.Effects = DragDropEffects.None;
+                return;
+            }
+
             if (dropInfo.Data is DataObject dataObject && dataObject.GetDataPresent(DataFormats.FileDrop))
             {
                 bool isCopy = (dropInfo.KeyStates & DragDropKeyStates.ControlKey) != 0;
@@ -785,6 +862,9 @@ namespace Naultinus.ViewModel
 
         public void Drop(IDropInfo dropInfo)
         {
+            if (!AllowDrop)
+                return;
+
             string[]? files = null;
             if (dropInfo.Data is DataObject dataObject && dataObject.GetDataPresent(DataFormats.FileDrop))
                 files = dataObject.GetData(DataFormats.FileDrop) as string[];

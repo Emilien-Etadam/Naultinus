@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Interop;
 
 namespace Naultinus.View
@@ -75,6 +76,15 @@ namespace Naultinus.View
         /// <summary>Index à resélectionner après un rafraîchissement par renavigation (−1 = rien).</summary>
         private int _restoreSelectionIndex = -1;
 
+        /// <summary>Double-clic autorisé (politique portail).</summary>
+        public bool AllowDoubleClick { get; set; } = true;
+
+        /// <summary>Clavier / accélérateurs DefView autorisés.</summary>
+        public bool AllowKeyboard { get; set; } = true;
+
+        /// <summary>Menus contextuels DefView autorisés (best-effort : filtre WM_CONTEXTMENU).</summary>
+        public bool AllowContextMenu { get; set; } = true;
+
         /// <summary>Faux si l'hôte de vue n'a pas pu être créé : l'affichage WPF prend le relais.</summary>
         public bool IsAvailable => _initialized;
 
@@ -92,6 +102,12 @@ namespace Naultinus.View
 
         /// <summary>Navigation aboutie : le portail peut effacer le bandeau d'erreur.</summary>
         public event Action? BrowseSucceeded;
+
+        /// <summary>
+        /// Double-clic sur le vide de la vue (aucune sélection). Argument : Ctrl enfoncé
+        /// (racine du portail) ou non (ouvrir dans l'Explorateur).
+        /// </summary>
+        public event Action<bool>? EmptyBackgroundDoubleClick;
 
         public ShellFolderViewHost()
         {
@@ -398,13 +414,48 @@ namespace Naultinus.View
             _acceleratorFilterAttached = false;
         }
 
+        private const int WmLButtonDblClk = 0x0203;
+        private const int WmContextMenu = 0x007B;
+        private const int WmRButtonUp = 0x0205;
+
         private void OnThreadFilterMessage(ref MSG msg, ref bool handled)
         {
+            if (_siteHwnd != IntPtr.Zero && IsMessageForView(msg.hwnd))
+            {
+                if (!AllowContextMenu
+                    && (msg.message == WmContextMenu || msg.message == WmRButtonUp))
+                {
+                    handled = true;
+                    return;
+                }
+
+                if (msg.message == WmLButtonDblClk && AllowDoubleClick && TryIsEmptySelection())
+                {
+                    bool ctrl = (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control;
+                    EmptyBackgroundDoubleClick?.Invoke(ctrl);
+                    handled = true;
+                    return;
+                }
+
+                if (msg.message == WmLButtonDblClk && !AllowDoubleClick)
+                {
+                    handled = true;
+                    return;
+                }
+            }
+
             if (_browser is not IInputObject input)
                 return;
 
             if (msg.message < WmKeyFirst || msg.message > WmKeyLast)
                 return;
+
+            if (!AllowKeyboard)
+            {
+                if (_siteHwnd != IntPtr.Zero && IsMessageForView(msg.hwnd))
+                    handled = true;
+                return;
+            }
 
             // ↑/↓ : HwndSource.OnPreprocessMessage (souvent avant nous) les donne à
             // KeyboardNavigation, qui pose handled=true et vole le focus. On les traite quand même
@@ -467,6 +518,35 @@ namespace Naultinus.View
             catch (Exception ex)
             {
                 NaultinusDiagnostics.LogDebug("ShellFolderViewHost.TranslateAcceleratorIO", ex);
+            }
+        }
+
+        private bool TryIsEmptySelection()
+        {
+            if (_browser is not IExplorerBrowser browser)
+                return false;
+
+            try
+            {
+                Guid folderView2Id = typeof(IFolderView2).GUID;
+                browser.GetCurrentView(ref folderView2Id, out object view);
+                if (view is not IFolderView2 folderView2)
+                    return false;
+
+                folderView2.GetSelection(false, out object arrayObj);
+                if (arrayObj is IShellItemArray array)
+                {
+                    array.GetCount(out uint count);
+                    return count == 0;
+                }
+
+                folderView2.GetFocusedItem(out int focused);
+                return focused < 0;
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.TryIsEmptySelection", ex);
+                return false;
             }
         }
 
@@ -1447,10 +1527,36 @@ namespace Naultinus.View
                     folderView.SetCurrentViewMode(_viewMode);
 
                 NaultinusDiagnostics.Log("ShellFolderViewHost", "mode de vue demandé : " + _viewMode + ", titres de colonnes : " + _showColumnHeader);
+                EnforceAutoArrange();
             }
             catch (Exception ex)
             {
                 NaultinusDiagnostics.LogDebug("ShellFolderViewHost.ApplyViewMode", ex);
+            }
+        }
+
+        /// <summary>
+        /// Empêche le réordonnancement manuel libre : le tri / l'arrangement automatique font foi.
+        /// </summary>
+        private void EnforceAutoArrange()
+        {
+            if (_browser is not IExplorerBrowser browser)
+                return;
+
+            try
+            {
+                Guid folderView2Id = typeof(IFolderView2).GUID;
+                browser.GetCurrentView(ref folderView2Id, out object view);
+                if (view is not IFolderView2 folderView2)
+                    return;
+
+                uint flags = ShellBrowserNative.FolderViewFlags.AutoArrange
+                    | ShellBrowserNative.FolderViewFlags.SnapToGrid;
+                folderView2.SetCurrentFolderFlags(flags, flags);
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.EnforceAutoArrange", ex);
             }
         }
 
@@ -1499,6 +1605,7 @@ namespace Naultinus.View
             NaultinusDiagnostics.Log("ShellFolderViewHost", "vue créée par l'hôte de navigation.");
             ApplyViewTheme();
             ApplyViewMode();
+            EnforceAutoArrange();
             ApplyNameFilter(refresh: false);
             StartModeWatch();
         }

@@ -187,6 +187,14 @@ namespace Naultinus.Properties
         public static string LabelPassword => ResourceManager.GetString(nameof(LabelPassword)) ?? string.Empty;
         public static string LabelRootFolder => ResourceManager.GetString(nameof(LabelRootFolder)) ?? string.Empty;
         public static string LabelRootPath => ResourceManager.GetString(nameof(LabelRootPath)) ?? string.Empty;
+        public static string LabelPortalInteractions => ResourceManager.GetString(nameof(LabelPortalInteractions)) ?? string.Empty;
+        public static string LabelAllowDoubleClick => ResourceManager.GetString(nameof(LabelAllowDoubleClick)) ?? string.Empty;
+        public static string LabelAllowDragOut => ResourceManager.GetString(nameof(LabelAllowDragOut)) ?? string.Empty;
+        public static string LabelAllowDrop => ResourceManager.GetString(nameof(LabelAllowDrop)) ?? string.Empty;
+        public static string LabelAllowContextMenu => ResourceManager.GetString(nameof(LabelAllowContextMenu)) ?? string.Empty;
+        public static string LabelAllowKeyboard => ResourceManager.GetString(nameof(LabelAllowKeyboard)) ?? string.Empty;
+        public static string LabelHideShortcutOverlay => ResourceManager.GetString(nameof(LabelHideShortcutOverlay)) ?? string.Empty;
+        public static string LabelHideSyncOverlay => ResourceManager.GetString(nameof(LabelHideSyncOverlay)) ?? string.Empty;
         public static string LabelStartDate => ResourceManager.GetString(nameof(LabelStartDate)) ?? string.Empty;
         public static string LabelStartTime => ResourceManager.GetString(nameof(LabelStartTime)) ?? string.Empty;
         public static string LabelSyncIntervalMinutes => ResourceManager.GetString(nameof(LabelSyncIntervalMinutes)) ?? string.Empty;

@@ -547,6 +547,30 @@
   <data name="LabelRootPath" xml:space="preserve">
     <value>Chemin racine</value>
   </data>
+  <data name="LabelPortalInteractions" xml:space="preserve">
+    <value>Interactions</value>
+  </data>
+  <data name="LabelAllowDoubleClick" xml:space="preserve">
+    <value>Autoriser le double-clic</value>
+  </data>
+  <data name="LabelAllowDragOut" xml:space="preserve">
+    <value>Autoriser le glisser vers l'extérieur</value>
+  </data>
+  <data name="LabelAllowDrop" xml:space="preserve">
+    <value>Autoriser le dépôt</value>
+  </data>
+  <data name="LabelAllowContextMenu" xml:space="preserve">
+    <value>Autoriser le menu contextuel</value>
+  </data>
+  <data name="LabelAllowKeyboard" xml:space="preserve">
+    <value>Autoriser le clavier dans le corps</value>
+  </data>
+  <data name="LabelHideShortcutOverlay" xml:space="preserve">
+    <value>Masquer la flèche de raccourci (grille WPF)</value>
+  </data>
+  <data name="LabelHideSyncOverlay" xml:space="preserve">
+    <value>Masquer les superpositions de synchro (grille WPF)</value>
+  </data>
   <data name="LabelStartDate" xml:space="preserve">
     <value>Date de début</value>
   </data>

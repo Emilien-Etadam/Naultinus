@@ -27,5 +27,26 @@ namespace Naultinus.Model
 
         /// <summary>Filtre de nom du portail (sous-chaîne), conservé entre deux exécutions.</summary>
         public string FilterQuery { get; set; } = "";
+
+        /// <summary>Double-clic (ouvrir / entrer dans un dossier).</summary>
+        public bool AllowDoubleClick { get; set; } = true;
+
+        /// <summary>Glisser des éléments hors du portail.</summary>
+        public bool AllowDragOut { get; set; } = true;
+
+        /// <summary>Déposer des fichiers dans le portail.</summary>
+        public bool AllowDrop { get; set; } = true;
+
+        /// <summary>Menu contextuel (éléments et vide).</summary>
+        public bool AllowContextMenu { get; set; } = true;
+
+        /// <summary>Clavier dans le corps (hors raccourcis du bandeau).</summary>
+        public bool AllowKeyboard { get; set; } = true;
+
+        /// <summary>Masquer la flèche de raccourci sur les icônes (grille WPF ; DefView reste natif).</summary>
+        public bool HideShortcutOverlay { get; set; }
+
+        /// <summary>Masquer les superpositions de synchro cloud (grille WPF ; DefView reste natif).</summary>
+        public bool HideSyncOverlay { get; set; }
     }
 }

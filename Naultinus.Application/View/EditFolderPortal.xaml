@@ -4,7 +4,7 @@
         xmlns:viewModel="clr-namespace:Naultinus.ViewModel"
         xmlns:properties="clr-namespace:Naultinus.Properties"
         Title="{x:Static properties:Strings.WindowTitleEditBrowseNaultinus}"
-        Width="400"
+        Width="440"
         SizeToContent="Height"
         TextElement.Foreground="{DynamicResource NaultinusTextBrush}"
         TextElement.FontWeight="Regular"
@@ -25,14 +25,37 @@
                 <Setter Property="HorizontalAlignment" Value="Left" />
                 <Setter Property="Margin" Value="0,5" />
             </Style>
+            <Style TargetType="CheckBox">
+                <Setter Property="Margin" Value="0,4,0,0"/>
+                <Setter Property="Foreground" Value="{DynamicResource NaultinusTextBrush}"/>
+            </Style>
         </ResourceDictionary>
     </Window.Resources>
-    <Grid Margin="10" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" ColumnDefinitions="Auto,10,*" RowDefinitions="Auto,10,Auto,*">
+    <Grid Margin="10" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+          ColumnDefinitions="Auto,10,*" RowDefinitions="Auto,10,Auto,10,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
         <TextBlock Text="{x:Static properties:Strings.LabelName}" Grid.Row="0" Style="{StaticResource NaultinusDialogLabel}" FontSize="24"/>
-        <TextBox FontSize="24" Grid.Column="2" Grid.Row="0" Style="{StaticResource NaultinusDialogTextBox}" Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+        <TextBox FontSize="24" Grid.Column="2" Grid.Row="0" Style="{StaticResource NaultinusDialogTextBox}"
+                 Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                 HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
 
-        <TextBlock Text="{x:Static properties:Strings.LabelRootPath}" Grid.Row="2" Style="{StaticResource NaultinusDialogLabel}" FontSize="24"/>
-        <TextBox FontSize="14" Grid.Row="2" Grid.Column="2" Style="{StaticResource NaultinusDialogTextBox}" Text="{Binding RootPath, Mode=OneWay}" IsReadOnly="True" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+        <TextBlock Text="{x:Static properties:Strings.LabelRootPath}" Grid.Row="2" Style="{StaticResource NaultinusDialogLabel}" FontSize="18"/>
+        <DockPanel Grid.Row="2" Grid.Column="2" LastChildFill="True">
+            <Button DockPanel.Dock="Right" Content="…" Width="32" Margin="6,0,0,0"
+                    Click="BrowseRoot_Click" VerticalAlignment="Center"/>
+            <TextBox FontSize="14" Style="{StaticResource NaultinusDialogTextBox}"
+                     Text="{Binding RootPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+        </DockPanel>
 
+        <TextBlock Grid.Row="4" Grid.ColumnSpan="3" Margin="0,8,0,0" FontWeight="SemiBold"
+                   Text="{x:Static properties:Strings.LabelPortalInteractions}"
+                   Foreground="{DynamicResource NaultinusTextBrush}"/>
+        <CheckBox Grid.Row="5" Grid.ColumnSpan="3" Content="{x:Static properties:Strings.LabelAllowDoubleClick}" IsChecked="{Binding AllowDoubleClick}"/>
+        <CheckBox Grid.Row="6" Grid.ColumnSpan="3" Content="{x:Static properties:Strings.LabelAllowDragOut}" IsChecked="{Binding AllowDragOut}"/>
+        <CheckBox Grid.Row="7" Grid.ColumnSpan="3" Content="{x:Static properties:Strings.LabelAllowDrop}" IsChecked="{Binding AllowDrop}"/>
+        <CheckBox Grid.Row="8" Grid.ColumnSpan="3" Content="{x:Static properties:Strings.LabelAllowContextMenu}" IsChecked="{Binding AllowContextMenu}"/>
+        <CheckBox Grid.Row="9" Grid.ColumnSpan="3" Content="{x:Static properties:Strings.LabelAllowKeyboard}" IsChecked="{Binding AllowKeyboard}"/>
+        <CheckBox Grid.Row="10" Grid.ColumnSpan="3" Content="{x:Static properties:Strings.LabelHideShortcutOverlay}" IsChecked="{Binding HideShortcutOverlay}"/>
+        <CheckBox Grid.Row="11" Grid.ColumnSpan="3" Content="{x:Static properties:Strings.LabelHideSyncOverlay}" IsChecked="{Binding HideSyncOverlay}"/>
     </Grid>
 </Window>

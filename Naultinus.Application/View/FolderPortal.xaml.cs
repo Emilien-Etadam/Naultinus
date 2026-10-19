@@ -51,6 +51,8 @@ namespace Naultinus.View
 
                 if (useShellView)
                     return; // le reste du clavier est pour la vue hébergée
+                if (!viewModel.AllowKeyboard)
+                    return;
                 if (PortalFolderInput.TryHandle(viewModel, this, e))
                     e.Handled = true;
             };
@@ -221,8 +223,18 @@ namespace Naultinus.View
                 ShellView.Navigated += ShellView_Navigated;
                 ShellView.BrowseFailed += ShellView_BrowseFailed;
                 ShellView.BrowseSucceeded += ShellView_BrowseSucceeded;
+                ShellView.EmptyBackgroundDoubleClick += ShellView_EmptyBackgroundDoubleClick;
                 viewModel.ShellFolderNeedsRefresh += ShellView_NeedsRefresh;
                 Closed += (_, _) => viewModel.ShellFolderNeedsRefresh -= ShellView_NeedsRefresh;
+                ApplyShellInteractionPolicy();
+                viewModel.PropertyChanged += (_, e) =>
+                {
+                    if (e.PropertyName is nameof(FolderPortalViewModel.AllowDoubleClick)
+                        or nameof(FolderPortalViewModel.AllowKeyboard)
+                        or nameof(FolderPortalViewModel.AllowContextMenu)
+                        or nameof(FolderPortalViewModel.AllowDrop))
+                        ApplyShellInteractionPolicy();
+                };
                 Loaded += (_, _) =>
                 {
                     ShellView.SetNameFilter(viewModel.FilterQuery);
@@ -346,8 +358,41 @@ namespace Naultinus.View
             ShellView.RefreshView();
         }
 
+        private void ApplyShellInteractionPolicy()
+        {
+            ShellView.AllowDoubleClick = viewModel.AllowDoubleClick;
+            ShellView.AllowKeyboard = viewModel.AllowKeyboard;
+            ShellView.AllowContextMenu = viewModel.AllowContextMenu;
+        }
+
+        private void ShellView_EmptyBackgroundDoubleClick(bool control)
+        {
+            if (!viewModel.AllowDoubleClick)
+                return;
+            if (control)
+                viewModel.NavigateToRootCommand.Execute(null);
+            else
+                viewModel.OpenInExplorerCommand.Execute(null);
+        }
+
         private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            if (e.ClickCount == 2)
+            {
+                if (!viewModel.AllowDoubleClick)
+                {
+                    e.Handled = true;
+                    return;
+                }
+
+                if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+                    viewModel.NavigateToRootCommand.Execute(null);
+                else
+                    viewModel.OpenInExplorerCommand.Execute(null);
+                e.Handled = true;
+                return;
+            }
+
             base.OnMouseLeftButtonDown(e);
             try { DragMove(); }
             catch (System.InvalidOperationException) { /* le bouton gauche n'est plus enfoncé : sans effet */ }

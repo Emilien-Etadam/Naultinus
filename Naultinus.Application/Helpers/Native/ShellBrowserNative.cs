@@ -119,6 +119,8 @@ namespace Naultinus.Helpers.Native
         /// </summary>
         internal static class FolderViewFlags
         {
+            public const uint AutoArrange = 0x00000001;
+            public const uint SnapToGrid = 0x00000004;
             public const uint NoColumnHeader = 0x00800000;
             public const uint NoHeaderInAllViews = 0x01000000;
             public const uint FullRowSelect = 0x00200000;
@@ -597,5 +599,26 @@ namespace Naultinus.Helpers.Native
         void GetAttributes(uint mask, out uint attributes);
 
         void Compare(IntPtr other, uint hint, out int order);
+    }
+
+    /// <summary><c>IShellItemArray</c> : compte d'éléments sélectionnés (GetSelection).</summary>
+    [ComImport]
+    [Guid("bca8e65d-b98c-4e48-9f70-486e6fc67528")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IShellItemArray
+    {
+        void BindToHandler(IntPtr bindContext, [In] ref Guid bhid, [In] ref Guid riid, out IntPtr ppv);
+
+        void GetPropertyStore(uint flags, [In] ref Guid riid, out IntPtr ppv);
+
+        void GetPropertyDescriptionList([In] ref Guid keyType, [In] ref Guid riid, out IntPtr ppv);
+
+        void GetAttributes(uint attribFlags, uint mask, out uint attribs);
+
+        void GetCount(out uint count);
+
+        void GetItemAt(uint index, [MarshalAs(UnmanagedType.IUnknown)] out object item);
+
+        void EnumItems(out IntPtr enumItems);
     }
 }
