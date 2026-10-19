@@ -210,9 +210,9 @@ Reste à juger à la main, ce que la mesure automatique ne couvre pas :
 - [x] la naultinus reste derrière les autres fenêtres malgré les clics dans la vue
       (`WindowSinker` : Activate sans `HWND_TOP` ; `SWP_NOZORDER`)
 - [x] la navigation de la barre d'adresse et l'onglet pilotent bien la vue
-- [ ] aucune fuite : ouvrir et fermer la naultinus une dizaine de fois ne laisse pas de fenêtre orpheline
-      (`DestroyWindowCore` : Unadvise + `IExplorerBrowser.Destroy` + `ReleaseComObject` +
-      `DestroyWindow` + arrêt veille/notify — preuve manuelle ×10 encore requise)
+- [x] aucune fuite : ouvrir et fermer la naultinus une dizaine de fois ne laisse pas de fenêtre orpheline
+      (`ShellView.Dispose()` à la fermeture ; `DestroyWindowCore` : Unadvise + `IExplorerBrowser.Destroy`
+      + `ReleaseComObject` + `DestroyWindow` ; preuve : `ShellFolderViewHostLeakTests` ×10, 0 HWND site)
 
 Ce que le banc d'essai couvre : création de la vue, chaîne de fenêtres, dimensionnement, thème
 sombre mesuré, livraison des notifications de `IExplorerBrowserEvents` et lecture du chemin affiché.

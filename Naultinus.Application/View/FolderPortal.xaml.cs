@@ -225,7 +225,13 @@ namespace Naultinus.View
                 ShellView.BrowseSucceeded += ShellView_BrowseSucceeded;
                 ShellView.EmptyBackgroundDoubleClick += ShellView_EmptyBackgroundDoubleClick;
                 viewModel.ShellFolderNeedsRefresh += ShellView_NeedsRefresh;
-                Closed += (_, _) => viewModel.ShellFolderNeedsRefresh -= ShellView_NeedsRefresh;
+                Closed += (_, _) =>
+                {
+                    viewModel.ShellFolderNeedsRefresh -= ShellView_NeedsRefresh;
+                    // HwndHost ne se dispose pas tout seul à la fermeture WPF : sans cela,
+                    // NaultinusShellViewSite + IExplorerBrowser restent vivants (fuite mesurée ×10).
+                    ShellView.Dispose();
+                };
                 ApplyShellInteractionPolicy();
                 viewModel.PropertyChanged += (_, e) =>
                 {
