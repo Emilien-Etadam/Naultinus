@@ -52,13 +52,15 @@ namespace Naultinus.View
             WpfGridView.Visibility = Visibility.Collapsed;
             ShellView.Visibility = Visibility.Visible;
 
-            // WPF pré-traite tout le clavier du thread, y compris les touches destinées à la vue
-            // hébergée. Faute d'élément focalisé, il y déclenche une navigation clavier qui rend le
-            // focus à la fenêtre : le WM_KEYDOWN est avalé pendant le transfert et la vue ne reçoit
-            // que le WM_KEYUP (mesuré sur le poste). Le focus logique reste donc sur l'hôte, qui le
-            // transmet à la fenêtre de liste ; la navigation n'a nulle part où aller.
-            System.Windows.Input.KeyboardNavigation.SetTabNavigation(ShellView, System.Windows.Input.KeyboardNavigationMode.None);
-            System.Windows.Input.KeyboardNavigation.SetIsTabStop(ShellView, true);
+            // WPF pré-traite tout le clavier du thread (HwndSource.OnPreprocessMessage). Sans
+            // DirectionalNavigation=None, ↑/↓ déclenchent KeyboardNavigation.Navigate : le focus
+            // Win32 quitte DirectUIHWND pendant le KEYDOWN (mesuré : seule le KEYUP arrive à la
+            // vue ; pile = KeyboardNavigation → UIElement.Focus). TabNavigation seul ne suffit pas.
+            KeyboardNavigation.SetTabNavigation(ShellView, KeyboardNavigationMode.None);
+            KeyboardNavigation.SetDirectionalNavigation(ShellView, KeyboardNavigationMode.None);
+            KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.None);
+            KeyboardNavigation.SetDirectionalNavigation(this, KeyboardNavigationMode.None);
+            KeyboardNavigation.SetIsTabStop(ShellView, true);
 
             if (viewModel != null)
             {

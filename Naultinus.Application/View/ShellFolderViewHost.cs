@@ -154,6 +154,7 @@ namespace Naultinus.View
 
             Instances[_siteHwnd] = this;
             AttachRootFocusGuard();
+            AttachAcceleratorFilter();
             TryCreateBrowser();
             return new HandleRef(this, _siteHwnd);
         }
@@ -161,6 +162,7 @@ namespace Naultinus.View
         protected override void DestroyWindowCore(HandleRef hwnd)
         {
             Instances.TryRemove(hwnd.Handle, out _);
+            DetachAcceleratorFilter();
             _rootSource?.RemoveHook(RootFocusGuard);
             _rootSource = null;
             Microsoft.Win32.SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
@@ -310,26 +312,190 @@ namespace Naultinus.View
             if (list != IntPtr.Zero)
                 _ = SetFocus(list);
 
-            // Le focus Win32 ne prévient pas le shell : sans UIActivateIO, la vue reste sourde au
-            // clavier (F2, Suppr, Ctrl+A, saisie du début du nom) tout en répondant à la souris.
-            if (_browser is Naultinus.Helpers.Native.IInputObject input)
+            // Le focus Win32 ne prévient pas le shell : UIActivateIO arme HasFocusIO, sans quoi
+            // TranslateAcceleratorIO refuse les accélérateurs (F2, Suppr, Ctrl+A…).
+            if (_browser is IInputObject input)
             {
                 try
                 {
-                    var msg = new System.Windows.Interop.MSG();
-                    input.UIActivateIO(1, ref msg);
+                    var msg = new MSG();
+                    int activate = input.UIActivateIO(1, ref msg);
+                    int hasFocus = input.HasFocusIO();
                     NaultinusDiagnostics.Log(
                         "ShellFolderViewHost.FocusView",
-                        $"UIActivateIO fait, vue activée au sens shell={input.HasIOFocus()}, focus 0x{GetFocus().ToInt64():X}");
+                        "UIActivateIO=0x" + activate.ToString("X8")
+                        + ", HasFocusIO=0x" + hasFocus.ToString("X8")
+                        + ", focus 0x" + GetFocus().ToInt64().ToString("X"));
                 }
                 catch (Exception ex)
                 {
                     NaultinusDiagnostics.LogDebug("ShellFolderViewHost.FocusView", ex);
                 }
             }
+            else
+            {
+                NaultinusDiagnostics.Log(
+                    "ShellFolderViewHost.FocusView",
+                    "IExplorerBrowser n'expose pas IInputObject (QI échoué)");
+            }
 
             InstallKeyProbe();
         }
+
+        #region Accélérateurs clavier (IInputObject)
+
+        private const int WmKeyFirst = 0x0100;
+        private const int WmKeyLast = 0x0109;
+        private const int WmKeyDown = 0x0100;
+        private const int VkUp = 0x26;
+        private const int VkDown = 0x28;
+        private const int SOk = 0;
+
+        private bool _acceleratorFilterAttached;
+
+        /// <summary>
+        /// Équivalent WPF de <c>Application.AddMessageFilter</c> (Windows API Code Pack).
+        /// <c>ThreadFilterMessage</c> (pas Preprocess) : avant <c>HwndSource</c>, qui sinon donne
+        /// ↑/↓ à <c>KeyboardNavigation</c> et vole le focus Win32.
+        /// </summary>
+        private void AttachAcceleratorFilter()
+        {
+            if (_acceleratorFilterAttached)
+                return;
+
+            ComponentDispatcher.ThreadFilterMessage += OnThreadFilterMessage;
+            _acceleratorFilterAttached = true;
+        }
+
+        private void DetachAcceleratorFilter()
+        {
+            if (!_acceleratorFilterAttached)
+                return;
+
+            ComponentDispatcher.ThreadFilterMessage -= OnThreadFilterMessage;
+            _acceleratorFilterAttached = false;
+        }
+
+        private void OnThreadFilterMessage(ref MSG msg, ref bool handled)
+        {
+            if (_browser is not IInputObject input)
+                return;
+
+            if (msg.message < WmKeyFirst || msg.message > WmKeyLast)
+                return;
+
+            // ↑/↓ : HwndSource.OnPreprocessMessage (souvent avant nous) les donne à
+            // KeyboardNavigation, qui pose handled=true et vole le focus. On les traite quand même
+            // si la cible est notre vue OU si le focus Win32 y est encore / vient de l'être.
+            int vk = unchecked((int)(msg.wParam.ToInt64() & 0xffff));
+            bool vertical = vk == VkUp || vk == VkDown;
+            if (vertical && msg.message == WmKeyDown && _siteHwnd != IntPtr.Zero
+                && (IsMessageForView(msg.hwnd) || IsMessageForView(GetFocus())))
+            {
+                if (TryMoveSelectionVertical(delta: vk == VkDown ? 1 : -1))
+                {
+                    IntPtr list = FindListWindow();
+                    if (list != IntPtr.Zero)
+                        _ = SetFocus(list);
+                    handled = true;
+                    if (ProbeKeys)
+                    {
+                        NaultinusDiagnostics.Log(
+                            "SondeClavier",
+                            "↑/↓ géré par IFolderView, wParam 0x" + vk.ToString("X"));
+                    }
+
+                    return;
+                }
+            }
+
+            if (handled)
+                return;
+
+            if (_siteHwnd == IntPtr.Zero || !IsMessageForView(msg.hwnd))
+                return;
+
+            try
+            {
+                // Clic souris seul : HasFocusIO peut rester S_FALSE alors que DirectUIHWND a le
+                // focus Win32. On réarme alors l'activation shell avant de traduire.
+                if (input.HasFocusIO() != SOk)
+                {
+                    IntPtr focus = GetFocus();
+                    if (!IsMessageForView(focus))
+                        return;
+
+                    input.UIActivateIO(1, ref msg);
+                    if (input.HasFocusIO() != SOk)
+                        return;
+                }
+
+                if (input.TranslateAcceleratorIO(ref msg) == SOk)
+                {
+                    handled = true;
+                    if (ProbeKeys)
+                    {
+                        NaultinusDiagnostics.Log(
+                            "SondeClavier",
+                            "TranslateAcceleratorIO a pris msg 0x" + msg.message.ToString("X4")
+                            + " wParam 0x" + msg.wParam.ToInt64().ToString("X"));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.TranslateAcceleratorIO", ex);
+            }
+        }
+
+        /// <summary>
+        /// Déplace la sélection d'un cran dans l'ordre des éléments de la vue (mode détails /
+        /// colonne unique). Retourne faux si la vue est inaccessible ou déjà en bout de liste.
+        /// </summary>
+        private bool TryMoveSelectionVertical(int delta)
+        {
+            if (_browser is not IExplorerBrowser browser || delta == 0)
+                return false;
+
+            try
+            {
+                Guid folderViewId = typeof(IFolderView).GUID;
+                browser.GetCurrentView(ref folderViewId, out object view);
+                if (view is not IFolderView folderView)
+                    return false;
+
+                folderView.ItemCount(ShellBrowserNative.SvgIoAllView, out int count);
+                if (count <= 0)
+                    return false;
+
+                folderView.GetFocusedItem(out int focused);
+                if (focused < 0)
+                    folderView.GetSelectionMarkedItem(out focused);
+
+                int next = focused < 0 ? (delta > 0 ? 0 : count - 1) : focused + delta;
+                if (next < 0 || next >= count)
+                    return true; // bout de liste : avaler quand même pour ne pas perdre le focus
+
+                folderView.SelectItem(next, ShellBrowserNative.SvsiKeyboardMove);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.TryMoveSelectionVertical", ex);
+                return false;
+            }
+        }
+
+        /// <summary>Le message cible-t-il la fenêtre site ou l'une de ses descendantes ?</summary>
+        private bool IsMessageForView(IntPtr hwnd)
+        {
+            if (hwnd == IntPtr.Zero || _siteHwnd == IntPtr.Zero)
+                return false;
+
+            return hwnd == _siteHwnd || IsChild(_siteHwnd, hwnd);
+        }
+
+        #endregion
 
         #endregion
 
@@ -1267,6 +1433,10 @@ namespace Naultinus.View
 
         [DllImport("user32.dll")]
         private static extern IntPtr SetFocus(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsChild(IntPtr hWndParent, IntPtr hWnd);
 
         [DllImport("user32.dll")]
         private static extern IntPtr GetFocus();

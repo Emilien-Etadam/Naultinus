@@ -124,6 +124,20 @@ namespace Naultinus.Helpers.Native
         /// <summary><c>SIGDN_FILESYSPATH</c> : chemin complet, pour les éléments du système de fichiers.</summary>
         internal const uint SigdnFilePath = 0x80058000;
 
+        /// <summary><c>SVGIO_ALLVIEW</c> : tous les éléments de la vue, pour <c>IFolderView::ItemCount</c>.</summary>
+        internal const uint SvgIoAllView = 0x00000002;
+
+        /// <summary>
+        /// Indicateurs <c>SVSIF</c> pour un déplacement de sélection au clavier (↑/↓) :
+        /// sélectionner, défocaliser les autres, assurer la visibilité, focus et marque.
+        /// </summary>
+        internal const uint SvsiKeyboardMove =
+            0x00000001 // SVSI_SELECT
+            | 0x00000004 // SVSI_DESELECTOTHERS
+            | 0x00000008 // SVSI_ENSUREVISIBLE
+            | 0x00000010 // SVSI_FOCUSED
+            | 0x00000040; // SVSI_SELECTIONMARK
+
         [DllImport("ole32.dll")]
         internal static extern void CoTaskMemFree(IntPtr pv);
 
@@ -164,21 +178,25 @@ namespace Naultinus.Helpers.Native
     }
 
     /// <summary>
-    /// <c>IInputObject</c> : le contrat de conteneur qui déclare à un objet hébergé qu'il tient le
-    /// focus du clavier. Le focus Win32 seul ne suffit pas : sans cet appel, la vue traite bien la
-    /// souris mais ignore les touches (mesuré : F2, Suppr, Ctrl+A et la saisie du début du nom sans
-    /// effet alors que la fenêtre de liste est en focus et la fenêtre au premier plan).
+    /// <c>IInputObject</c> (<c>shobjidl_core.h</c>) : activation et traduction des accélérateurs
+    /// clavier d'un objet hébergé. <c>IExplorerBrowser</c> l'expose ; sans
+    /// <c>TranslateAcceleratorIO</c> dans la boucle de messages, F2 / Suppr / Ctrl+A / flèches
+    /// verticales n'ont aucun effet alors que la souris et ←/→ passent par le WndProc.
+    /// GUID et vtable : <c>IID_IInputObject</c> = 68284FAA-6A48-11D0-8C78-00C04FD918B4.
     /// </summary>
     [ComImport]
-    [Guid("775E27B4-3A73-4A45-808B-AC83A3878F94")]
+    [Guid("68284FAA-6A48-11D0-8C78-00C04FD918B4")]
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     internal interface IInputObject
     {
-        void UIActivateIO(int activate, ref System.Windows.Interop.MSG msg);
+        [PreserveSig]
+        int UIActivateIO(int activate, ref System.Windows.Interop.MSG msg);
 
-        int HasIOFocus();
+        [PreserveSig]
+        int HasFocusIO();
 
-        void QueryObjects(ref Guid riid, out IntPtr ppv);
+        [PreserveSig]
+        int TranslateAcceleratorIO(ref System.Windows.Interop.MSG msg);
     }
 
     /// <summary>

@@ -48,13 +48,11 @@ Ce que Windows fournit du même coup, et qu'il ne faudra plus entretenir :
    Il faut donc cesser de remonter la naultinus au premier plan au clic
    (`WindowSinker.OnPreviewMouseDown`) : le hook `WM_WINDOWPOSCHANGING` qui force `SWP_NOZORDER`
    suffit à la maintenir en arrière-plan **tout en lui donnant le focus**.
-3. **Site COM et messages clavier.** `IExplorerBrowser` attend un site (`IOleWindow`,
-   `IInputSite`) et la traduction des messages de clavier et de raccourcis depuis la boucle de
-   messages WPF (`HwndSource.AddHook`, `IInputScope::IsInputKey` / `TranslateAccelerator`).
-   Sans cela : plus de flèches, plus de F2, plus de saisie du début du nom. **C'est l'essentiel du
-   travail d'interop, et le premier spike à valider.** État mesuré : la souris et ← / →
-   fonctionnent, tout le reste du clavier non — diagnostic dans
-   [PORTAL_KEYBOARD.md](PORTAL_KEYBOARD.md).
+3. **Site COM et messages clavier.** `IExplorerBrowser` expose `IInputObject` : il faut appeler
+   `UIActivateIO` à l'activation et `TranslateAcceleratorIO` depuis
+   `ComponentDispatcher.ThreadPreprocessMessage` pour chaque touche destinée à la vue. Sans cela :
+   plus de flèches verticales, plus de F2, plus de saisie du début du nom. Correctif et diagnostic
+   dans [PORTAL_KEYBOARD.md](PORTAL_KEYBOARD.md).
 4. **Redimensionnement et DPI.** Appeler `IExplorerBrowser::OnSizing` sur `WM_SIZE` et gérer le
    DPI par fenêtre (`GetWindowDpiAwarenessContext`) : la vue shell est respectueuse du DPI, le
    conteneur doit l'être aussi.
