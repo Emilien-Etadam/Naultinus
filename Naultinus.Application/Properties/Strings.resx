@@ -223,6 +223,15 @@
   <data name="AccessDeniedFormat" xml:space="preserve">
     <value>Access denied: {0}</value>
   </data>
+  <data name="PortalFolderUnreachableFormat" xml:space="preserve">
+    <value>Folder unreachable (network or permissions): {0}</value>
+  </data>
+  <data name="PortalFolderGoneFormat" xml:space="preserve">
+    <value>Folder was deleted or renamed: {0}</value>
+  </data>
+  <data name="PortalNavigationFailedFormat" xml:space="preserve">
+    <value>Cannot open folder: {0}</value>
+  </data>
   <data name="ErrorGenericFormat" xml:space="preserve">
     <value>Error: {0}</value>
   </data>

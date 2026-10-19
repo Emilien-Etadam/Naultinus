@@ -97,6 +97,15 @@
                 </Border.ContextMenu>
                 <view:PortalPathBar MenuClick="TitleBarMenuButton_Click" AddTabClick="AddFolderPortalTab_Click"/>
             </Border>
+            <TextBlock DockPanel.Dock="Top"
+                       x:Name="ErrorBanner"
+                       Text="{Binding ErrorMessage, Mode=OneWay}"
+                       Foreground="{DynamicResource NaultinusErrorBrush}"
+                       Background="{DynamicResource NaultinusWindowBrush}"
+                       FontSize="12"
+                       Margin="8,4,8,0"
+                       TextWrapping="Wrap"
+                       Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibilityConverter}, FallbackValue=Collapsed}"/>
             <Grid x:Name="BodyHost">
                 <view:PortalFolderGrid x:Name="WpfGridView"/>
                 <view:ShellFolderViewHost x:Name="ShellView" Visibility="Collapsed"/>

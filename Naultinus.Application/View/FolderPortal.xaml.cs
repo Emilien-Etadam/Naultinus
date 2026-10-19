@@ -219,6 +219,8 @@ namespace Naultinus.View
                 viewModel.BodyRenderedByShell = true;
                 viewModel.PropertyChanged += ViewModel_PropertyChanged;
                 ShellView.Navigated += ShellView_Navigated;
+                ShellView.BrowseFailed += ShellView_BrowseFailed;
+                ShellView.BrowseSucceeded += ShellView_BrowseSucceeded;
                 Loaded += (_, _) =>
                 {
                     ShellView.SetNameFilter(viewModel.FilterQuery);
@@ -300,6 +302,13 @@ namespace Naultinus.View
                 return;
             }
 
+            if (e.PropertyName == nameof(FolderPortalViewModel.ErrorMessage)
+                && !string.IsNullOrEmpty(viewModel.ErrorMessage))
+            {
+                ShellView.ShowUnavailable(viewModel.ErrorMessage);
+                return;
+            }
+
             if (e.PropertyName != nameof(FolderPortalViewModel.CurrentPath))
                 return;
 
@@ -317,6 +326,17 @@ namespace Naultinus.View
         private void ShellView_Navigated(string path)
         {
             viewModel.AdoptShellPath(path);
+        }
+
+        private void ShellView_BrowseFailed(string message)
+        {
+            viewModel.ErrorMessage = message;
+        }
+
+        private void ShellView_BrowseSucceeded()
+        {
+            if (!string.IsNullOrEmpty(viewModel.ErrorMessage))
+                viewModel.ErrorMessage = "";
         }
 
         private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

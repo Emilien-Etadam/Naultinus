@@ -223,6 +223,15 @@
   <data name="AccessDeniedFormat" xml:space="preserve">
     <value>Accès refusé : {0}</value>
   </data>
+  <data name="PortalFolderUnreachableFormat" xml:space="preserve">
+    <value>Dossier inaccessible (réseau ou droits) : {0}</value>
+  </data>
+  <data name="PortalFolderGoneFormat" xml:space="preserve">
+    <value>Dossier supprimé ou renommé : {0}</value>
+  </data>
+  <data name="PortalNavigationFailedFormat" xml:space="preserve">
+    <value>Impossible d'ouvrir le dossier : {0}</value>
+  </data>
   <data name="ErrorGenericFormat" xml:space="preserve">
     <value>Erreur : {0}</value>
   </data>

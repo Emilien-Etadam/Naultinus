@@ -82,6 +82,14 @@ namespace Naultinus.View
         /// </summary>
         public event Action<string>? Navigated;
 
+        /// <summary>
+        /// Navigation impossible (chemin invalide, partage mort, droits). Message déjà localisé.
+        /// </summary>
+        public event Action<string>? BrowseFailed;
+
+        /// <summary>Navigation aboutie : le portail peut effacer le bandeau d'erreur.</summary>
+        public event Action? BrowseSucceeded;
+
         public ShellFolderViewHost()
         {
             Focusable = true;
@@ -543,7 +551,12 @@ namespace Naultinus.View
                 if (hr != 0 || pidl == IntPtr.Zero)
                 {
                     _navigatingFromApp = false;
-                    NaultinusDiagnostics.Log("ShellFolderViewHost", $"Chemin non résolu par le shell ({path}) : 0x{hr:X8}");
+                    string message = PortalFolderAccess.DescribeShellParseFailure(path, hr);
+                    NaultinusDiagnostics.Log(
+                        "ShellFolderViewHost",
+                        $"Chemin non résolu par le shell ({path}) : 0x{hr:X8}");
+                    ShowUnavailable(message);
+                    BrowseFailed?.Invoke(message);
                     return;
                 }
 
@@ -554,6 +567,9 @@ namespace Naultinus.View
             {
                 _navigatingFromApp = false;
                 NaultinusDiagnostics.Log("ShellFolderViewHost", "Navigation impossible vers " + path, ex);
+                string message = PortalFolderAccess.DescribeNavigationFailed(path);
+                ShowUnavailable(message);
+                BrowseFailed?.Invoke(message);
             }
             finally
             {
@@ -1466,7 +1482,30 @@ namespace Naultinus.View
             // Une navigation ratée ne rend jamais la notification de fin : sans ceci, le drapeau
             // resterait levé et la navigation suivante passerait pour la nôtre.
             _navigatingFromApp = false;
+            string? attempted = _pendingPath;
+            if (string.IsNullOrEmpty(attempted))
+                attempted = _displayedPath;
+            string message = PortalFolderAccess.DescribeNavigationFailed(attempted);
             NaultinusDiagnostics.Log("ShellFolderViewHost", "notification d'échec de navigation reçue");
+            ShowUnavailable(message);
+            BrowseFailed?.Invoke(message);
+        }
+
+        /// <summary>Texte de vue vide + oubli du chemin affiché pour forcer une vraie renavigation.</summary>
+        public void ShowUnavailable(string message)
+        {
+            if (_browser is not IExplorerBrowser browser)
+                return;
+
+            try
+            {
+                browser.SetEmptyText(string.IsNullOrEmpty(message) ? " " : message);
+                _displayedPath = "";
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.ShowUnavailable", ex);
+            }
         }
 
         private void OnNavigationComplete(IntPtr pidlFolder)
@@ -1494,6 +1533,18 @@ namespace Naultinus.View
             NaultinusDiagnostics.Log("ShellFolderViewHost", "dossier réellement affiché : " + (path ?? "(élément hors système de fichiers)"));
             if (!string.IsNullOrEmpty(path))
                 _displayedPath = Path.TrimEndingDirectorySeparator(path);
+
+            try
+            {
+                if (_browser is IExplorerBrowser browser)
+                    browser.SetEmptyText(" ");
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("ShellFolderViewHost.OnNavigationComplete.SetEmptyText", ex);
+            }
+
+            BrowseSucceeded?.Invoke();
 
             if (initiatedByApp)
                 return;

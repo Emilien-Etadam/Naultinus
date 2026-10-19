@@ -293,9 +293,10 @@ namespace Naultinus.ViewModel
                 return;
             }
 
-            if (!Directory.Exists(path))
+            if (!PortalFolderAccess.TryExists(path, out string? accessError))
             {
-                ErrorMessage = string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.FolderNotFoundFormat, path);
+                ErrorMessage = accessError
+                    ?? string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.FolderNotFoundFormat, path);
                 Items.Clear();
                 return;
             }
@@ -584,6 +585,7 @@ namespace Naultinus.ViewModel
                 w.Deleted += (_, _) => OnFileSystemEvent();
                 w.Renamed += (_, _) => OnFileSystemEvent();
                 w.Changed += (_, _) => OnFileSystemEvent();
+                w.Error += (_, args) => OnWatcherError(path, args.GetException());
                 w.EnableRaisingEvents = true;
                 _watcher = w;
                 _watchedPath = path;
@@ -592,7 +594,36 @@ namespace Naultinus.ViewModel
             {
                 NaultinusDiagnostics.Log("FolderPortal.SetupWatcher", "FileSystemWatcher init failed.", ex);
                 _watcher = null;
+                ErrorMessage = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    Strings.PortalFolderUnreachableFormat,
+                    path);
             }
+        }
+
+        private void OnWatcherError(string path, Exception? exception)
+        {
+            NaultinusDiagnostics.Log("FolderPortal.SetupWatcher", "FileSystemWatcher error on " + path, exception);
+            _uiDispatcher.BeginInvoke(() =>
+            {
+                if (_disposed)
+                    return;
+                ErrorMessage = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    Strings.PortalFolderUnreachableFormat,
+                    path);
+                try
+                {
+                    _watcher?.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    NaultinusDiagnostics.LogDebug("FolderPortal.OnWatcherError.Dispose", ex);
+                }
+
+                _watcher = null;
+                _watchedPath = null;
+            });
         }
 
         private void OnFileSystemEvent()

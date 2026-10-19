@@ -79,6 +79,9 @@ namespace Naultinus.Properties
         public static string CannotOpenFileFormat => ResourceManager.GetString(nameof(CannotOpenFileFormat)) ?? string.Empty;
         public static string FolderNotFoundFormat => ResourceManager.GetString(nameof(FolderNotFoundFormat)) ?? string.Empty;
         public static string AccessDeniedFormat => ResourceManager.GetString(nameof(AccessDeniedFormat)) ?? string.Empty;
+        public static string PortalFolderUnreachableFormat => ResourceManager.GetString(nameof(PortalFolderUnreachableFormat)) ?? string.Empty;
+        public static string PortalFolderGoneFormat => ResourceManager.GetString(nameof(PortalFolderGoneFormat)) ?? string.Empty;
+        public static string PortalNavigationFailedFormat => ResourceManager.GetString(nameof(PortalNavigationFailedFormat)) ?? string.Empty;
         public static string ErrorGenericFormat => ResourceManager.GetString(nameof(ErrorGenericFormat)) ?? string.Empty;
         public static string FileOperationFailedFormat => ResourceManager.GetString(nameof(FileOperationFailedFormat)) ?? string.Empty;
         public static string CopyVerb => ResourceManager.GetString(nameof(CopyVerb)) ?? string.Empty;
