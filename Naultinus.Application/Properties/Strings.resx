@@ -571,6 +571,33 @@
   <data name="LabelHideSyncOverlay" xml:space="preserve">
     <value>Hide sync overlays (WPF grid)</value>
   </data>
+  <data name="LabelAppearance" xml:space="preserve">
+    <value>Appearance</value>
+  </data>
+  <data name="LabelHeaderColor" xml:space="preserve">
+    <value>Header color</value>
+  </data>
+  <data name="LabelBodyColor" xml:space="preserve">
+    <value>Background color</value>
+  </data>
+  <data name="LabelBodyOpacity" xml:space="preserve">
+    <value>Background opacity</value>
+  </data>
+  <data name="LabelTitleColor" xml:space="preserve">
+    <value>Title color</value>
+  </data>
+  <data name="LabelLabelsColor" xml:space="preserve">
+    <value>Labels color</value>
+  </data>
+  <data name="ButtonClearColor" xml:space="preserve">
+    <value>Clear color</value>
+  </data>
+  <data name="ButtonResetAppearance" xml:space="preserve">
+    <value>Reset to theme</value>
+  </data>
+  <data name="HintAppearanceShellOpaque" xml:space="preserve">
+    <value>Opacity below 100% uses the WPF body (wallpaper shows through). At 100%, browse naultinus can use the shell Explorer view (opaque host).</value>
+  </data>
   <data name="LabelStartDate" xml:space="preserve">
     <value>Start date</value>
   </data>

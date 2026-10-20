@@ -18,6 +18,10 @@ namespace Naultinus.View
     {
         private readonly FolderPortalViewModel viewModel;
         private readonly bool useShellView;
+        private bool _appearanceHooked;
+
+        /// <summary>True si le corps est l'hôte shell (opaque), false si grille WPF (peut être teintée).</summary>
+        internal bool UsesShellView => useShellView;
 
         public FolderPortal(FolderPortalViewModel defaultModel)
         {
@@ -25,12 +29,19 @@ namespace Naultinus.View
             DataContext = defaultModel;
             viewModel = defaultModel;
 
-            // Corps rendu par la vue d'éléments du shell (rendu de l'Explorateur) : mode expérimental,
-            // voir docs/PORTAL_EXPLORER_PARITY.md. La classe de fenêtre hôte doit être disponible
-            // avant la construction de la fenêtre, sinon on garde l'affichage WPF.
-            useShellView = ShellFolderViewHost.IsRequested() && ShellFolderViewHost.TryPrepare();
+            // Corps rendu par la vue d'éléments du shell (rendu de l'Explorateur).
+            // Opacité < 100 % exige AllowsTransparency + grille WPF : HwndHost ne compose pas
+            // dans une fenêtre layered (voir PORTAL_EXPLORER_PARITY.md).
+            useShellView = !viewModel.WantsTranslucentBody
+                && ShellFolderViewHost.IsRequested()
+                && ShellFolderViewHost.TryPrepare();
             if (useShellView)
                 ConfigureShellView();
+            else
+                ConfigureTransparentWpfBody();
+
+            HookAppearanceChanges();
+            Closed += (_, _) => UnhookAppearanceChanges();
 
             PreviewKeyDown += (_, e) =>
             {
@@ -181,8 +192,9 @@ namespace Naultinus.View
         private void ConfigureShellView()
         {
             AllowsTransparency = false;
-            Background = TryFindResource("NaultinusWindowBrush") as Brush
-                ?? SystemColors.WindowBrush;
+            if (viewModel != null)
+                viewModel.ForceOpaqueBody = true;
+            ApplyShellWindowBackground();
 
             // L'HwndHost de la vue shell mange les hits souris sur toute sa surface : sans marge,
             // il recouvre la bande de redimensionnement de WindowChrome (mesuré : impossible de
@@ -233,15 +245,6 @@ namespace Naultinus.View
                     ShellView.Dispose();
                 };
                 ApplyShellInteractionPolicy();
-                viewModel.PropertyChanged += (_, e) =>
-                {
-                    if (e.PropertyName is nameof(FolderPortalViewModel.AllowDoubleClick)
-                        or nameof(FolderPortalViewModel.AllowKeyboard)
-                        or nameof(FolderPortalViewModel.AllowContextMenu)
-                        or nameof(FolderPortalViewModel.AllowDrop)
-                        or nameof(FolderPortalViewModel.AllowDragOut))
-                        ApplyShellInteractionPolicy();
-                };
                 Loaded += (_, _) =>
                 {
                     ShellView.SetNameFilter(viewModel.FilterQuery);
@@ -375,6 +378,84 @@ namespace Naultinus.View
             ShellView.ApplyInteractionPolicy();
         }
 
+        /// <summary>
+        /// Fond opaque de la fenêtre shell : teinte corps/en-tête personnalisée, sinon thème.
+        /// L'alpha Fences est ignorée (HwndHost exige une fenêtre non layered).
+        /// </summary>
+        private void ApplyShellWindowBackground()
+        {
+            if (!useShellView || viewModel == null)
+                return;
+
+            Background = viewModel.HasCustomBodyColor
+                ? viewModel.BodyBackgroundBrush
+                : viewModel.HeaderBackgroundBrush;
+            LayoutRoot.Background = Background;
+        }
+
+        /// <summary>
+        /// Corps WPF transparent (opacité inférieure à 100 % ou opt-out shell) : le bureau transparaît.
+        /// </summary>
+        private void ConfigureTransparentWpfBody()
+        {
+            viewModel.ForceOpaqueBody = false;
+            viewModel.BodyRenderedByShell = false;
+            AllowsTransparency = true;
+            Background = Brushes.Transparent;
+            // Ne pas poser de valeur locale sur LayoutRoot : le Style (UsesBodyTint) doit rester actif.
+            LayoutRoot.ClearValue(Border.BackgroundProperty);
+            WpfGridView.Visibility = Visibility.Visible;
+            ShellView.Visibility = Visibility.Collapsed;
+            WindowBackdrop.Apply(this);
+        }
+
+        /// <summary>
+        /// Met à jour teinte / politique sans recréer la fenêtre (le dialogue Éditer resterait
+        /// sinon fermé à chaque tick du curseur d'opacité).
+        /// </summary>
+        private void HookAppearanceChanges()
+        {
+            if (_appearanceHooked)
+                return;
+            viewModel.PropertyChanged += OnAppearancePropertyChanged;
+            _appearanceHooked = true;
+        }
+
+        private void UnhookAppearanceChanges()
+        {
+            if (!_appearanceHooked)
+                return;
+            viewModel.PropertyChanged -= OnAppearancePropertyChanged;
+            _appearanceHooked = false;
+        }
+
+        private void OnAppearancePropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName is nameof(FolderPortalViewModel.AllowDoubleClick)
+                or nameof(FolderPortalViewModel.AllowKeyboard)
+                or nameof(FolderPortalViewModel.AllowContextMenu)
+                or nameof(FolderPortalViewModel.AllowDrop)
+                or nameof(FolderPortalViewModel.AllowDragOut))
+            {
+                if (useShellView)
+                    ApplyShellInteractionPolicy();
+                return;
+            }
+
+            if (e.PropertyName is nameof(FolderPortalViewModel.BodyOpacity)
+                or nameof(FolderPortalViewModel.BodyColor)
+                or nameof(FolderPortalViewModel.BodyTintOpacity)
+                or nameof(FolderPortalViewModel.BodyTintBrush)
+                or nameof(FolderPortalViewModel.HeaderColor)
+                or nameof(FolderPortalViewModel.UsesBodyTint))
+            {
+                if (useShellView)
+                    ApplyShellWindowBackground();
+                else
+                    WindowBackdrop.Apply(this);
+            }
+        }
+
         private void ShellView_EmptyBackgroundDoubleClick(bool control)
         {
             if (!viewModel.AllowDoubleClick)
@@ -389,6 +470,9 @@ namespace Naultinus.View
         {
             if (e.ClickCount == 2)
             {
+                if (IsHeaderInteractiveSource(e.OriginalSource as DependencyObject))
+                    return;
+
                 if (!viewModel.AllowDoubleClick)
                 {
                     e.Handled = true;
@@ -403,9 +487,26 @@ namespace Naultinus.View
                 return;
             }
 
-            base.OnMouseLeftButtonDown(e);
+            // Laisser boutons / filtre de la barre de chemin ; déplacer sur le reste de l'en-tête.
+            if (IsHeaderInteractiveSource(e.OriginalSource as DependencyObject))
+                return;
+
             try { DragMove(); }
             catch (System.InvalidOperationException) { /* le bouton gauche n'est plus enfoncé : sans effet */ }
+            e.Handled = true;
+        }
+
+        private static bool IsHeaderInteractiveSource(DependencyObject? source)
+        {
+            for (DependencyObject? current = source; current != null; current = VisualTreeHelper.GetParent(current))
+            {
+                if (current is System.Windows.Controls.Primitives.ButtonBase or TextBox or ComboBox)
+                    return true;
+                if (current is Window)
+                    return false;
+            }
+
+            return false;
         }
 
         private void Header_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)

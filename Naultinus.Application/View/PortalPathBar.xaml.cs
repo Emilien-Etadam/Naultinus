@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using Naultinus.Helpers;
 
 namespace Naultinus.View
 {
@@ -11,6 +12,8 @@ namespace Naultinus.View
         public PortalPathBar()
         {
             InitializeComponent();
+            // Transparent pur ignore les clics sur fenêtre layered ; A=1 permet DragMove sur le vide.
+            Background = NaultinusAppearanceColors.HitTestableClear;
         }
 
         /// <summary>Clic sur le bouton menu (☰).</summary>

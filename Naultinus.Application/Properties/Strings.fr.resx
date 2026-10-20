@@ -571,6 +571,33 @@
   <data name="LabelHideSyncOverlay" xml:space="preserve">
     <value>Masquer les superpositions de synchro (grille WPF)</value>
   </data>
+  <data name="LabelAppearance" xml:space="preserve">
+    <value>Apparence</value>
+  </data>
+  <data name="LabelHeaderColor" xml:space="preserve">
+    <value>Couleur d'en-tête</value>
+  </data>
+  <data name="LabelBodyColor" xml:space="preserve">
+    <value>Couleur de fond</value>
+  </data>
+  <data name="LabelBodyOpacity" xml:space="preserve">
+    <value>Opacité du fond</value>
+  </data>
+  <data name="LabelTitleColor" xml:space="preserve">
+    <value>Couleur du titre</value>
+  </data>
+  <data name="LabelLabelsColor" xml:space="preserve">
+    <value>Couleur des libellés</value>
+  </data>
+  <data name="ButtonClearColor" xml:space="preserve">
+    <value>Effacer la couleur</value>
+  </data>
+  <data name="ButtonResetAppearance" xml:space="preserve">
+    <value>Revenir au thème</value>
+  </data>
+  <data name="HintAppearanceShellOpaque" xml:space="preserve">
+    <value>Sous 100 %, le corps passe en grille WPF pour laisser voir le bureau. À 100 %, la naultinus navigation peut utiliser la vue shell (hôte opaque).</value>
+  </data>
   <data name="LabelStartDate" xml:space="preserve">
     <value>Date de début</value>
   </data>

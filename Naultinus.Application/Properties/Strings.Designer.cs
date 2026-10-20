@@ -195,6 +195,15 @@ namespace Naultinus.Properties
         public static string LabelAllowKeyboard => ResourceManager.GetString(nameof(LabelAllowKeyboard)) ?? string.Empty;
         public static string LabelHideShortcutOverlay => ResourceManager.GetString(nameof(LabelHideShortcutOverlay)) ?? string.Empty;
         public static string LabelHideSyncOverlay => ResourceManager.GetString(nameof(LabelHideSyncOverlay)) ?? string.Empty;
+        public static string LabelAppearance => ResourceManager.GetString(nameof(LabelAppearance)) ?? string.Empty;
+        public static string LabelHeaderColor => ResourceManager.GetString(nameof(LabelHeaderColor)) ?? string.Empty;
+        public static string LabelBodyColor => ResourceManager.GetString(nameof(LabelBodyColor)) ?? string.Empty;
+        public static string LabelBodyOpacity => ResourceManager.GetString(nameof(LabelBodyOpacity)) ?? string.Empty;
+        public static string LabelTitleColor => ResourceManager.GetString(nameof(LabelTitleColor)) ?? string.Empty;
+        public static string LabelLabelsColor => ResourceManager.GetString(nameof(LabelLabelsColor)) ?? string.Empty;
+        public static string ButtonClearColor => ResourceManager.GetString(nameof(ButtonClearColor)) ?? string.Empty;
+        public static string ButtonResetAppearance => ResourceManager.GetString(nameof(ButtonResetAppearance)) ?? string.Empty;
+        public static string HintAppearanceShellOpaque => ResourceManager.GetString(nameof(HintAppearanceShellOpaque)) ?? string.Empty;
         public static string LabelStartDate => ResourceManager.GetString(nameof(LabelStartDate)) ?? string.Empty;
         public static string LabelStartTime => ResourceManager.GetString(nameof(LabelStartTime)) ?? string.Empty;
         public static string LabelSyncIntervalMinutes => ResourceManager.GetString(nameof(LabelSyncIntervalMinutes)) ?? string.Empty;

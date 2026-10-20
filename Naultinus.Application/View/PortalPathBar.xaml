@@ -17,7 +17,7 @@
             </Style.Triggers>
         </Style>
         <Style x:Key="PortalBannerTextButton" TargetType="Button">
-            <Setter Property="Foreground" Value="{DynamicResource NaultinusTextBrush}"/>
+            <!-- Hérite du Foreground du bandeau (TitleForegroundBrush) pour les teintes Fences. -->
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="6,2"/>

@@ -52,6 +52,24 @@ namespace Naultinus.Model
         /// <summary>Masquée : non affichée au démarrage ; reste dans state.xml.</summary>
         public bool IsHidden { get; set; }
 
+        /// <summary>Couleur d'en-tête (#RRGGBB). Vide = thème.</summary>
+        public string HeaderColor { get; set; } = string.Empty;
+
+        /// <summary>Couleur de fond du corps (#RRGGBB). Vide = thème.</summary>
+        public string BodyColor { get; set; } = string.Empty;
+
+        /// <summary>Couleur du titre (#RRGGBB). Vide = thème.</summary>
+        public string TitleColor { get; set; } = string.Empty;
+
+        /// <summary>Couleur des libellés (#RRGGBB). Vide = thème.</summary>
+        public string LabelsColor { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Opacité du fond personnalisé (5–100 %). Sans <see cref="BodyColor"/>, ignorée.
+        /// En vue shell (HwndHost), le corps reste opaque quelle que soit cette valeur.
+        /// </summary>
+        public int BodyOpacity { get; set; } = 100;
+
         /// <summary>Version du schéma XML pour state.xml (rétrocompatibilité : anciens fichiers sans attribut → 0, traité comme 1 au chargement).</summary>
         public int SchemaVersion { get => _schemaVersion; set => _schemaVersion = value; }
     }

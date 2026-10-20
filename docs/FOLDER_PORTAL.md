@@ -11,7 +11,8 @@ Type de naultinus qui affiche le contenu d'un dossier choisi, comme un mini-expl
 - Persistance du dernier dossier visité (`CurrentPath` dans `state.xml`)
 - Actualisation automatique via `FileSystemWatcher` (debounce 500 ms)
 - Menu contextuel : actualiser, ouvrir dans l'Explorateur, coller depuis le presse-papiers, modifier, supprimer
-- Personnalisation des couleurs (en-tête, corps, titre, libellés)
+- Personnalisation des couleurs (en-tête, corps, titre, libellés) et opacité du fond
+  (dialogue Éditer → Apparence). En vue shell le corps reste opaque (contrainte `HwndHost`)
 
 ## Création
 

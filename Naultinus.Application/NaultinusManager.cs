@@ -293,7 +293,10 @@ namespace Naultinus
                     new EditNaultinus { DataContext = p, Owner = owner }.ShowDialog();
                     break;
                 case FolderPortalViewModel f:
+                    // Ne pas recréer la fenêtre pendant le dialogue (sinon le curseur d'opacité
+                    // ferme le menu à chaque tick). Bascule shell ↔ WPF après fermeture.
                     new EditFolderPortal { DataContext = f, Owner = owner }.ShowDialog();
+                    EnsureFolderPortalRenderMode(f);
                     break;
                 case TaskNaultinusViewModel t:
                     new EditTaskNaultinus(t) { Owner = owner }.ShowDialog();
@@ -302,6 +305,26 @@ namespace Naultinus
                     new EditCalendarNaultinus(c) { Owner = owner }.ShowDialog();
                     break;
             }
+        }
+
+        /// <summary>
+        /// Aligne le mode d'hôte (shell opaque vs WPF transparent) sur <see cref="ViewModelBase.WantsTranslucentBody"/>.
+        /// À appeler hors dialogue modal.
+        /// </summary>
+        internal static void EnsureFolderPortalRenderMode(FolderPortalViewModel vm)
+        {
+            if (vm == null || string.IsNullOrEmpty(vm.Identifier))
+                return;
+            if (!naultinus.TryGetValue(vm.Identifier, out Window? window) || window is TabbedNaultinus)
+                return;
+            if (window is not FolderPortal portal)
+                return;
+
+            bool wantShell = !vm.WantsTranslucentBody && ShellFolderViewHost.IsRequested();
+            if (portal.UsesShellView == wantShell)
+                return;
+
+            RecreateStandaloneWindow(vm);
         }
 
         public static void CreateTaskNaultinus(string caldavUrl, string username, string password, List<string> taskListIds, string title, int? x = null, int? y = null, int? width = null, int? height = null, string? groupId = null, TabbedNaultinus? tabbedWindow = null, Guid? zimbraAccountId = null)
@@ -468,6 +491,47 @@ namespace Naultinus
                 throw new KeyNotFoundException(identifier);
             }
             return window;
+        }
+
+        /// <summary>
+        /// Recrée la fenêtre autonome (même ViewModel) pour basculer shell opaque ↔ WPF transparent.
+        /// <c>AllowsTransparency</c> ne peut pas changer après la première composition.
+        /// </summary>
+        internal static void RecreateStandaloneWindow(INaultinusViewModel vm)
+        {
+            if (vm == null || string.IsNullOrEmpty(vm.Identifier))
+                return;
+            if (!naultinus.TryGetValue(vm.Identifier, out Window? old) || old is TabbedNaultinus)
+                return;
+
+            var dispatcher = Application.Current?.Dispatcher;
+            void Recreate()
+            {
+                if (!naultinus.TryGetValue(vm.Identifier, out Window? current) || !ReferenceEquals(current, old))
+                    return;
+
+                naultinus.Remove(vm.Identifier);
+                try
+                {
+                    current.Close();
+                }
+                catch (Exception ex)
+                {
+                    NaultinusDiagnostics.Log("NaultinusManager.RecreateStandaloneWindow", "Fermeture impossible", ex);
+                }
+
+                var neu = NaultinusFactory.CreateWindow(vm);
+                naultinus[vm.Identifier] = neu;
+                if (!neu.IsVisible)
+                    neu.Show();
+            }
+
+            if (dispatcher != null && !dispatcher.CheckAccess())
+                dispatcher.BeginInvoke(Recreate);
+            else if (dispatcher != null)
+                dispatcher.BeginInvoke(Recreate);
+            else
+                Recreate();
         }
 
         public static StandardNaultinus GetNaultinus(string identifier)

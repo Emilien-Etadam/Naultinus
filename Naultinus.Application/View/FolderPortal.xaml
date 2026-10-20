@@ -37,15 +37,24 @@
             <helpers:BindingProxy x:Key="proxy" Data="{Binding}" />
         </ResourceDictionary>
     </Window.Resources>
-    <Border x:Name="LayoutRoot" CornerRadius="0" ClipToBounds="True">
-        <DockPanel>
-            <Border DockPanel.Dock="Top"
-                    x:Name="Header"
-                    Background="{DynamicResource NaultinusWindowBrush}"
-                    MouseLeftButtonDown="Header_MouseLeftButtonDown"
-                    PreviewMouseRightButtonUp="Header_PreviewMouseRightButtonUp"
-                    IsHitTestVisible="True"
-                    Tag="{Binding DataContext, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}">
+    <Border x:Name="LayoutRoot" CornerRadius="0" ClipToBounds="True" Background="Transparent">
+        <Grid>
+            <!-- Teinte : brush opaque + Opacity élément (l'alpha brush est binaire en fenêtre layered). -->
+            <Border Background="{Binding BodyTintBrush}"
+                    Opacity="{Binding BodyTintOpacity}"
+                    IsHitTestVisible="False"/>
+            <DockPanel>
+            <Grid DockPanel.Dock="Top"
+                  PreviewMouseLeftButtonDown="Header_MouseLeftButtonDown"
+                  Background="{Binding HeaderChromeBrush}">
+                <Border Background="{Binding HeaderTintBrush}"
+                        Opacity="{Binding BodyTintOpacity}"
+                        IsHitTestVisible="False"/>
+                <Border x:Name="Header"
+                        Background="{Binding HeaderChromeBrush}"
+                        PreviewMouseRightButtonUp="Header_PreviewMouseRightButtonUp"
+                        IsHitTestVisible="True"
+                        Tag="{Binding DataContext, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}">
                 <Border.ContextMenu>
                     <ContextMenu>
                         <MenuItem Header="{x:Static properties:Strings.MenuEdit}" Command="{Binding Path=Data.EditCommand, Source={StaticResource proxy}}" />
@@ -96,13 +105,16 @@
                         <MenuItem Header="{x:Static properties:Strings.MenuCheckForUpdates}" Command="{Binding Path=Data.CheckForUpdatesCommand, Source={StaticResource proxy}}" />
                     </ContextMenu>
                 </Border.ContextMenu>
-                <view:PortalPathBar MenuClick="TitleBarMenuButton_Click" AddTabClick="AddFolderPortalTab_Click"/>
-            </Border>
+                <view:PortalPathBar Foreground="{Binding TitleForegroundBrush}"
+                                    MenuClick="TitleBarMenuButton_Click"
+                                    AddTabClick="AddFolderPortalTab_Click"/>
+                </Border>
+            </Grid>
             <TextBlock DockPanel.Dock="Top"
                        x:Name="ErrorBanner"
                        Text="{Binding ErrorMessage, Mode=OneWay}"
                        Foreground="{DynamicResource NaultinusErrorBrush}"
-                       Background="{DynamicResource NaultinusWindowBrush}"
+                       Background="{Binding HeaderChromeBrush}"
                        FontSize="12"
                        Margin="8,4,8,0"
                        TextWrapping="Wrap"
@@ -111,6 +123,7 @@
                 <view:PortalFolderGrid x:Name="WpfGridView"/>
                 <view:ShellFolderViewHost x:Name="ShellView" Visibility="Collapsed"/>
             </Grid>
-        </DockPanel>
+            </DockPanel>
+        </Grid>
     </Border>
 </Window>

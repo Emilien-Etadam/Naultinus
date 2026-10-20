@@ -36,11 +36,16 @@
         </ResourceDictionary>
     </Window.Resources>
 
-    <Border x:Name="LayoutRoot" CornerRadius="0" ClipToBounds="True">
-    <DockPanel>
+    <Border x:Name="LayoutRoot" CornerRadius="0" ClipToBounds="True" Background="Transparent">
+    <Grid>
+        <Border Background="{Binding BodyTintBrush}" Opacity="{Binding BodyTintOpacity}" IsHitTestVisible="False"/>
+        <DockPanel>
         <!-- Header : tabs if multi-list, else just sync status + buttons -->
-        <Grid DockPanel.Dock="Top" x:Name="Header" Height="32" MouseLeftButtonDown="Header_MouseLeftButtonDown"
-              IsHitTestVisible="True" Background="{DynamicResource NaultinusWindowBrush}"
+        <Grid DockPanel.Dock="Top" Height="32" Background="{Binding HeaderChromeBrush}"
+              PreviewMouseLeftButtonDown="Header_MouseLeftButtonDown">
+            <Border Background="{Binding HeaderTintBrush}" Opacity="{Binding BodyTintOpacity}" IsHitTestVisible="False"/>
+            <Grid x:Name="Header"
+              IsHitTestVisible="True" Background="{Binding HeaderChromeBrush}"
               ColumnDefinitions="*,Auto">
             <Grid.ContextMenu>
                 <ContextMenu>
@@ -136,10 +141,21 @@
 
             <ContentControl Grid.Column="1" Content="{Binding}" ContentTemplate="{StaticResource TaskHeaderActionsTemplate}"
                             VerticalAlignment="Center" Focusable="False"/>
+            </Grid>
         </Grid>
 
         <!-- Content area -->
-        <Border DockPanel.Dock="Top" Background="{DynamicResource NaultinusControlBrush}" Padding="10">
+        <Border DockPanel.Dock="Top" Padding="10">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="{DynamicResource NaultinusControlBrush}"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding UsesBodyTint}" Value="True">
+                            <Setter Property="Background" Value="Transparent"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
             <Grid RowDefinitions="Auto,*,Auto">
                 <!-- Row 0 : Error -->
                 <TextBlock Text="{Binding ErrorMessage, Mode=OneWay}" Foreground="{DynamicResource NaultinusErrorBrush}"
@@ -233,6 +249,7 @@
                 <view:TaskQuickAddBar Grid.Row="2"/>
             </Grid>
         </Border>
-    </DockPanel>
+        </DockPanel>
+    </Grid>
     </Border>
 </Window>
