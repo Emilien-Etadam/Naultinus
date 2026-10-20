@@ -629,32 +629,53 @@ namespace Naultinus.ViewModel
 
         private void SetupWatcher(string? path)
         {
-            // Recharger le même dossier ne doit pas détruire le watcher : le rafraîchissement
-            // est souvent déclenché par son propre callback.
-            bool shellActive = _shellWatcher != null && _shellWatcher.IsActive
-                && PortalPathGuard.AreSame(_shellWatcher.Path, path);
-            bool fswActive = _watcher != null && PortalPathGuard.AreSame(_watchedPath, path);
-            if (shellActive || fswActive)
-                return;
-
-            StopWatchers();
-
             if (string.IsNullOrEmpty(path) || !PortalFolderAccess.TryExists(path, out _))
             {
                 NaultinusDiagnostics.Log(
                     "FolderPortal.SetupWatcher",
                     "path not found or inaccessible: " + (path ?? "(null)"));
+                StopWatchers();
                 return;
             }
 
-            _shellWatcher ??= new ShellChangeNotifyWatcher(_uiDispatcher);
-            if (_shellWatcher.TryStart(path, OnFolderContentsChanged))
+            // Recharger le même dossier ne doit pas détruire les watchers : le rafraîchissement
+            // est souvent déclenché par leur propre callback.
+            bool samePath = PortalPathGuard.AreSame(_watchedPath, path);
+            bool shellActive = samePath && _shellWatcher != null && _shellWatcher.IsActive;
+            bool fswActive = samePath && _watcher != null;
+            bool wantFsw = !PortalFolderAccess.IsShellNamespacePath(path);
+
+            // Shell + FSW en parallèle sur un dossier FS : SHChangeNotifyRegister peut réussir
+            // sans livrer d'événements (pompe de messages minimale / agents CI), d'où le FSW
+            // en défense — auparavant exclusif, ce qui faisait échouer le test FileWatcher.
+            if (shellActive && (!wantFsw || fswActive))
+                return;
+
+            if (!samePath)
+                StopWatchers();
+
+            if (!shellActive)
             {
-                _watchedPath = path;
-                return;
+                _shellWatcher ??= new ShellChangeNotifyWatcher(_uiDispatcher);
+                _shellWatcher.TryStart(path, OnFolderContentsChanged);
             }
 
-            // Repli : FileSystemWatcher (tests / environnements où le notify shell échoue).
+            if (wantFsw && _watcher == null)
+                TryStartFileSystemWatcher(path);
+
+            _watchedPath = path;
+
+            if ((_shellWatcher == null || !_shellWatcher.IsActive) && _watcher == null)
+            {
+                ErrorMessage = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    Strings.PortalFolderUnreachableFormat,
+                    path);
+            }
+        }
+
+        private void TryStartFileSystemWatcher(string path)
+        {
             try
             {
                 var w = new FileSystemWatcher(path)
@@ -669,17 +690,12 @@ namespace Naultinus.ViewModel
                 w.Error += (_, args) => OnWatcherError(path, args.GetException());
                 w.EnableRaisingEvents = true;
                 _watcher = w;
-                _watchedPath = path;
-                NaultinusDiagnostics.Log("FolderPortal.SetupWatcher", "repli FileSystemWatcher : " + path);
+                NaultinusDiagnostics.Log("FolderPortal.SetupWatcher", "FileSystemWatcher : " + path);
             }
             catch (Exception ex)
             {
                 NaultinusDiagnostics.Log("FolderPortal.SetupWatcher", "FileSystemWatcher init failed.", ex);
                 _watcher = null;
-                ErrorMessage = string.Format(
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    Strings.PortalFolderUnreachableFormat,
-                    path);
             }
         }
 
