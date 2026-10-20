@@ -118,14 +118,18 @@ namespace Naultinus.View
         /// </summary>
         private void OnShellViewWindowSizeChanged(object sender, SizeChangedEventArgs e)
         {
-            if (!IsLoaded || !useShellView)
+            // Ignorer la fermeture / les tailles transitoires : sinon le VM garde une bande fine
+            // et la fusion en onglets réutilise ces dimensions.
+            if (!IsLoaded || !useShellView || !IsVisible)
                 return;
 
             int w = (int)Math.Round(ActualWidth);
             int h = (int)Math.Round(ActualHeight);
-            if (w > 0 && w != viewModel.Width)
+            if (w < 120 || h < 80)
+                return;
+            if (w != viewModel.Width)
                 viewModel.Width = w;
-            if (h > 0 && h != viewModel.Height)
+            if (h != viewModel.Height)
                 viewModel.Height = h;
         }
 
@@ -237,13 +241,7 @@ namespace Naultinus.View
                 ShellView.BrowseSucceeded += ShellView_BrowseSucceeded;
                 ShellView.EmptyBackgroundDoubleClick += ShellView_EmptyBackgroundDoubleClick;
                 viewModel.ShellFolderNeedsRefresh += ShellView_NeedsRefresh;
-                Closed += (_, _) =>
-                {
-                    viewModel.ShellFolderNeedsRefresh -= ShellView_NeedsRefresh;
-                    // HwndHost ne se dispose pas tout seul à la fermeture WPF : sans cela,
-                    // NaultinusShellViewSite + IExplorerBrowser restent vivants (fuite mesurée ×10).
-                    ShellView.Dispose();
-                };
+                Closed += (_, _) => DetachShellHostFromViewModel();
                 ApplyShellInteractionPolicy();
                 Loaded += (_, _) =>
                 {
@@ -316,6 +314,34 @@ namespace Naultinus.View
             };
 
             timer.Start();
+        }
+
+        /// <summary>
+        /// Coupe le VM de l'hôte shell avant/pendant la fermeture. Sans cela, fusionner en
+        /// <see cref="TabbedNaultinus"/> laisse <see cref="FolderPortalViewModel.BodyRenderedByShell"/>
+        /// à true et des handlers qui appellent un <see cref="ShellFolderViewHost"/> déjà disposé :
+        /// la nouvelle fenêtre d'onglets ne s'affiche pas ou reste vide.
+        /// </summary>
+        private void DetachShellHostFromViewModel()
+        {
+            viewModel.PropertyChanged -= ViewModel_PropertyChanged;
+            viewModel.ShellFolderNeedsRefresh -= ShellView_NeedsRefresh;
+            ShellView.Navigated -= ShellView_Navigated;
+            ShellView.BrowseFailed -= ShellView_BrowseFailed;
+            ShellView.BrowseSucceeded -= ShellView_BrowseSucceeded;
+            ShellView.EmptyBackgroundDoubleClick -= ShellView_EmptyBackgroundDoubleClick;
+            try
+            {
+                // HwndHost ne se dispose pas tout seul à la fermeture WPF : sans cela,
+                // NaultinusShellViewSite + IExplorerBrowser restent vivants (fuite mesurée ×10).
+                ShellView.Dispose();
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.Log("FolderPortal", "Dispose ShellView à la fermeture", ex);
+            }
+
+            viewModel.ReleaseShellBodyRendering();
         }
 
         private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)

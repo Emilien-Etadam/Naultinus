@@ -247,36 +247,41 @@ namespace Naultinus.ViewModel
                 RefreshVisibleTasksFilter();
                 OnPropertyChanged(nameof(HasNoTasks));
             });
+            // Le CheckBox est en TwoWay : au clic, Completed est déjà à jour. Re-basculer ici
+            // renvoyait l'ancien état au serveur (case cochée localement, VTODO inchangé).
             ToggleTaskCompletedCommand = new AsyncRelayCommand<CalDAVTask>(async task =>
             {
                 var t = task ?? SelectedTask;
                 if (t == null) return;
+
+                bool completed = t.Completed;
+                var previousDate = t.CompletedDate;
+                t.CompletedDate = completed ? (previousDate ?? DateTime.Now) : null;
+                t.LastModified = DateTime.Now;
+
                 if (IsLocalMode)
                 {
-                    t.Completed = !t.Completed;
-                    t.CompletedDate = t.Completed ? DateTime.Now : null;
-                    t.LastModified = DateTime.Now;
                     if (!LocalPlannerStore.TryUpdateTask(_model, LocalPlannerStore.ToStoredTask(t), out var localError))
+                    {
                         ErrorMessage = LocalPlannerStore.Describe(localError);
+                        t.Completed = !completed;
+                        t.CompletedDate = previousDate;
+                    }
                     else
                         Save();
                     return;
                 }
 
-                var listId = GetListIdForTask(t);
-                t.Completed = !t.Completed;
-                t.CompletedDate = t.Completed ? DateTime.Now : null;
-                t.LastModified = DateTime.Now;
                 try
                 {
                     if (!string.IsNullOrEmpty(t.CalDAVId))
-                        await _caldavService.UpdateTaskAsync(listId, t);
+                        await _caldavService.UpdateTaskAsync(GetListIdForTask(t), t);
                 }
                 catch (Exception ex)
                 {
                     ErrorMessage = string.Format(CultureInfo.CurrentCulture, Strings.TaskUpdateFailedFormat, ex.Message);
-                    t.Completed = !t.Completed;
-                    t.CompletedDate = t.Completed ? DateTime.Now : null;
+                    t.Completed = !completed;
+                    t.CompletedDate = previousDate;
                 }
             });
             SaveTaskCommand = new AsyncRelayCommand<CalDAVTask>(async task =>

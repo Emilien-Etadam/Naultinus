@@ -93,6 +93,67 @@ namespace Naultinus.Tests
         }
 
         [Fact]
+        public async Task RemoteCheck_AfterTwoWayBinding_PushesCompletedWithoutRetoggle()
+        {
+            using var scope = NewScope(remote: true);
+            var task = new CalDAVTask("À faire")
+            {
+                CalDAVId = "todo.ics",
+                Uid = "uid-todo",
+                CalDAVEtag = "etag-0",
+                Completed = false,
+            };
+            scope.ViewModel.Tasks.Add(task);
+
+            // Comme le CheckBox TwoWay : le clic a déjà écrit Completed=true avant la commande.
+            task.Completed = true;
+            scope.ViewModel.ToggleTaskCompletedCommand.Execute(task);
+            await WaitForAsync(() => scope.Service.UpdateCalls >= 1);
+
+            Assert.True(task.Completed);
+            Assert.NotNull(task.CompletedDate);
+            Assert.Equal(1, scope.Service.UpdateCalls);
+            Assert.True(scope.Service.LastUpdated!.Completed);
+        }
+
+        [Fact]
+        public async Task RemoteUncheck_AfterTwoWayBinding_PushesCompletedFalse()
+        {
+            using var scope = NewScope(remote: true);
+            var task = new CalDAVTask("Déjà fait")
+            {
+                CalDAVId = "done.ics",
+                Uid = "uid-done",
+                CalDAVEtag = "etag-0",
+                Completed = true,
+                CompletedDate = new DateTime(2026, 1, 2, 12, 0, 0, DateTimeKind.Local),
+            };
+            scope.ViewModel.Tasks.Add(task);
+
+            task.Completed = false;
+            scope.ViewModel.ToggleTaskCompletedCommand.Execute(task);
+            await WaitForAsync(() => scope.Service.UpdateCalls >= 1);
+
+            Assert.False(task.Completed);
+            Assert.Null(task.CompletedDate);
+            Assert.Equal(1, scope.Service.UpdateCalls);
+            Assert.False(scope.Service.LastUpdated!.Completed);
+        }
+
+        private static async Task WaitForAsync(Func<bool> condition, int timeoutMs = 2000)
+        {
+            var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+            while (DateTime.UtcNow < deadline)
+            {
+                if (condition())
+                    return;
+                await Task.Delay(20);
+            }
+
+            Assert.True(condition(), "Condition non satisfaite avant délai.");
+        }
+
+        [Fact]
         public async Task RemoteEdit_WhenUpdateFails_RestoresThePreviousFields()
         {
             using var scope = NewScope(remote: true);

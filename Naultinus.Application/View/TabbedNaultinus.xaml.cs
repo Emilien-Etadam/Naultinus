@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -13,9 +14,13 @@ namespace Naultinus.View
 {
     public partial class TabbedNaultinus : Window
     {
+        private const int MinSyncWidth = 120;
+        private const int MinSyncHeight = 80;
+
         private readonly NaultinusGroup _group;
         private Point _tabDragOrigin;
         private bool _tabDragPending;
+        private bool _allowBoundsSync;
 
         public TabbedNaultinus(NaultinusGroup group)
         {
@@ -23,10 +28,21 @@ namespace Naultinus.View
             _group = group;
             DataContext = group;
 
+            // Forcer la géométrie du groupe avant Show : le binding OneWay + SizeChanged précoce
+            // écrasait sinon les membres avec la taille par défaut (bande fine).
+            Width = Math.Max(group.Width, MinSyncWidth);
+            Height = Math.Max(group.Height, MinSyncHeight);
+            Left = group.X;
+            Top = group.Y;
+
             ApplyTabStyle();
             LocationChanged += (_, _) => SyncBounds();
             SizeChanged += (_, _) => SyncBounds();
-            Loaded += (_, _) => SyncBounds();
+            Loaded += (_, _) =>
+            {
+                _allowBoundsSync = true;
+                SyncBounds();
+            };
             Activated += (_, _) =>
             {
                 foreach (var member in _group.Members)
@@ -72,8 +88,13 @@ namespace Naultinus.View
 
         private void SyncBounds()
         {
-            if (_group.Members.Count == 0) return;
-            _group.SetBounds((int)Left, (int)Top, (int)Width, (int)Height);
+            if (!_allowBoundsSync || _group.Members.Count == 0)
+                return;
+            int w = (int)Width;
+            int h = (int)Height;
+            if (w < MinSyncWidth || h < MinSyncHeight)
+                return;
+            _group.SetBounds((int)Left, (int)Top, w, h);
         }
 
         private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

@@ -52,8 +52,33 @@ namespace Naultinus.Model
                 OnPropertyChanged(nameof(DueDateColor));
             }
         }
-        public bool Completed { get; set; }
-        public DateTime? CompletedDate { get; set; }
+        private bool _completed;
+        public bool Completed
+        {
+            get => _completed;
+            set
+            {
+                if (_completed == value)
+                    return;
+                _completed = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(DueDateColor));
+            }
+        }
+
+        private DateTime? _completedDate;
+        public DateTime? CompletedDate
+        {
+            get => _completedDate;
+            set
+            {
+                if (_completedDate == value)
+                    return;
+                _completedDate = value;
+                OnPropertyChanged();
+            }
+        }
+
         public DateTime CreatedDate { get; set; } = DateTime.Now;
         public DateTime LastModified { get; set; } = DateTime.Now;
         /// <summary>Chemin/href serveur (ex. nom fichier .ics).</summary>

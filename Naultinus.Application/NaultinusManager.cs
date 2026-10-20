@@ -220,19 +220,35 @@ namespace Naultinus
             MergeStandaloneIntoTabbedWithNewMember(hostWindow, existing, vmNew);
         }
 
-        private static void AddTabFolderPortal(Window hostWindow) =>
-            AddTabWithDialog<CreateFolderPortalDialog>(hostWindow,
-                (g, t) => ShowCreateFolderPortalDialogForGroup(g, t),
-                (dialog, existing) => new FolderPortalViewModel(new FolderPortalModel
-                {
-                    Name = dialog.PortalTitle,
-                    RootPath = dialog.SelectedPath,
-                    CurrentPath = dialog.SelectedPath,
-                    FenceX = existing.FenceX,
-                    FenceY = existing.FenceY,
-                    Width = existing.Width,
-                    Height = existing.Height,
-                }));
+        private static void AddTabFolderPortal(Window hostWindow)
+        {
+            if (hostWindow is TabbedNaultinus tabbed && tabbed.DataContext is NaultinusGroup g)
+            {
+                ShowCreateFolderPortalDialogForGroup(g, tabbed);
+                return;
+            }
+
+            var dialog = new CreateFolderPortalDialog();
+            if (hostWindow.DataContext is FolderPortalViewModel existingPortal
+                && !string.IsNullOrWhiteSpace(existingPortal.RootPath))
+                dialog.PrefillPath(existingPortal.RootPath);
+
+            SetOwnerSafe(dialog, hostWindow);
+            if (dialog.ShowDialog() != true) return;
+            if (hostWindow.DataContext is not INaultinusViewModel existing) return;
+
+            var vmNew = new FolderPortalViewModel(new FolderPortalModel
+            {
+                Name = dialog.PortalTitle,
+                RootPath = dialog.SelectedPath,
+                CurrentPath = dialog.SelectedPath,
+                FenceX = existing.FenceX,
+                FenceY = existing.FenceY,
+                Width = existing.Width,
+                Height = existing.Height,
+            });
+            MergeStandaloneIntoTabbedWithNewMember(hostWindow, existing, vmNew);
+        }
 
         private static void AddTabTaskNaultinus(Window hostWindow) =>
             AddTabWithDialog<CreateTaskNaultinusDialog>(hostWindow,
@@ -266,18 +282,55 @@ namespace Naultinus
             if (!naultinus.TryGetValue(existing.Identifier, out var oldWindow) || oldWindow != hostWindow)
                 return;
 
+            // Capturer la géométrie AVANT Close : SizeChanged à la fermeture (surtout HwndHost)
+            // peut écrire une bande fine dans le VM et la TabbedNaultinus hérite alors de ça.
+            int boundX = existing.FenceX;
+            int boundY = existing.FenceY;
+            int boundW = existing.Width;
+            int boundH = existing.Height;
+            if (hostWindow.IsLoaded)
+            {
+                if (hostWindow.ActualWidth >= 120)
+                    boundW = (int)Math.Round(hostWindow.ActualWidth);
+                if (hostWindow.ActualHeight >= 80)
+                    boundH = (int)Math.Round(hostWindow.ActualHeight);
+                if (!double.IsNaN(hostWindow.Left) && !double.IsNaN(hostWindow.Top))
+                {
+                    boundX = (int)Math.Round(hostWindow.Left);
+                    boundY = (int)Math.Round(hostWindow.Top);
+                }
+            }
+
             var gid = Guid.NewGuid().ToString();
             var group = new NaultinusGroup(gid);
             group.AddMember(existing);
             group.AddMember(vmNew);
 
+            // Fermer l'ancienne fenêtre avant d'ouvrir la groupée : le Closed du portail shell
+            // détache le VM (handlers + BodyRenderedByShell). Sans cela, la TabbedNaultinus
+            // réutilise un VM encore branché sur un HwndHost disposé et la fenêtre « disparaît ».
             naultinus.Remove(existing.Identifier);
-            oldWindow.Close();
+            try
+            {
+                oldWindow.Close();
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.Log("NaultinusManager.MergeStandalone", "Fermeture de la fenêtre autonome", ex);
+            }
+
+            if (existing is FolderPortalViewModel existingPortal)
+                existingPortal.ReleaseShellBodyRendering();
+            if (vmNew is FolderPortalViewModel newPortal)
+                newPortal.ReleaseShellBodyRendering();
+
+            group.SetBounds(boundX, boundY, boundW, boundH);
 
             var tabbed = new TabbedNaultinus(group);
             foreach (var m in group.Members)
                 naultinus[m.Identifier] = tabbed;
             group.SelectedMember = vmNew;
+            existing.Save();
             vmNew.Save();
         }
 

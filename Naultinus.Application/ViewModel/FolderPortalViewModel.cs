@@ -106,6 +106,21 @@ namespace Naultinus.ViewModel
         public bool BodyRenderedByShell { get; set; }
 
         /// <summary>
+        /// Quitte le mode corps shell (fenêtre autonome fermée / fusion en onglets) : la grille WPF
+        /// peut à nouveau énumérer le dossier. Recharge si le drapeau était actif ou si la grille est vide.
+        /// </summary>
+        internal void ReleaseShellBodyRendering()
+        {
+            bool wasShell = BodyRenderedByShell;
+            BodyRenderedByShell = false;
+            ForceOpaqueBody = false;
+            if (_disposed || string.IsNullOrEmpty(CurrentPath))
+                return;
+            if (wasShell || Items.Count == 0)
+                LoadFolder(CurrentPath, fromHistory: true);
+        }
+
+        /// <summary>
         /// Filtre de nom (sous-chaîne). Persisté ; appliqué à la vue shell via
         /// <c>IFolderFilter</c>, ou à la grille WPF à l'énumération.
         /// </summary>

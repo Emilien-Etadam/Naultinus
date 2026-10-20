@@ -102,7 +102,17 @@
 
         <!-- Standard -->
         <DataTemplate DataType="{x:Type viewModel:NaultinusViewModel}">
-            <Grid AllowDrop="True" Background="{DynamicResource NaultinusControlBrush}">
+            <Grid AllowDrop="True">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Background" Value="{DynamicResource NaultinusControlBrush}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding UsesBodyTint}" Value="True">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
                 <Grid.Resources>
                     <helpers:BindingProxy x:Key="tabProxy" Data="{Binding}" />
                 </Grid.Resources>
@@ -190,7 +200,17 @@
 
         <!-- Task -->
         <DataTemplate DataType="{x:Type viewModel:TaskNaultinusViewModel}">
-            <DockPanel Background="{DynamicResource NaultinusControlBrush}">
+            <DockPanel>
+                <DockPanel.Style>
+                    <Style TargetType="DockPanel">
+                        <Setter Property="Background" Value="{DynamicResource NaultinusControlBrush}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding UsesBodyTint}" Value="True">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DockPanel.Style>
                 <!-- Plusieurs listes : même sélecteur que TaskNaultinus. L’ancêtre est cet ItemsControl : le DataContext de la fenêtre est le groupe d’onglets. -->
                 <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding TaskTabs}"
                               Visibility="{Binding HasMultipleLists, Converter={StaticResource BoolToVis}}">
@@ -495,10 +515,24 @@
         </DataTemplate>
         </ResourceDictionary>
     </Window.Resources>
-    <Border x:Name="LayoutRoot" CornerRadius="0" ClipToBounds="True">
-        <DockPanel>
-            <!-- Les boutons d’onglet absorbent le clic (DragMove du Grid ne part pas). Un glissement au-delà du seuil système sur un onglet déplace la fenêtre ; un clic court la sélectionne. La colonne de 12 px reste une poignée pour le vide de la barre. -->
-            <Grid DockPanel.Dock="Top" x:Name="Header" MouseLeftButtonDown="Header_MouseLeftButtonDown" PreviewMouseLeftButtonDown="Header_PreviewMouseLeftButtonDown" PreviewMouseMove="Header_PreviewMouseMove" PreviewMouseLeftButtonUp="Header_PreviewMouseLeftButtonUp" PreviewMouseRightButtonUp="Header_PreviewMouseRightButtonUp" IsHitTestVisible="True" Background="{DynamicResource NaultinusWindowBrush}" RowDefinitions="Auto,Auto">
+    <Border x:Name="LayoutRoot" CornerRadius="0" ClipToBounds="True" Background="Transparent">
+        <Grid>
+            <!-- Teinte de l'onglet sélectionné (sous le contenu, sans bloquer les clics). -->
+            <Border Background="{Binding SelectedMember.BodyTintBrush}"
+                    Opacity="{Binding SelectedMember.BodyTintOpacity}"
+                    IsHitTestVisible="False"/>
+            <DockPanel>
+            <!-- Un seul Header nommé : DragMove + menu. Teinte en sous-couche A=1 (HitTestableClear). -->
+            <Grid DockPanel.Dock="Top"
+                  x:Name="Header"
+                  MouseLeftButtonDown="Header_MouseLeftButtonDown"
+                  PreviewMouseLeftButtonDown="Header_PreviewMouseLeftButtonDown"
+                  PreviewMouseMove="Header_PreviewMouseMove"
+                  PreviewMouseLeftButtonUp="Header_PreviewMouseLeftButtonUp"
+                  PreviewMouseRightButtonUp="Header_PreviewMouseRightButtonUp"
+                  IsHitTestVisible="True"
+                  Background="{Binding SelectedMember.HeaderChromeBrush}"
+                  RowDefinitions="Auto,Auto">
                 <Grid.ContextMenu>
                     <ContextMenu>
                         <MenuItem Header="{x:Static properties:Strings.MenuEdit}" Command="{x:Static pal:NaultinusWpfCommands.OpenEditSelectedTabCommand}" CommandParameter="{Binding SelectedMember}">
@@ -556,11 +590,15 @@
                         <MenuItem Header="{x:Static properties:Strings.MenuCheckForUpdates}" Command="{Binding Path=Data.CheckForUpdatesCommand, Source={StaticResource proxy}}" />
                     </ContextMenu>
                 </Grid.ContextMenu>
+                <Border Grid.RowSpan="2"
+                        Background="{Binding SelectedMember.HeaderTintBrush}"
+                        Opacity="{Binding SelectedMember.BodyTintOpacity}"
+                        IsHitTestVisible="False"/>
                 <Grid Grid.Row="0" Height="32" ColumnDefinitions="Auto, 12, *, Auto, Auto">
                 <Button Grid.Column="0" x:Name="TitleBarMenuButton" Style="{StaticResource HeaderActionButton}" Margin="4,0,0,0" Click="TitleBarMenuButton_Click" ToolTip="{x:Static properties:Strings.TooltipMenu}">
                     <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE700;" FontSize="12" VerticalAlignment="Center"/>
                 </Button>
-                <Border Grid.Column="1" Background="{DynamicResource NaultinusWindowBrush}" Cursor="SizeAll"/>
+                <Border Grid.Column="1" Background="{Binding SelectedMember.HeaderChromeBrush, FallbackValue=#01000000}" Cursor="SizeAll"/>
                 <ScrollViewer Grid.Column="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
                               PreviewMouseRightButtonDown="TabStrip_PreviewMouseRightButtonDown">
                     <ItemsControl ItemsSource="{Binding Members}">
@@ -594,19 +632,19 @@
                     <TextBlock Text="+" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource NaultinusTextBrush}" VerticalAlignment="Center"/>
                 </Button>
                 </Grid>
+                <!-- Visibilité via Content (le VM), pas via Window.SelectedMember (inexistant). -->
                 <ContentControl Grid.Row="1" Content="{Binding SelectedMember}">
+                    <ContentControl.ContentTemplate>
+                        <DataTemplate>
+                            <!-- ☰ et + sont déjà sur la barre d'onglets. -->
+                            <view:PortalPathBar ShowWindowChromeButtons="False"/>
+                        </DataTemplate>
+                    </ContentControl.ContentTemplate>
                     <ContentControl.Style>
                         <Style TargetType="ContentControl">
                             <Setter Property="Visibility" Value="Collapsed"/>
-                            <Setter Property="ContentTemplate">
-                                <Setter.Value>
-                                    <DataTemplate>
-                                        <view:PortalPathBar/>
-                                    </DataTemplate>
-                                </Setter.Value>
-                            </Setter>
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding SelectedMember, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource IsTypeConverter}, ConverterParameter={x:Type viewModel:FolderPortalViewModel}}" Value="True">
+                                <DataTrigger Binding="{Binding Content, RelativeSource={RelativeSource Self}, Converter={StaticResource IsTypeConverter}, ConverterParameter={x:Type viewModel:FolderPortalViewModel}}" Value="True">
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
                             </Style.Triggers>
@@ -616,5 +654,6 @@
             </Grid>
             <ContentControl Content="{Binding SelectedMember}" />
         </DockPanel>
+        </Grid>
     </Border>
 </Window>

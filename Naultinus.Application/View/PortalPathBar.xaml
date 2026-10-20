@@ -55,10 +55,18 @@
     <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" Height="28">
         <Button Grid.Column="0"
                 x:Name="MenuButton"
-                Style="{StaticResource PortalBannerIconButton}"
                 Margin="4,0,0,0"
                 Click="MenuButton_Click"
                 ToolTip="{x:Static properties:Strings.TooltipMenu}">
+            <Button.Style>
+                <Style TargetType="Button" BasedOn="{StaticResource PortalBannerIconButton}">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ShowWindowChromeButtons, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Button.Style>
             <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE700;" FontSize="12" VerticalAlignment="Center"/>
         </Button>
         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="2,0,4,0">
@@ -125,10 +133,18 @@
                  AutomationProperties.Name="{x:Static properties:Strings.TooltipPortalFilter}"/>
         <Button Grid.Column="4"
                 x:Name="AddTabButton"
-                Style="{StaticResource PortalBannerIconButton}"
                 Margin="0,0,6,0"
                 Click="AddTabButton_Click"
                 ToolTip="{x:Static properties:Strings.TooltipAddTabBrowseSameGroup}">
+            <Button.Style>
+                <Style TargetType="Button" BasedOn="{StaticResource PortalBannerIconButton}">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ShowWindowChromeButtons, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Button.Style>
             <TextBlock Text="+" FontSize="14" FontWeight="SemiBold"
                        Foreground="{DynamicResource NaultinusTextBrush}" VerticalAlignment="Center"/>
         </Button>
