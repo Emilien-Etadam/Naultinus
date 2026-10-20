@@ -172,6 +172,100 @@ namespace Naultinus.Helpers
             Show(new[] { path }, owner);
         }
 
+        /// <summary>
+        /// Menu contextuel du shell sur le fond d'un dossier (sous-menu Nouveau, Coller, etc.).
+        /// </summary>
+        public static void ShowBackground(string folderPath, Window owner)
+        {
+            if (owner == null || string.IsNullOrEmpty(folderPath) || !Directory.Exists(folderPath))
+                return;
+
+            if (SHGetDesktopFolder(out IShellFolder desktopFolder) != 0)
+                return;
+
+            IntPtr folderPidl = IntPtr.Zero;
+            IntPtr hMenu = IntPtr.Zero;
+            IShellFolder? folder = null;
+            IContextMenu? contextMenu = null;
+            HwndSource? hwndSource = null;
+
+            try
+            {
+                uint eaten = 0;
+                uint attrs = 0;
+                if (desktopFolder.ParseDisplayName(IntPtr.Zero, IntPtr.Zero, folderPath, out eaten, out folderPidl, ref attrs) != 0)
+                    return;
+
+                Guid iidShellFolder = typeof(IShellFolder).GUID;
+                if (desktopFolder.BindToObject(folderPidl, IntPtr.Zero, ref iidShellFolder, out IntPtr folderPtr) != 0)
+                    return;
+                folder = (IShellFolder)Marshal.GetObjectForIUnknown(folderPtr);
+                Marshal.Release(folderPtr);
+
+                Guid iidContextMenu = typeof(IContextMenu).GUID;
+                IntPtr hwnd = new WindowInteropHelper(owner).Handle;
+                if (folder.CreateViewObject(hwnd, ref iidContextMenu, out IntPtr contextMenuPtr) != 0
+                    || contextMenuPtr == IntPtr.Zero)
+                    return;
+
+                contextMenu = (IContextMenu)Marshal.GetObjectForIUnknown(contextMenuPtr);
+                Marshal.Release(contextMenuPtr);
+
+                _contextMenu3 = contextMenu as IContextMenu3;
+                _contextMenu2 = contextMenu as IContextMenu2;
+
+                hMenu = CreatePopupMenu();
+                if (hMenu == IntPtr.Zero)
+                    return;
+
+                contextMenu.QueryContextMenu(hMenu, 0, CMD_FIRST, CMD_LAST, CMF_NORMAL | CMF_EXPLORE);
+
+                hwndSource = HwndSource.FromHwnd(hwnd);
+                hwndSource?.AddHook(WndProc);
+
+                GetCursorPos(out POINT pt);
+                uint cmd = (uint)TrackPopupMenuEx(hMenu, TPM_RETURNCMD | TPM_LEFTALIGN, pt.X, pt.Y, hwnd, IntPtr.Zero);
+
+                if (cmd >= CMD_FIRST)
+                {
+                    CMINVOKECOMMANDINFO invoke = new()
+                    {
+                        cbSize = Marshal.SizeOf<CMINVOKECOMMANDINFO>(),
+                        fMask = 0,
+                        hwnd = hwnd,
+                        lpVerb = (IntPtr)(cmd - CMD_FIRST),
+                        lpParameters = null,
+                        lpDirectory = null,
+                        nShow = SW_SHOWNORMAL,
+                        dwHotKey = 0,
+                        hIcon = IntPtr.Zero
+                    };
+                    contextMenu.InvokeCommand(ref invoke);
+                }
+            }
+            catch
+            {
+                // Menu du vide : best-effort.
+            }
+            finally
+            {
+                if (hwndSource != null)
+                    hwndSource.RemoveHook(WndProc);
+                _contextMenu2 = null;
+                _contextMenu3 = null;
+
+                if (hMenu != IntPtr.Zero)
+                    DestroyMenu(hMenu);
+                if (folderPidl != IntPtr.Zero)
+                    CoTaskMemFree(folderPidl);
+                if (contextMenu != null)
+                    Marshal.FinalReleaseComObject(contextMenu);
+                if (folder != null)
+                    Marshal.FinalReleaseComObject(folder);
+                Marshal.FinalReleaseComObject(desktopFolder);
+            }
+        }
+
         public static void Show(IReadOnlyList<string> paths, Window owner)
         {
             if (owner == null || paths == null || paths.Count == 0)

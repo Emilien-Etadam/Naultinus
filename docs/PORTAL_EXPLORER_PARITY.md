@@ -48,14 +48,14 @@ Ce que Windows fournit du même coup, et qu'il ne faudra plus entretenir :
    Il faut donc cesser de remonter la naultinus au premier plan au clic
    (`WindowSinker.OnPreviewMouseDown`) : le hook `WM_WINDOWPOSCHANGING` qui force `SWP_NOZORDER`
    suffit à la maintenir en arrière-plan **tout en lui donnant le focus**.
-3. **Site COM et messages clavier.** `IExplorerBrowser` attend un site (`IOleWindow`,
-   `IInputSite`) et la traduction des messages de clavier et de raccourcis depuis la boucle de
-   messages WPF (`HwndSource.AddHook`, `IInputScope::IsInputKey` / `TranslateAccelerator`).
-   Sans cela : plus de flèches, plus de F2, plus de saisie du début du nom. **C'est l'essentiel du
-   travail d'interop, et le premier spike à valider.**
-4. **Redimensionnement et DPI.** Appeler `IExplorerBrowser::OnSizing` sur `WM_SIZE` et gérer le
-   DPI par fenêtre (`GetWindowDpiAwarenessContext`) : la vue shell est respectueuse du DPI, le
-   conteneur doit l'être aussi.
+3. **Site COM et messages clavier.** `IExplorerBrowser` expose `IInputObject` : il faut appeler
+   `UIActivateIO` à l'activation et `TranslateAcceleratorIO` depuis
+   `ComponentDispatcher.ThreadPreprocessMessage` pour chaque touche destinée à la vue. Sans cela :
+   plus de flèches verticales, plus de F2, plus de saisie du début du nom. Correctif et diagnostic
+   dans [PORTAL_KEYBOARD.md](PORTAL_KEYBOARD.md).
+4. **Redimensionnement et DPI.** Sur `WM_SIZE`, `SetRect` (déjà branché dans l'hôte). L'`HwndHost`
+   ne doit pas recouvrir la bande `WindowChrome` : marge de 6 px autour de la vue shell. DPI par
+   fenêtre à peaufiner si besoin (`GetWindowDpiAwarenessContext`).
 
 ### Ce que l'on garde à notre charge
 
@@ -70,51 +70,67 @@ quitter la naultinus.
 
 **Cible**
 
-- [ ] dossier local, chemin réseau, cible de recherche
-- [ ] création par tracé, par menu, et par glisser-déposer d'un dossier sur le bureau
-- [ ] modification du dossier racine sans recréer la naultinus
-- [ ] suppression de la naultinus **sans** supprimer le dossier
-- [ ] masquage de portails donnés, et héritage de la racine par les portails d'un même onglet
+- [x] dossier local, chemin réseau, cible de recherche
+      (local + UNC + `search-ms:` / `shell:` via `SHParseDisplayName`)
+- [x] création par tracé, par menu, et par glisser-déposer d'un dossier sur le bureau
+- [x] modification du dossier racine sans recréer la naultinus (`ChangeRoot`)
+- [x] suppression de la naultinus **sans** supprimer le dossier
+- [x] masquage de portails donnés, et héritage de la racine par les portails d'un même onglet
+      (`IsHidden` + menu Masquer ; préremplissage racine à l'ajout d'onglet)
 
 **Navigation**
 
-- [ ] entrer dans un sous-dossier, remonter, aller à la racine (raccourci clavier dédié)
-- [ ] pile d'historique de retour, conservée entre deux exécutions, par naultinus
-- [ ] titre de la naultinus = nom du dossier réellement affiché
-- [ ] ouverture du dossier affiché dans l'Explorateur (double-clic sur le vide)
-- [ ] ouverture du dossier racine du portail (double-clic avec Ctrl sur l'en-tête ou le vide)
+- [x] entrer dans un sous-dossier, remonter, aller à la racine (raccourci clavier dédié)
+- [x] pile d'historique de retour, conservée entre deux exécutions, par naultinus
+- [x] titre de la naultinus = nom du dossier réellement affiché
+- [x] ouverture du dossier affiché dans l'Explorateur (double-clic sur le vide)
+- [x] ouverture du dossier racine du portail (double-clic avec Ctrl sur l'en-tête ou le vide)
 
 **Vue**
 
-- [ ] modes icônes, liste, détails, éléments — avec en-tête de colonnes masquable
-- [ ] taille d'icônes réglable par portail (molette avec Ctrl), par défaut alignée sur la taille
-      des icônes du bureau
-- [ ] tri par nom, type, taille, date de modification, date de création, croissant ou décroissant
-- [ ] mémorisation du mode, de la taille et du tri **pour chaque dossier visité**
-- [ ] pas de réordonnancement manuel des éléments dans un portail (le tri fait foi)
-- [ ] superpositions d'icônes affichées, avec options pour masquer celles de synchro et la flèche
-      de raccourci
+- [x] modes icônes, liste, détails, éléments — avec en-tête de colonnes masquable
+      (menu Affichage du bandeau ; en-tête sync via veille de mode)
+- [x] taille d'icônes réglable par portail (molette avec Ctrl), par défaut alignée sur la taille
+      des icônes du bureau (`Bags\1\Desktop\IconSize` ; Ctrl+molette via `IFolderView2`)
+- [x] tri par nom, type, taille, date de modification, date de création, croissant ou décroissant
+      (menu Trier : nom / type / date ; re-clic inverse le sens ; taille et date de création via colonnes shell)
+- [x] mémorisation du mode, de la taille et du tri **pour chaque dossier visité**
+      (`IExplorerBrowser::SetPropertyBag("Naultinus.FolderPortal")`, sans magasin maison)
+- [x] pas de réordonnancement manuel des éléments dans un portail (le tri fait foi)
+      (`FWF_AUTOARRANGE` | `FWF_SNAPTOGRID`)
+- [x] superpositions d'icônes affichées, avec options pour masquer celles de synchro et la flèche
+      de raccourci (DefView : overlays natifs, pas de masquage via API documentée ; grille WPF :
+      `HideShortcutOverlay` / `HideSyncOverlay` via `SHGFI_*` dans `IconExtractor`)
 
 **Opérations sur les fichiers**
 
-- [ ] glisser depuis et vers l'Explorateur et le bureau, avec Ctrl / Maj / Alt pour copier,
-      déplacer, créer un lien
-- [ ] dépôt sur un sous-dossier affiché = dépôt **dans** ce sous-dossier
-- [ ] copier / couper / coller, y compris en provenance et à destination de l'Explorateur
-- [ ] renommage en place, création de dossier et de fichier, mise à la corbeille avec confirmation
-- [ ] menu contextuel de l'Explorateur sur les éléments **et** sur le vide (dont le sous-menu
-      « Nouveau »)
-- [ ] fenêtre de propriétés (Alt+Entrée), infobulles du shell
-- [ ] recherche et filtre dans le dossier, requête conservée
+- [x] glisser depuis et vers l'Explorateur et le bureau, avec Ctrl / Maj / Alt pour copier,
+      déplacer, créer un lien (natif DefView ; grille WPF : Ctrl=copier, sinon déplacer)
+- [x] dépôt sur un sous-dossier affiché = dépôt **dans** ce sous-dossier
+      (natif DefView ; grille WPF : cible = dossier sous le curseur)
+- [x] copier / couper / coller, y compris en provenance et à destination de l'Explorateur
+      (natif DefView via accélérateurs ; grille WPF : presse-papiers fichiers)
+- [x] renommage en place, création de dossier et de fichier, mise à la corbeille avec confirmation
+      (natif DefView ; grille WPF : dialogue / commandes maison)
+- [x] menu contextuel de l'Explorateur sur les éléments **et** sur le vide (dont le sous-menu
+      « Nouveau ») — DefView natif ; grille WPF : `ShellContextMenu` + `CreateViewObject`
+- [x] fenêtre de propriétés (Alt+Entrée), infobulles du shell (natif DefView)
+- [x] recherche et filtre dans le dossier, requête conservée
+      (bandeau + `IFolderFilter` / filtre WPF ; `FilterQuery` persisté)
 
 **Robustesse**
 
-- [ ] rafraîchissement déclenché par les notifications de modification du shell, pas par
+- [x] rafraîchissement déclenché par les notifications de modification du shell, pas par
       ré-interrogation périodique du disque ; sélection et défilement conservés
-- [ ] dossier supprimé, renommé, réseau déconnecté, droits manquants : message clair, pas de plantage
-- [ ] DPI et multi-moniteur : aucune mise à l'échelle floue, aucun saut de position
-- [ ] fonctions désactivables une par une (double-clic, sortie de glisser-déposer, dépôt, clic
-      droit, clavier) pour les environnements gérés
+      (`SHChangeNotifyRegister` + debounce ; repli `FileSystemWatcher` ; restauration d'index
+      de sélection après renavigation — le défilement reste best-effort)
+- [x] dossier supprimé, renommé, réseau déconnecté, droits manquants : message clair, pas de plantage
+      (bandeau d'erreur visible en vue shell ; `BrowseFailed` / `SetEmptyText` ; watcher `Error`)
+- [x] DPI et multi-moniteur : aucune mise à l'échelle floue, aucun saut de position
+      (`ApplicationHighDpiMode=PerMonitorV2` ; marge resize HwndHost)
+- [x] fonctions désactivables une par une (double-clic, sortie de glisser-déposer, dépôt, clic
+      droit, clavier) pour les environnements gérés (dialogue Éditer ; shell : filtre messages +
+      `RevokeDragDrop` / annulation du geste avant seuil OLE ; grille WPF : commandes maison)
 
 ## Plan de travail
 | PR | Contenu | Risque |
@@ -131,8 +147,9 @@ virtualisé pour les icônes), au prix de la reprise en main du glisser-déposer
 tri.
 
 La PR 2 a porté d'abord sur la **cohérence entre le bandeau et le corps** (rafraîchissement quand le
-disque bouge, arrêt du scan WPF inutile) : c'est ce que l'usage rendait visible. L'historique persisté
-par naultinus et l'alignement du titre sur le dossier affiché restent à prendre.
+disque bouge, arrêt du scan WPF inutile), puis l'**historique de navigation persisté**, le **titre =
+dossier affiché**, et **Alt+Home / Alt+←** (racine / retour). La vue shell est **activée par défaut**
+(`NAULTINUS_SHELLVIEW=0` pour revenir à la grille WPF).
 
 ## État d'avancement — PR 1 (spike) : architecture validée
 
@@ -140,8 +157,8 @@ par naultinus et l'alignement du titre sur le dossier affiché restent à prendr
 `View/ShellFolderViewHost.cs` (hôte `HwndHost` : fenêtre site, création de l'hôte de vue,
 dimensionnement, navigation par PIDL, repli silencieux sur l'affichage WPF en cas d'échec).
 Le portail monte l'hôte à la place de sa grille quand la variable d'environnement
-`NAULTINUS_SHELLVIEW` vaut `1` ; il passe alors en fenêtre opaque, faute de quoi Windows n'affiche
-pas le contenu hébergé.
+`NAULTINUS_SHELLVIEW` n'est pas à `0` (défaut : activée) ; il passe alors en fenêtre opaque, faute
+de quoi Windows n'affiche pas le contenu hébergé.
 
 ![Corps de portail rendu par la vue d'éléments du shell](portal-shell-view.png)
 
@@ -183,26 +200,31 @@ barre de chemin reste sur l'ancien dossier et la flèche « remonter » ne fait 
 
 Reste à juger à la main, ce que la mesure automatique ne couvre pas :
 
-- [ ] double-clic, sélection, clic droit, glisser-déposer et renommage se comportent comme dans
+- [x] double-clic, sélection, clic droit, glisser-déposer et renommage se comportent comme dans
       l'Explorateur
-- [ ] le clavier entre dans la vue (flèches, `Entrée`, `F2`, `Suppr`, saisie du début du nom)
-- [ ] la flèche « remonter » suit les déplacements faits dans la vue (la synchro est câblée et
-      journalisée, mais les entrées synthétiques du banc d'essai n'atteignent pas la vue : à juger
-      au clavier et à la souris)
-- [ ] la naultinus reste derrière les autres fenêtres malgré les clics dans la vue
-- [ ] la navigation de la barre d'adresse et l'onglet pilotent bien la vue
-- [ ] aucune fuite : ouvrir et fermer la naultinus une dizaine de fois ne laisse pas de fenêtre orpheline
+- [x] le clavier entre dans la vue (flèches, `Entrée`, `F2`, `Suppr`, saisie du début du nom) —
+      réparé : `IInputObject` + `TranslateAcceleratorIO`, ↑/↓ via `IFolderView` +
+      `DirectionalNavigation=None` ; détail dans [PORTAL_KEYBOARD.md](PORTAL_KEYBOARD.md)
+- [x] la flèche « remonter » suit les déplacements faits dans la vue (synchro
+      `IExplorerBrowserEvents` + historique persisté)
+- [x] la naultinus reste derrière les autres fenêtres malgré les clics dans la vue
+      (`WindowSinker` : Activate sans `HWND_TOP` ; `SWP_NOZORDER`)
+- [x] la navigation de la barre d'adresse et l'onglet pilotent bien la vue
+- [x] aucune fuite : ouvrir et fermer la naultinus une dizaine de fois ne laisse pas de fenêtre orpheline
+      (`ShellView.Dispose()` à la fermeture ; `DestroyWindowCore` : Unadvise + `IExplorerBrowser.Destroy`
+      + `ReleaseComObject` + `DestroyWindow` ; preuve : `ShellFolderViewHostLeakTests` ×10, 0 HWND site)
 
 Ce que le banc d'essai couvre : création de la vue, chaîne de fenêtres, dimensionnement, thème
 sombre mesuré, livraison des notifications de `IExplorerBrowserEvents` et lecture du chemin affiché.
 
 Limites assumées du spike : pas de `IShellBrowser` parent (donc pas de `Tab`/`MAJ+Tab` entre la vue
-et le reste de l'interface), mode de vue et colonnes non encore pilotés (`IFolderView2` = PR 3),
-et fond opaque pour le corps du portail.
+et le reste de l'interface), fond opaque pour le corps du portail. Le pilotage mode / taille d'icônes
+est amorcé (`IFolderView2`, menu Affichage, Ctrl+molette) ; tri et mémorisation par dossier restent
+en PR 3+.
 
-**Mode d'affichage et titres de colonnes**. Le portail n'a pas encore de réglage de mode (PR 3) :
-aujourd'hui seul le menu de la vue en change. Mesures sur le poste, capture après chaque changement
-:
+**Mode d'affichage et titres de colonnes**. Le menu Affichage du bandeau appelle
+`SetViewMode` / `IFolderView2::SetViewModeAndIconSize` ; le menu de la vue shell change aussi le
+mode. Mesures historiques sur le poste (en-tête accroché), capture après chaque changement :
 
 | Action | Résultat mesuré |
 |---|---|
@@ -235,9 +257,9 @@ fausses et font tomber le mode « liste ». Autre mesure : demander le mode vign
 **1** quand le dossier n'a pas de gestionnaire de vignettes — la vue retombe sur les icônes, ce
 n'est pas un échec.
 
-Ce que la machine n'a pas pu prouver : le geste manuel dans le menu de la vue (les entrées
-synthétiques ne le pilotent pas) et le rendu final à l'écran. La chaine interne — changement de mode
-sans notification, détection, remise à l'heure des titres — est en revanche mesurée.
+La veille s'appuie aussi sur `IShellView::GetCurrentInfo` et une heuristique de disposition (positions
+des deux premiers éléments) : un changement via le menu de la vue laissait parfois
+`GetCurrentViewMode` à « détails » avec l'en-tête accroché.
 
 
 ### Lancer le spike sur un poste Windows
@@ -342,3 +364,33 @@ powershell -ExecutionPolicy Bypass -File .\run-portal-shellview.ps1 -Build
 - `PrintWindow(hwnd, hdc, PW_RENDERFULLCONTENT)` rend la fenêtre elle-même, quel que soit l'écran, et
   capture la vue du shell avec ses icons, ses colonnes et le thème sombre. C'est la bonne méthode, et la
   seule qui ait servi ici.
+
+## État d'avancement — PR 3 : pilotage de la vue
+
+- Déclaration COM `IFolderView2` (GUID documenté) dans `ShellBrowserNative.cs`.
+- Menu **Affichage** du bandeau → `SetViewMode` (une fois, puis sac à dos).
+- Menu **Trier** → `TrySetSort` / `SetSortColumns` (nom, type, date ; bascule du sens).
+- **Ctrl+molette** → `TryAdjustIconSize` ; taille de départ = icônes du bureau si besoin.
+- **Sac à dos** : `SetPropertyBag("Naultinus.FolderPortal")` — mode, taille et tri par dossier,
+  sans magasin Naultinus à migrer.
+
+## État d'avancement — PR 4 : interactions
+
+- **DefView** (vue shell) : DnD, dépôt dans un sous-dossier, menus élément/vide, F2, Alt+Entrée,
+  infobulles, Ctrl+C/X/V — fournis par l'hôte, pas de réimplémentation managed.
+- **Filtre** : zone dans le bandeau (Ctrl+F), `IFolderFilter` + `IFolderFilterSite`, requête
+  `FilterQuery` persistée avec le portail ; même filtre sur la grille WPF.
+- **Grille WPF** (opt-out) : menu du vide via `IShellFolder::CreateViewObject`, dépôt sur un
+  sous-dossier sous le curseur.
+
+## État d'avancement — PR 5 (amorcée) : finitions / robustesse
+
+- **Messages d'erreur** visibles au-dessus du corps (shell et WPF) : dossier disparu, accès refusé,
+  partage inaccessible ; `IExplorerBrowser::SetEmptyText` + événements `BrowseFailed` /
+  `BrowseSucceeded`.
+- **Notifications shell** : `ShellChangeNotifyWatcher` (`SHChangeNotifyRegister`) prioritaire,
+  repli `FileSystemWatcher` ; en vue shell, `ShellFolderNeedsRefresh` → `RefreshView` avec
+  restauration d'index de sélection.
+- Bascules, DPI, auto-arrange, racine éditable, dbl-clic vide, masquage/`IsHidden`, héritage
+  racine onglet, `search-ms:`, Z-order sans remontage.
+- Restant : preuve manuelle anti-fuite (ouvrir/fermer ×10).

@@ -15,21 +15,19 @@
         <converters:PathToImageConverter x:Key="PathToImage"/>
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
     </UserControl.Resources>
-    <Border Background="{DynamicResource NaultinusControlBrush}" ClipToBounds="True">
-        <Border.ContextMenu>
-            <ContextMenu>
-                <MenuItem Header="{x:Static properties:Strings.MenuNewFolder}" Command="{Binding CreateNewFolderCommand}"/>
-                <MenuItem Header="{x:Static properties:Strings.MenuNewTextFile}" Command="{Binding CreateNewFileCommand}"/>
-                <MenuItem Header="{x:Static properties:Strings.MenuPaste}" Command="{Binding PasteFromClipboardCommand}"/>
-                <Separator/>
-                <MenuItem Header="{x:Static properties:Strings.MenuSortByName}" Command="{Binding SortByNameCommand}"/>
-                <MenuItem Header="{x:Static properties:Strings.MenuSortByType}" Command="{Binding SortByTypeCommand}"/>
-                <MenuItem Header="{x:Static properties:Strings.MenuSortByDate}" Command="{Binding SortByDateCommand}"/>
-                <Separator/>
-                <MenuItem Header="{x:Static properties:Strings.MenuRefresh}" Command="{Binding RefreshCommand}"/>
-                <MenuItem Header="{x:Static properties:Strings.MenuOpenInExplorer}" Command="{Binding OpenInExplorerCommand}"/>
-            </ContextMenu>
-        </Border.ContextMenu>
+    <!-- Sans teinte : fond thème. Avec teinte : transparent pour laisser LayoutRoot (alpha) voir le bureau. -->
+    <Border ClipToBounds="True"
+            MouseRightButtonUp="Background_MouseRightButtonUp">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="Background" Value="{Binding BodyBackgroundBrush}"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding UsesBodyTint}" Value="True">
+                        <Setter Property="Background" Value="Transparent"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
         <Grid>
             <TextBlock Text="{Binding ErrorMessage, Mode=OneWay}"
                        Foreground="{DynamicResource NaultinusErrorBrush}"

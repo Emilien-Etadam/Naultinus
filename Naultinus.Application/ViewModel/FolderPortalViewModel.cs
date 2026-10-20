@@ -1,5 +1,6 @@
 using GongSolutions.Wpf.DragDrop;
 using Naultinus.Helpers;
+using Naultinus.Helpers.Native;
 using Naultinus.Properties;
 using Naultinus.Model;
 using Naultinus.Services;
@@ -26,10 +27,16 @@ namespace Naultinus.ViewModel
         private string _currentFolderName;
         private string _errorMessage;
         private FileSystemWatcher? _watcher;
+        private ShellChangeNotifyWatcher? _shellWatcher;
         private string? _watchedPath;
         private System.Threading.Timer? _fsDebounceTimer;
         private readonly object _fsTimerLock = new object();
         private bool _disposed;
+
+        /// <summary>
+        /// Demande un rafraîchissement de la vue shell (sans réécrire <see cref="CurrentPath"/>).
+        /// </summary>
+        internal event Action? ShellFolderNeedsRefresh;
         private PortalSortField _sortField = PortalSortField.Name;
         private FolderPortalItem? _selectionAnchor;
         /// <summary>Dispatcher UI capturé à la construction : le debounce timer s’exécute sur le pool de threads,
@@ -39,7 +46,35 @@ namespace Naultinus.ViewModel
         public string RootPath
         {
             get => _model.RootPath;
-            set { _model.RootPath = value; OnPropertyChanged(); Save(); }
+            set
+            {
+                if (string.Equals(_model.RootPath, value, StringComparison.OrdinalIgnoreCase))
+                    return;
+                _model.RootPath = value ?? "";
+                OnPropertyChanged();
+                Save();
+            }
+        }
+
+        /// <summary>Change la racine du portail et y navigue, sans recréer la naultinus.</summary>
+        public void ChangeRoot(string newRoot)
+        {
+            if (string.IsNullOrWhiteSpace(newRoot))
+                return;
+            if (!PortalFolderAccess.TryExists(newRoot, out string? error))
+            {
+                ErrorMessage = error ?? string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    Strings.FolderNotFoundFormat,
+                    newRoot);
+                return;
+            }
+
+            RootPath = newRoot;
+            _model.NavigationHistory.Clear();
+            _model.NavigationIndex = -1;
+            LoadFolder(newRoot);
+            OnPropertyChanged(nameof(CanNavigateBack));
         }
 
         public string CurrentPath
@@ -71,9 +106,87 @@ namespace Naultinus.ViewModel
         public bool BodyRenderedByShell { get; set; }
 
         /// <summary>
+        /// Filtre de nom (sous-chaîne). Persisté ; appliqué à la vue shell via
+        /// <c>IFolderFilter</c>, ou à la grille WPF à l'énumération.
+        /// </summary>
+        public string FilterQuery
+        {
+            get => _model.FilterQuery ?? "";
+            set
+            {
+                string next = value ?? "";
+                if (string.Equals(_model.FilterQuery, next, StringComparison.Ordinal))
+                    return;
+                _model.FilterQuery = next;
+                OnPropertyChanged();
+                Save();
+                if (!BodyRenderedByShell && !string.IsNullOrEmpty(CurrentPath))
+                    LoadFolder(CurrentPath, fromHistory: true);
+            }
+        }
+
+        public bool AllowDoubleClick
+        {
+            get => _model.AllowDoubleClick;
+            set { if (_model.AllowDoubleClick == value) return; _model.AllowDoubleClick = value; OnPropertyChanged(); Save(); }
+        }
+
+        public bool AllowDragOut
+        {
+            get => _model.AllowDragOut;
+            set { if (_model.AllowDragOut == value) return; _model.AllowDragOut = value; OnPropertyChanged(); Save(); }
+        }
+
+        public bool AllowDrop
+        {
+            get => _model.AllowDrop;
+            set { if (_model.AllowDrop == value) return; _model.AllowDrop = value; OnPropertyChanged(); Save(); }
+        }
+
+        public bool AllowContextMenu
+        {
+            get => _model.AllowContextMenu;
+            set { if (_model.AllowContextMenu == value) return; _model.AllowContextMenu = value; OnPropertyChanged(); Save(); }
+        }
+
+        public bool AllowKeyboard
+        {
+            get => _model.AllowKeyboard;
+            set { if (_model.AllowKeyboard == value) return; _model.AllowKeyboard = value; OnPropertyChanged(); Save(); }
+        }
+
+        public bool HideShortcutOverlay
+        {
+            get => _model.HideShortcutOverlay;
+            set
+            {
+                if (_model.HideShortcutOverlay == value) return;
+                _model.HideShortcutOverlay = value;
+                OnPropertyChanged();
+                Save();
+                if (!BodyRenderedByShell)
+                    LoadFolder(CurrentPath);
+            }
+        }
+
+        public bool HideSyncOverlay
+        {
+            get => _model.HideSyncOverlay;
+            set
+            {
+                if (_model.HideSyncOverlay == value) return;
+                _model.HideSyncOverlay = value;
+                OnPropertyChanged();
+                Save();
+                if (!BodyRenderedByShell)
+                    LoadFolder(CurrentPath);
+            }
+        }
+
+        /// <summary>
         /// Enregistre le dossier que la vue d'éléments du shell affiche réellement, sans renvoyer de
-        /// navigation à la vue. Garde la barre de chemin et la flèche « remonter » justes quand
-        /// l'utilisateur double-clique un dossier.
+        /// navigation à la vue. Garde la barre de chemin et l'historique justes quand l'utilisateur
+        /// double-clique un dossier.
         /// </summary>
         public void AdoptShellPath(string path)
         {
@@ -83,6 +196,7 @@ namespace Naultinus.ViewModel
             _adoptingShellPath = true;
             try
             {
+                PushHistory(path);
                 CurrentPath = path;
             }
             finally
@@ -90,6 +204,10 @@ namespace Naultinus.ViewModel
                 _adoptingShellPath = false;
             }
         }
+
+        /// <summary>Titre du bandeau : dossier affiché, ou le nom du portail s'il n'y en a pas.</summary>
+        public string HeaderTitle =>
+            string.IsNullOrEmpty(CurrentFolderName) ? Name : CurrentFolderName;
 
         public ObservableCollection<FolderPortalItem> Items
         {
@@ -113,6 +231,7 @@ namespace Naultinus.ViewModel
                 _currentFolderName = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(TabBarLabel));
+                OnPropertyChanged(nameof(HeaderTitle));
             }
         }
 
@@ -122,15 +241,8 @@ namespace Naultinus.ViewModel
             set { _errorMessage = value; OnPropertyChanged(); }
         }
 
-        public bool CanNavigateBack
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(RootPath) || string.IsNullOrEmpty(CurrentPath))
-                    return false;
-                return !PortalPathGuard.AreSame(RootPath, CurrentPath);
-            }
-        }
+        /// <summary>Vrai s'il reste une entrée précédente dans l'historique de navigation.</summary>
+        public bool CanNavigateBack => _model.NavigationIndex > 0;
 
         public FolderPortalViewModel() : this(new FolderPortalModel { Name = Strings.FolderDefaultName })
         { }
@@ -149,6 +261,7 @@ namespace Naultinus.ViewModel
             if (!TryLoadContained(model.CurrentPath))
                 TryLoadContained(model.RootPath);
 
+            SeedHistoryFromCurrentPath();
             UpdateBreadcrumb();
 
             // Assigné avant les commandes qui l'invoquent (CreateNewFolder/File, Paste) pour que
@@ -217,10 +330,12 @@ namespace Naultinus.ViewModel
 
             NavigateBackCommand = new RelayCommand(() =>
             {
-                if (!CanNavigateBack) return;
-                string? parent = Directory.GetParent(CurrentPath)?.FullName;
-                if (parent != null && PortalPathGuard.IsAllowed(RootPath, parent))
-                    LoadFolder(parent);
+                if (!CanNavigateBack)
+                    return;
+
+                _model.NavigationIndex--;
+                string previous = _model.NavigationHistory[_model.NavigationIndex];
+                LoadFolder(previous, fromHistory: true);
             });
 
             OpenInExplorerCommand = new RelayCommand(() =>
@@ -259,7 +374,9 @@ namespace Naultinus.ViewModel
             return true;
         }
 
-        public void LoadFolder(string path)
+        public void LoadFolder(string path) => LoadFolder(path, fromHistory: false);
+
+        private void LoadFolder(string path, bool fromHistory)
         {
             ErrorMessage = "";
 
@@ -269,19 +386,22 @@ namespace Naultinus.ViewModel
                 return;
             }
 
-            if (!Directory.Exists(path))
+            if (!PortalFolderAccess.TryExists(path, out string? accessError))
             {
-                ErrorMessage = string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.FolderNotFoundFormat, path);
+                ErrorMessage = accessError
+                    ?? string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.FolderNotFoundFormat, path);
                 Items.Clear();
                 return;
             }
 
             try
             {
-                if (BodyRenderedByShell)
+                if (!fromHistory)
+                    PushHistory(path);
+
+                if (BodyRenderedByShell || PortalFolderAccess.IsShellNamespacePath(path))
                 {
-                    // Le corps est rendu par la vue du shell : ni énumération, ni icônes. Le chemin
-                    // et la flèche « remonter » doivent quand même suivre.
+                    // Corps shell, ou racine espace de noms (search-ms:) : pas d'énumération WPF.
                     _selectionAnchor = null;
                     CurrentPath = path;
                     OnPropertyChanged(nameof(CanNavigateBack));
@@ -292,12 +412,16 @@ namespace Naultinus.ViewModel
                 string iconsDir = AppPaths.GetNaultinusIconsDirectory(Identifier);
                 var loadingStarted = Stopwatch.StartNew();
 
+                string filter = FilterQuery;
                 foreach (string dir in Directory.GetDirectories(path))
                 {
                     if (IsHiddenOrSystemEntry(dir))
                         continue;
                     string dirName = Path.GetFileName(dir);
-                    string iconPath = AppPaths.GetOrCreateIcon(dir, "folder_", iconsDir);
+                    if (!MatchesFilter(dirName, filter))
+                        continue;
+                    string iconPath = AppPaths.GetOrCreateIcon(
+                        dir, "folder_", iconsDir, HideShortcutOverlay, HideSyncOverlay);
                     found.Add(new FolderPortalItem(dirName, dir, true, iconPath) { LastWriteUtc = LastWriteUtc(dir) });
                 }
 
@@ -306,7 +430,10 @@ namespace Naultinus.ViewModel
                     string fileName = Path.GetFileName(file);
                     if (fileName.StartsWith("~$", StringComparison.Ordinal) || IsHiddenOrSystemEntry(file))
                         continue;
-                    string iconPath = AppPaths.GetOrCreateIcon(file, "file_", iconsDir);
+                    if (!MatchesFilter(fileName, filter))
+                        continue;
+                    string iconPath = AppPaths.GetOrCreateIcon(
+                        file, "file_", iconsDir, HideShortcutOverlay, HideSyncOverlay);
                     found.Add(new FolderPortalItem(fileName, file, false, iconPath) { LastWriteUtc = LastWriteUtc(file) });
                 }
 
@@ -428,6 +555,41 @@ namespace Naultinus.ViewModel
             }
         }
 
+        /// <summary>Ajoute un chemin à l'historique et tronque la branche « avant ».</summary>
+        private void PushHistory(string path)
+        {
+            string normalized = Path.TrimEndingDirectorySeparator(path.Trim());
+            List<string> hist = _model.NavigationHistory;
+            int idx = _model.NavigationIndex;
+
+            if (idx >= 0 && idx < hist.Count && PortalPathGuard.AreSame(hist[idx], normalized))
+                return;
+
+            if (idx >= 0 && idx < hist.Count - 1)
+                hist.RemoveRange(idx + 1, hist.Count - idx - 1);
+
+            hist.Add(normalized);
+            _model.NavigationIndex = hist.Count - 1;
+        }
+
+        /// <summary>Au chargement : amorce la pile depuis <see cref="CurrentPath"/> si elle est vide.</summary>
+        private void SeedHistoryFromCurrentPath()
+        {
+            if (string.IsNullOrEmpty(CurrentPath))
+                return;
+
+            List<string> hist = _model.NavigationHistory;
+            if (hist.Count == 0)
+            {
+                hist.Add(Path.TrimEndingDirectorySeparator(CurrentPath.Trim()));
+                _model.NavigationIndex = 0;
+                return;
+            }
+
+            if (_model.NavigationIndex < 0 || _model.NavigationIndex >= hist.Count)
+                _model.NavigationIndex = hist.Count - 1;
+        }
+
         private void UpdateBreadcrumb()
         {
             IReadOnlyList<PortalPathSegment> segments = PortalBreadcrumb.Build(RootPath, CurrentPath);
@@ -449,6 +611,12 @@ namespace Naultinus.ViewModel
             OnPropertyChanged(nameof(CanNavigateBack));
         }
 
+        private static bool MatchesFilter(string name, string filter)
+        {
+            return string.IsNullOrEmpty(filter)
+                || name.Contains(filter, StringComparison.OrdinalIgnoreCase);
+        }
+
         private static bool IsHiddenOrSystemEntry(string path)
         {
             try
@@ -461,10 +629,86 @@ namespace Naultinus.ViewModel
 
         private void SetupWatcher(string? path)
         {
-            // Recharger le même dossier ne doit pas détruire le watcher : le rafraîchissement
-            // est souvent déclenché par son propre callback.
-            if (_watcher != null && PortalPathGuard.AreSame(_watchedPath, path))
+            if (string.IsNullOrEmpty(path) || !PortalFolderAccess.TryExists(path, out _))
+            {
+                NaultinusDiagnostics.Log(
+                    "FolderPortal.SetupWatcher",
+                    "path not found or inaccessible: " + (path ?? "(null)"));
+                StopWatchers();
                 return;
+            }
+
+            // Recharger le même dossier ne doit pas détruire les watchers : le rafraîchissement
+            // est souvent déclenché par leur propre callback.
+            bool samePath = PortalPathGuard.AreSame(_watchedPath, path);
+            bool shellActive = samePath && _shellWatcher != null && _shellWatcher.IsActive;
+            bool fswActive = samePath && _watcher != null;
+            bool wantFsw = !PortalFolderAccess.IsShellNamespacePath(path);
+
+            // Shell + FSW en parallèle sur un dossier FS : SHChangeNotifyRegister peut réussir
+            // sans livrer d'événements (pompe de messages minimale / agents CI), d'où le FSW
+            // en défense — auparavant exclusif, ce qui faisait échouer le test FileWatcher.
+            if (shellActive && (!wantFsw || fswActive))
+                return;
+
+            if (!samePath)
+                StopWatchers();
+
+            if (!shellActive)
+            {
+                _shellWatcher ??= new ShellChangeNotifyWatcher(_uiDispatcher);
+                _shellWatcher.TryStart(path, OnFolderContentsChanged);
+            }
+
+            if (wantFsw && _watcher == null)
+                TryStartFileSystemWatcher(path);
+
+            _watchedPath = path;
+
+            if ((_shellWatcher == null || !_shellWatcher.IsActive) && _watcher == null)
+            {
+                ErrorMessage = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    Strings.PortalFolderUnreachableFormat,
+                    path);
+            }
+        }
+
+        private void TryStartFileSystemWatcher(string path)
+        {
+            try
+            {
+                var w = new FileSystemWatcher(path)
+                {
+                    IncludeSubdirectories = false,
+                    NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite,
+                };
+                w.Created += (_, _) => OnFileSystemEvent();
+                w.Deleted += (_, _) => OnFileSystemEvent();
+                w.Renamed += (_, _) => OnFileSystemEvent();
+                w.Changed += (_, _) => OnFileSystemEvent();
+                w.Error += (_, args) => OnWatcherError(path, args.GetException());
+                w.EnableRaisingEvents = true;
+                _watcher = w;
+                NaultinusDiagnostics.Log("FolderPortal.SetupWatcher", "FileSystemWatcher : " + path);
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.Log("FolderPortal.SetupWatcher", "FileSystemWatcher init failed.", ex);
+                _watcher = null;
+            }
+        }
+
+        private void StopWatchers()
+        {
+            try
+            {
+                _shellWatcher?.Stop();
+            }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.Log("FolderPortal.SetupWatcher", "Stop shell watcher", ex);
+            }
 
             try
             {
@@ -491,35 +735,36 @@ namespace Naultinus.ViewModel
 
                 _fsDebounceTimer = null;
             }
+        }
 
-            if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+        private void OnFolderContentsChanged()
+        {
+            if (_disposed)
+                return;
+
+            if (BodyRenderedByShell)
             {
-                NaultinusDiagnostics.Log(
-                    "FolderPortal.SetupWatcher",
-                    "path not found or inaccessible: " + (path ?? "(null)"));
+                ShellFolderNeedsRefresh?.Invoke();
                 return;
             }
 
-            try
+            if (!string.IsNullOrEmpty(CurrentPath))
+                LoadFolder(CurrentPath, fromHistory: true);
+        }
+
+        private void OnWatcherError(string path, Exception? exception)
+        {
+            NaultinusDiagnostics.Log("FolderPortal.SetupWatcher", "FileSystemWatcher error on " + path, exception);
+            _uiDispatcher.BeginInvoke(() =>
             {
-                var w = new FileSystemWatcher(path)
-                {
-                    IncludeSubdirectories = false,
-                    NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite,
-                };
-                w.Created += (_, _) => OnFileSystemEvent();
-                w.Deleted += (_, _) => OnFileSystemEvent();
-                w.Renamed += (_, _) => OnFileSystemEvent();
-                w.Changed += (_, _) => OnFileSystemEvent();
-                w.EnableRaisingEvents = true;
-                _watcher = w;
-                _watchedPath = path;
-            }
-            catch (Exception ex)
-            {
-                NaultinusDiagnostics.Log("FolderPortal.SetupWatcher", "FileSystemWatcher init failed.", ex);
-                _watcher = null;
-            }
+                if (_disposed)
+                    return;
+                ErrorMessage = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    Strings.PortalFolderUnreachableFormat,
+                    path);
+                StopWatchers();
+            });
         }
 
         private void OnFileSystemEvent()
@@ -539,15 +784,7 @@ namespace Naultinus.ViewModel
         {
             try
             {
-                // BeginInvoke : le thread du timer ne doit pas attendre le thread UI.
-                // Un Invoke synchrone pendant que l'UI recrée le watcher (ou résout le chemin)
-                // peut bloquer les deux côtés, et le processus de test ne se termine plus.
-                _uiDispatcher.BeginInvoke(() =>
-                {
-                    if (_disposed)
-                        return;
-                    if (!string.IsNullOrEmpty(CurrentPath)) LoadFolder(CurrentPath);
-                });
+                _uiDispatcher.BeginInvoke(new Action(OnFolderContentsChanged));
             }
             catch (Exception ex)
             {
@@ -560,23 +797,17 @@ namespace Naultinus.ViewModel
             if (_disposed)
                 return;
             _disposed = true;
-            _watchedPath = null;
             try
             {
-                _watcher?.Dispose();
+                StopWatchers();
+                _shellWatcher?.Dispose();
             }
             catch (Exception ex)
             {
-                NaultinusDiagnostics.Log("FolderPortal", "Dispose watcher (Dispose)", ex);
+                NaultinusDiagnostics.Log("FolderPortal", "Dispose watchers", ex);
             }
 
-            _watcher = null;
-            lock (_fsTimerLock)
-            {
-                _fsDebounceTimer?.Dispose();
-                _fsDebounceTimer = null;
-            }
-
+            _shellWatcher = null;
             base.Dispose();
             GC.SuppressFinalize(this);
         }
@@ -615,7 +846,8 @@ namespace Naultinus.ViewModel
             dragInfo.Effects = DragDropEffects.Copy | DragDropEffects.Move;
         }
 
-        public bool CanStartDrag(IDragInfo dragInfo) => dragInfo.SourceItem is FolderPortalItem;
+        public bool CanStartDrag(IDragInfo dragInfo) =>
+            AllowDragOut && dragInfo.SourceItem is FolderPortalItem;
 
         public void Dropped(IDropInfo dropInfo) { }
 
@@ -633,6 +865,12 @@ namespace Naultinus.ViewModel
         #region IDropTarget
         public void DragOver(IDropInfo dropInfo)
         {
+            if (!AllowDrop)
+            {
+                dropInfo.Effects = DragDropEffects.None;
+                return;
+            }
+
             if (dropInfo.Data is DataObject dataObject && dataObject.GetDataPresent(DataFormats.FileDrop))
             {
                 bool isCopy = (dropInfo.KeyStates & DragDropKeyStates.ControlKey) != 0;
@@ -657,6 +895,9 @@ namespace Naultinus.ViewModel
 
         public void Drop(IDropInfo dropInfo)
         {
+            if (!AllowDrop)
+                return;
+
             string[]? files = null;
             if (dropInfo.Data is DataObject dataObject && dataObject.GetDataPresent(DataFormats.FileDrop))
                 files = dataObject.GetData(DataFormats.FileDrop) as string[];
@@ -669,19 +910,22 @@ namespace Naultinus.ViewModel
                 return;
 
             bool isCopy = (dropInfo.KeyStates & DragDropKeyStates.ControlKey) != 0;
-            ImportFileSystemPaths(files, isCopy);
+            string? intoFolder = dropInfo.TargetItem is FolderPortalItem folder && folder.IsDirectory
+                ? folder.FullPath
+                : null;
+            ImportFileSystemPaths(files, isCopy, intoFolder);
         }
 
-        public void ImportExplorerFileDrop(string[] files, bool isCopy)
+        public void ImportExplorerFileDrop(string[] files, bool isCopy, string? targetDirectory = null)
         {
             if (files == null || files.Length == 0)
                 return;
-            ImportFileSystemPaths(files, isCopy);
+            ImportFileSystemPaths(files, isCopy, targetDirectory);
         }
 
-        private void ImportFileSystemPaths(string[] files, bool isCopy)
+        private void ImportFileSystemPaths(string[] files, bool isCopy, string? targetDirectory = null)
         {
-            string targetDir = CurrentPath;
+            string targetDir = string.IsNullOrEmpty(targetDirectory) ? CurrentPath : targetDirectory;
             if (string.IsNullOrEmpty(targetDir) || !Directory.Exists(targetDir) || !PortalPathGuard.IsAllowed(RootPath, targetDir))
                 return;
 
@@ -734,9 +978,21 @@ namespace Naultinus.ViewModel
 
         #endregion
 
+        /// <summary>
+        /// Demandé quand le corps est rendu par la vue shell : le portail applique le tri via
+        /// <c>IFolderView2</c> plutôt que de réordonner la grille WPF masquée.
+        /// </summary>
+        internal event Action<PortalSortField>? ShellSortRequested;
+
         private void SortBy(PortalSortField field)
         {
             _sortField = field;
+            if (BodyRenderedByShell)
+            {
+                ShellSortRequested?.Invoke(field);
+                return;
+            }
+
             FolderPortalItem? anchor = _selectionAnchor;
             Items = new ObservableCollection<FolderPortalItem>(PortalItemSort.Order(Items, field));
             _selectionAnchor = anchor != null && Items.Contains(anchor) ? anchor : null;

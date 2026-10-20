@@ -9,8 +9,13 @@
 #    copie de developpement si l'application installee tourne (journal : « Instance deja en cours »).
 param(
     [switch]$Build,        # construit d'abord dans WSL
-    [switch]$KeepRunning   # ne pas arreter les copies en cours
+    [switch]$KeepRunning,  # ne pas arreter les copies en cours
+    [switch]$Keys          # sonde les messages des fenetres de la vue (diagnostic clavier)
 )
+# Variables de diagnostic du clavier, voir docs/PORTAL_KEYBOARD.md :
+#   NAULTINUS_SHELLVIEW_KEYS=1   sous-classe les fenetres de la vue, journalise clavier/focus/WM_COMMAND
+#   NAULTINUS_SHELLVIEW_GUARD=1  rejoue la garde du focus (mesuree inefficace)
+#   NAULTINUS_SHELLVIEW_FOCUS=   browser | defview | list : fenetre a activer
 $ErrorActionPreference = 'Stop'
 
 $src = '\\wsl.localhost\Ubuntu-24.04\home\pc\Naultinus\Naultinus.Application\bin\Debug\net10.0-windows10.0.17763.0'
@@ -42,6 +47,11 @@ if (-not $KeepRunning) {
     }
 }
 
+# Vue shell active par défaut dans l'app ; le script force 1 pour le banc d'essai explicite.
 $env:NAULTINUS_SHELLVIEW = '1'
+if ($Keys) {
+    $env:NAULTINUS_SHELLVIEW_KEYS = '1'
+    Write-Host 'Sonde clavier active (categorie SondeClavier du journal).' -ForegroundColor Cyan
+}
 Write-Host "Execution. Journal : $env:TEMP\Naultinus_startup.log" -ForegroundColor Green
 & 'C:\Program Files\dotnet\dotnet.exe' $dll

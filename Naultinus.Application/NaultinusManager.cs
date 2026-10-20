@@ -52,8 +52,8 @@ namespace Naultinus
                 }
             }
 
-            var grouped = loadedConcrete.Where(m => !string.IsNullOrEmpty(m.GroupId)).ToList();
-            var standalone = loadedConcrete.Where(m => string.IsNullOrEmpty(m.GroupId)).ToList();
+            var grouped = loadedConcrete.Where(m => !string.IsNullOrEmpty(m.GroupId) && !m.IsHidden).ToList();
+            var standalone = loadedConcrete.Where(m => string.IsNullOrEmpty(m.GroupId) && !m.IsHidden).ToList();
 
             foreach (var g in grouped.GroupBy(m => m.GroupId!))
             {
@@ -135,6 +135,14 @@ namespace Naultinus
         public static void ShowCreateFolderPortalDialogForGroup(NaultinusGroup group, TabbedNaultinus tabbedWindow)
         {
             var dialog = new CreateFolderPortalDialog();
+            // Héritage de la racine : premier portail dossier du même onglet.
+            string? inherited = group.Members
+                .OfType<FolderPortalViewModel>()
+                .Select(m => m.RootPath)
+                .FirstOrDefault(p => !string.IsNullOrWhiteSpace(p));
+            if (!string.IsNullOrEmpty(inherited))
+                dialog.PrefillPath(inherited);
+
             SetOwnerSafe(dialog, tabbedWindow);
             if (dialog.ShowDialog() == true)
                 CreateFolderPortal(dialog.SelectedPath, dialog.PortalTitle, group.X, group.Y, group.Width, group.Height, group.GroupId, tabbedWindow);
@@ -285,7 +293,10 @@ namespace Naultinus
                     new EditNaultinus { DataContext = p, Owner = owner }.ShowDialog();
                     break;
                 case FolderPortalViewModel f:
+                    // Ne pas recréer la fenêtre pendant le dialogue (sinon le curseur d'opacité
+                    // ferme le menu à chaque tick). Bascule shell ↔ WPF après fermeture.
                     new EditFolderPortal { DataContext = f, Owner = owner }.ShowDialog();
+                    EnsureFolderPortalRenderMode(f);
                     break;
                 case TaskNaultinusViewModel t:
                     new EditTaskNaultinus(t) { Owner = owner }.ShowDialog();
@@ -294,6 +305,26 @@ namespace Naultinus
                     new EditCalendarNaultinus(c) { Owner = owner }.ShowDialog();
                     break;
             }
+        }
+
+        /// <summary>
+        /// Aligne le mode d'hôte (shell opaque vs WPF transparent) sur <see cref="ViewModelBase.WantsTranslucentBody"/>.
+        /// À appeler hors dialogue modal.
+        /// </summary>
+        internal static void EnsureFolderPortalRenderMode(FolderPortalViewModel vm)
+        {
+            if (vm == null || string.IsNullOrEmpty(vm.Identifier))
+                return;
+            if (!naultinus.TryGetValue(vm.Identifier, out Window? window) || window is TabbedNaultinus)
+                return;
+            if (window is not FolderPortal portal)
+                return;
+
+            bool wantShell = !vm.WantsTranslucentBody && ShellFolderViewHost.IsRequested();
+            if (portal.UsesShellView == wantShell)
+                return;
+
+            RecreateStandaloneWindow(vm);
         }
 
         public static void CreateTaskNaultinus(string caldavUrl, string username, string password, List<string> taskListIds, string title, int? x = null, int? y = null, int? width = null, int? height = null, string? groupId = null, TabbedNaultinus? tabbedWindow = null, Guid? zimbraAccountId = null)
@@ -354,6 +385,64 @@ namespace Naultinus
                 CreateMailNaultinus(dialog.ImapHost, dialog.ImapPort, dialog.Username, dialog.Password, dialog.SelectedFolders, dialog.NaultinusTitle, dialog.DisplayMode, dialog.PollIntervalMinutes, dialog.WebmailUrl, zimbraAccountId: dialog.SelectedZimbraAccountId);
         }
 
+        /// <summary>
+        /// Masque la naultinus : <see cref="NaultinusModelBase.IsHidden"/> persisté, fenêtre fermée,
+        /// fichier state conservé (contrairement à <see cref="DeleteNaultinus"/>).
+        /// </summary>
+        public static void HideNaultinus(string identifier)
+        {
+            if (!naultinus.TryGetValue(identifier, out Window? window))
+                return;
+
+            if (window is TabbedNaultinus tabbed && tabbed.DataContext is NaultinusGroup group)
+            {
+                var member = group.Members.FirstOrDefault(m => m.Identifier == identifier);
+                if (member == null)
+                    return;
+                if (member is ViewModelBase memberBase)
+                {
+                    memberBase.ModelBase.IsHidden = true;
+                    memberBase.Save();
+                }
+
+                (member as IDisposable)?.Dispose();
+                group.RemoveMember(member);
+                naultinus.Remove(identifier);
+
+                if (group.Members.Count == 0)
+                {
+                    tabbed.Close();
+                    return;
+                }
+
+                if (group.Members.Count == 1)
+                {
+                    var single = group.Members[0];
+                    tabbed.Close();
+                    var standalone = NaultinusFactory.CreateWindow(single);
+                    naultinus[single.Identifier] = standalone;
+                    standalone.Show();
+                    single.GroupId = null;
+                    single.Save();
+                    return;
+                }
+
+                foreach (var m in group.Members)
+                    naultinus[m.Identifier] = tabbed;
+                return;
+            }
+
+            if (window.DataContext is ViewModelBase vmBase)
+            {
+                vmBase.ModelBase.IsHidden = true;
+                vmBase.Save();
+            }
+
+            (window.DataContext as IDisposable)?.Dispose();
+            window.Close();
+            naultinus.Remove(identifier);
+        }
+
         public static void DeleteNaultinus(string identifier)
         {
             if (!naultinus.TryGetValue(identifier, out Window? window)) return;
@@ -402,6 +491,47 @@ namespace Naultinus
                 throw new KeyNotFoundException(identifier);
             }
             return window;
+        }
+
+        /// <summary>
+        /// Recrée la fenêtre autonome (même ViewModel) pour basculer shell opaque ↔ WPF transparent.
+        /// <c>AllowsTransparency</c> ne peut pas changer après la première composition.
+        /// </summary>
+        internal static void RecreateStandaloneWindow(INaultinusViewModel vm)
+        {
+            if (vm == null || string.IsNullOrEmpty(vm.Identifier))
+                return;
+            if (!naultinus.TryGetValue(vm.Identifier, out Window? old) || old is TabbedNaultinus)
+                return;
+
+            var dispatcher = Application.Current?.Dispatcher;
+            void Recreate()
+            {
+                if (!naultinus.TryGetValue(vm.Identifier, out Window? current) || !ReferenceEquals(current, old))
+                    return;
+
+                naultinus.Remove(vm.Identifier);
+                try
+                {
+                    current.Close();
+                }
+                catch (Exception ex)
+                {
+                    NaultinusDiagnostics.Log("NaultinusManager.RecreateStandaloneWindow", "Fermeture impossible", ex);
+                }
+
+                var neu = NaultinusFactory.CreateWindow(vm);
+                naultinus[vm.Identifier] = neu;
+                if (!neu.IsVisible)
+                    neu.Show();
+            }
+
+            if (dispatcher != null && !dispatcher.CheckAccess())
+                dispatcher.BeginInvoke(Recreate);
+            else if (dispatcher != null)
+                dispatcher.BeginInvoke(Recreate);
+            else
+                Recreate();
         }
 
         public static StandardNaultinus GetNaultinus(string identifier)

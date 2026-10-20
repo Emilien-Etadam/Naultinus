@@ -267,17 +267,25 @@ namespace Naultinus.Helpers
 
         /// <summary>
         /// Icône shell mise en cache, partagée avec le file browser.
-        /// Le nom de fichier reste <c>préfixe + hash</c> pour réutiliser les PNG déjà écrits.
+        /// Le nom de fichier encode le chemin et les options de superposition pour ne pas
+        /// réutiliser un PNG avec/sans flèche de raccourci.
         /// </summary>
-        internal static string GetOrCreateIcon(string path, string prefix, string iconsDir)
+        internal static string GetOrCreateIcon(
+            string path,
+            string prefix,
+            string iconsDir,
+            bool hideShortcutOverlay = false,
+            bool hideSyncOverlay = false)
         {
             EnsureExists(iconsDir);
-            string iconPath = Path.Combine(iconsDir, prefix + StableHash(path) + ".png");
+            string cacheKey = path + "|sc=" + (hideShortcutOverlay ? "1" : "0") + "|sy=" + (hideSyncOverlay ? "1" : "0");
+            string iconPath = Path.Combine(iconsDir, prefix + StableHash(cacheKey) + ".png");
             if (File.Exists(iconPath))
                 return iconPath;
             try
             {
-                using Bitmap? icon = IconExtractor.GetFileImageFromPath(path, Native.IconSizeEnum.LargeIcon48);
+                using Bitmap? icon = IconExtractor.GetFileImageFromPath(
+                    path, Native.IconSizeEnum.LargeIcon48, hideShortcutOverlay, hideSyncOverlay);
                 if (icon != null)
                 {
                     using FileStream fileStream = new(iconPath, FileMode.Create);

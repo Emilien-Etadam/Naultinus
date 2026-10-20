@@ -11,6 +11,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Xml.Serialization;
 using Naultinus.Serialization;
 using Naultinus.Properties;
@@ -80,6 +81,216 @@ namespace Naultinus.ViewModel
         public string? GroupId { get => Model.GroupId; set { Model.GroupId = value; OnPropertyChanged(); Save(); } }
         public int TabOrder { get => Model.TabOrder; set { Model.TabOrder = value; OnPropertyChanged(); Save(); } }
         public NaultinusModelBase ModelBase => Model;
+
+        /// <summary>
+        /// Quand vrai, les pinceaux de fond corps utilisent une alpha 255 (vue shell / HwndHost).
+        /// </summary>
+        private bool _forceOpaqueBody;
+
+        public bool ForceOpaqueBody
+        {
+            get => _forceOpaqueBody;
+            set
+            {
+                if (_forceOpaqueBody == value) return;
+                _forceOpaqueBody = value;
+                NotifyAppearanceBrushesChanged();
+            }
+        }
+
+        public string HeaderColor
+        {
+            get => Model.HeaderColor ?? string.Empty;
+            set
+            {
+                string next = value ?? string.Empty;
+                if (Model.HeaderColor == next) return;
+                Model.HeaderColor = next;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasCustomHeaderColor));
+                NotifyTintPropertiesChanged();
+                Save();
+            }
+        }
+
+        public string BodyColor
+        {
+            get => Model.BodyColor ?? string.Empty;
+            set
+            {
+                string next = value ?? string.Empty;
+                if (Model.BodyColor == next) return;
+                Model.BodyColor = next;
+                // Premier choix de couleur : teinte semi-transparente comme Fences.
+                if (!string.IsNullOrEmpty(next)
+                    && NaultinusAppearanceColors.ClampOpacityPercent(Model.BodyOpacity) >= 100)
+                {
+                    Model.BodyOpacity = NaultinusAppearanceColors.PreferredTintOpacityPercent;
+                    OnPropertyChanged(nameof(BodyOpacity));
+                }
+
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasCustomBodyColor));
+                NotifyTintPropertiesChanged();
+                Save();
+            }
+        }
+
+        public string TitleColor
+        {
+            get => Model.TitleColor ?? string.Empty;
+            set
+            {
+                string next = value ?? string.Empty;
+                if (Model.TitleColor == next) return;
+                Model.TitleColor = next;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasCustomTitleColor));
+                OnPropertyChanged(nameof(TitleForegroundBrush));
+                Save();
+            }
+        }
+
+        public string LabelsColor
+        {
+            get => Model.LabelsColor ?? string.Empty;
+            set
+            {
+                string next = value ?? string.Empty;
+                if (Model.LabelsColor == next) return;
+                Model.LabelsColor = next;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasCustomLabelsColor));
+                OnPropertyChanged(nameof(LabelsForegroundBrush));
+                Save();
+            }
+        }
+
+        public int BodyOpacity
+        {
+            get => NaultinusAppearanceColors.ClampOpacityPercent(Model.BodyOpacity);
+            set
+            {
+                int next = NaultinusAppearanceColors.ClampOpacityPercent(value);
+                if (Model.BodyOpacity == next) return;
+                Model.BodyOpacity = next;
+                OnPropertyChanged();
+                NotifyTintPropertiesChanged();
+                Save();
+            }
+        }
+
+        public bool HasCustomHeaderColor => NaultinusAppearanceColors.TryParseRgb(HeaderColor, out _);
+        public bool HasCustomBodyColor => NaultinusAppearanceColors.TryParseRgb(BodyColor, out _);
+        public bool HasCustomTitleColor => NaultinusAppearanceColors.TryParseRgb(TitleColor, out _);
+        public bool HasCustomLabelsColor => NaultinusAppearanceColors.TryParseRgb(LabelsColor, out _);
+
+        /// <summary>Fond teinté (couleur choisie ou noir si seule l'opacité est baissée).</summary>
+        public bool UsesBodyTint => HasCustomBodyColor || BodyOpacity < 100;
+
+        /// <summary>
+        /// Demande un vrai fond transparent (opacité &lt; 100 %). Incompatible avec l'hôte shell :
+        /// la fenêtre doit alors rester en grille WPF + <c>AllowsTransparency</c>.
+        /// </summary>
+        public bool WantsTranslucentBody => BodyOpacity < 100;
+
+        /// <summary>
+        /// Couleur de teinte opaque. L'intensité passe par <see cref="BodyTintOpacity"/>
+        /// (Opacity UIElement), fiable sur fenêtre layered — pas l'alpha du brush.
+        /// </summary>
+        public Brush BodyTintBrush
+        {
+            get
+            {
+                string tintHex = HasCustomBodyColor
+                    ? BodyColor
+                    : NaultinusAppearanceColors.DefaultTintRgbHex;
+                return NaultinusAppearanceColors.TryCreateOpaqueBrush(tintHex)
+                    ?? Brushes.Black;
+            }
+        }
+
+        /// <summary>0.0–1.0 pour <c>UIElement.Opacity</c> de la couche de teinte.</summary>
+        public double BodyTintOpacity =>
+            UsesBodyTint ? NaultinusAppearanceColors.PercentToOpacity(BodyOpacity) : 0.0;
+
+        public Brush HeaderTintBrush
+        {
+            get
+            {
+                if (HasCustomHeaderColor)
+                {
+                    return NaultinusAppearanceColors.TryCreateOpaqueBrush(HeaderColor)
+                        ?? NaultinusAppearanceColors.ThemeBrush("NaultinusWindowBrush", SystemColors.WindowBrush);
+                }
+
+                return BodyTintBrush;
+            }
+        }
+
+        /// <summary>
+        /// Fond interactif de l'en-tête (hors couche de teinte).
+        /// Avec teinte : brush A=1 (pas Transparent) pour garder DragMove sur fenêtre layered.
+        /// </summary>
+        public Brush HeaderChromeBrush =>
+            UsesBodyTint
+                ? NaultinusAppearanceColors.HitTestableClear
+                : NaultinusAppearanceColors.ThemeBrush("NaultinusWindowBrush", SystemColors.WindowBrush);
+
+        public Brush HeaderBackgroundBrush =>
+            UsesBodyTint ? HeaderTintBrush : HeaderChromeBrush;
+
+        public Brush BodyBackgroundBrush =>
+            UsesBodyTint
+                ? BodyTintBrush
+                : NaultinusAppearanceColors.ThemeBrush("NaultinusControlBrush", SystemColors.ControlBrush);
+
+        public Brush BodyOverlayBrush => Brushes.Transparent;
+
+        public Brush TitleForegroundBrush =>
+            NaultinusAppearanceColors.TryCreateBrush(TitleColor, opacityPercent: 100, forceOpaque: true)
+            ?? NaultinusAppearanceColors.ThemeBrush("NaultinusTextBrush", SystemColors.WindowTextBrush);
+
+        public Brush LabelsForegroundBrush =>
+            NaultinusAppearanceColors.TryCreateBrush(LabelsColor, opacityPercent: 100, forceOpaque: true)
+            ?? NaultinusAppearanceColors.ThemeBrush("NaultinusSubtleBrush", SystemColors.GrayTextBrush);
+
+        public void ResetAppearance()
+        {
+            Model.HeaderColor = string.Empty;
+            Model.BodyColor = string.Empty;
+            Model.TitleColor = string.Empty;
+            Model.LabelsColor = string.Empty;
+            Model.BodyOpacity = NaultinusAppearanceColors.DefaultBodyOpacityPercent;
+            OnPropertyChanged(nameof(HeaderColor));
+            OnPropertyChanged(nameof(BodyColor));
+            OnPropertyChanged(nameof(TitleColor));
+            OnPropertyChanged(nameof(LabelsColor));
+            OnPropertyChanged(nameof(BodyOpacity));
+            OnPropertyChanged(nameof(HasCustomHeaderColor));
+            OnPropertyChanged(nameof(HasCustomBodyColor));
+            OnPropertyChanged(nameof(HasCustomTitleColor));
+            OnPropertyChanged(nameof(HasCustomLabelsColor));
+            NotifyTintPropertiesChanged();
+            Save();
+        }
+
+        private void NotifyTintPropertiesChanged()
+        {
+            OnPropertyChanged(nameof(UsesBodyTint));
+            OnPropertyChanged(nameof(WantsTranslucentBody));
+            OnPropertyChanged(nameof(BodyTintBrush));
+            OnPropertyChanged(nameof(BodyTintOpacity));
+            OnPropertyChanged(nameof(HeaderTintBrush));
+            OnPropertyChanged(nameof(HeaderChromeBrush));
+            OnPropertyChanged(nameof(HeaderBackgroundBrush));
+            OnPropertyChanged(nameof(BodyBackgroundBrush));
+            OnPropertyChanged(nameof(BodyOverlayBrush));
+            OnPropertyChanged(nameof(TitleForegroundBrush));
+            OnPropertyChanged(nameof(LabelsForegroundBrush));
+        }
+
+        private void NotifyAppearanceBrushesChanged() => NotifyTintPropertiesChanged();
 
         #endregion
 
@@ -158,6 +369,7 @@ namespace Naultinus.ViewModel
         });
 
         public ICommand DeleteNaultinusCommand { get; } = new RelayCommand<string>(identifier => NaultinusManager.DeleteNaultinus(identifier));
+        public ICommand HideNaultinusCommand { get; } = new RelayCommand<string>(identifier => NaultinusManager.HideNaultinus(identifier));
 
         public ICommand OpenAboutCommand { get; } = new RelayCommand(() =>
         {

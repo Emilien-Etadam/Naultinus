@@ -92,32 +92,14 @@ namespace Naultinus.Helpers
         }
 
         /// <summary>
-        /// Au clic, passage au premier plan : le hook WM_WINDOWPOSCHANGING impose SWP_NOZORDER et bloque sinon tout remontage.
+        /// Au clic : focus clavier sans remonter le Z-order. Le hook
+        /// <c>WM_WINDOWPOSCHANGING</c> + <c>SWP_NOZORDER</c> bloque tout remontage
+        /// (y compris celui déclenché par <see cref="Window.Activate"/>).
         /// </summary>
         private void OnPreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            BringWindowToFront();
-        }
-
-        private void BringWindowToFront()
-        {
-            if (!window.IsLoaded)
-                return;
-            var hwnd = new WindowInteropHelper(window).Handle;
-            if (hwnd == IntPtr.Zero)
-                return;
-
-            var source = HwndSource.FromHwnd(hwnd);
-            source?.RemoveHook(WndProc);
-            try
-            {
-                SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_SHOWWINDOW);
+            if (window.IsLoaded)
                 window.Activate();
-            }
-            finally
-            {
-                source?.AddHook(WndProc);
-            }
         }
 
         private IntPtr WndProc(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)

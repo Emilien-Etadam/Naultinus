@@ -1,3 +1,4 @@
+using Naultinus.Helpers;
 using Naultinus.Helpers.Native;
 using Naultinus.ViewModel;
 using Naultinus;
@@ -7,7 +8,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Shell;
 
 namespace Naultinus.View
 {
@@ -15,6 +18,10 @@ namespace Naultinus.View
     {
         private readonly FolderPortalViewModel viewModel;
         private readonly bool useShellView;
+        private bool _appearanceHooked;
+
+        /// <summary>True si le corps est l'hôte shell (opaque), false si grille WPF (peut être teintée).</summary>
+        internal bool UsesShellView => useShellView;
 
         public FolderPortal(FolderPortalViewModel defaultModel)
         {
@@ -22,21 +29,160 @@ namespace Naultinus.View
             DataContext = defaultModel;
             viewModel = defaultModel;
 
-            // Corps rendu par la vue d'éléments du shell (rendu de l'Explorateur) : mode expérimental,
-            // voir docs/PORTAL_EXPLORER_PARITY.md. La classe de fenêtre hôte doit être disponible
-            // avant la construction de la fenêtre, sinon on garde l'affichage WPF.
-            useShellView = ShellFolderViewHost.IsRequested() && ShellFolderViewHost.TryPrepare();
+            // Corps rendu par la vue d'éléments du shell (rendu de l'Explorateur).
+            // Opacité < 100 % exige AllowsTransparency + grille WPF : HwndHost ne compose pas
+            // dans une fenêtre layered (voir PORTAL_EXPLORER_PARITY.md).
+            useShellView = !viewModel.WantsTranslucentBody
+                && ShellFolderViewHost.IsRequested()
+                && ShellFolderViewHost.TryPrepare();
             if (useShellView)
                 ConfigureShellView();
+            else
+                ConfigureTransparentWpfBody();
+
+            HookAppearanceChanges();
+            Closed += (_, _) => UnhookAppearanceChanges();
 
             PreviewKeyDown += (_, e) =>
             {
+                // Raccourcis du bandeau : même sous vue shell (Alt+← / Alt+Home), car DirectUIHWND
+                // ne les traduit pas en navigation Naultinus.
+                if (PortalFolderInput.TryHandleBannerKeys(viewModel, e))
+                {
+                    e.Handled = true;
+                    return;
+                }
+
+                if (e.Key == Key.F && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+                {
+                    FocusPortalFilterBox();
+                    e.Handled = true;
+                    return;
+                }
+
                 if (useShellView)
-                    return; // la vue hébergée traite ses propres touches
+                    return; // le reste du clavier est pour la vue hébergée
+                if (!viewModel.AllowKeyboard)
+                    return;
                 if (PortalFolderInput.TryHandle(viewModel, this, e))
                     e.Handled = true;
             };
+
+            if (useShellView)
+            {
+                ViewModeMenu.Visibility = Visibility.Visible;
+                SortMenu.Visibility = Visibility.Visible;
+                viewModel.ShellSortRequested += OnShellSortRequested;
+                Closed += (_, _) => viewModel.ShellSortRequested -= OnShellSortRequested;
+                ComponentDispatcher.ThreadFilterMessage += OnShellBannerFilterMessage;
+                Closed += (_, _) => ComponentDispatcher.ThreadFilterMessage -= OnShellBannerFilterMessage;
+                PreviewMouseWheel += OnShellViewPreviewMouseWheel;
+            }
+
             Show();
+        }
+
+        private void ViewModeMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (!useShellView || sender is not MenuItem item || item.Tag is not string tag
+                || !uint.TryParse(tag, out uint mode))
+                return;
+
+            bool showHeader = mode == ShellBrowserNative.FolderViewModes.Details;
+            ShellView.SetViewMode(mode, showHeader);
+        }
+
+        private void OnShellSortRequested(PortalSortField field)
+        {
+            ShellView.TrySetSort(field);
+        }
+
+        private void FocusPortalFilterBox()
+        {
+            if (Header.Child is PortalPathBar bar)
+                bar.FocusFilter();
+        }
+
+        private void OnShellViewPreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (!useShellView || (Keyboard.Modifiers & ModifierKeys.Control) == 0)
+                return;
+
+            if (ShellView.TryAdjustIconSize(e.Delta))
+                e.Handled = true;
+        }
+
+        /// <summary>
+        /// Persiste largeur/hauteur et force <c>SetRect</c> sur la vue : le binding TwoWay ne suffit
+        /// pas toujours pendant un drag de bordure avec un HwndHost.
+        /// </summary>
+        private void OnShellViewWindowSizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (!IsLoaded || !useShellView)
+                return;
+
+            int w = (int)Math.Round(ActualWidth);
+            int h = (int)Math.Round(ActualHeight);
+            if (w > 0 && w != viewModel.Width)
+                viewModel.Width = w;
+            if (h > 0 && h != viewModel.Height)
+                viewModel.Height = h;
+        }
+
+        /// <summary>
+        /// Alt+← / Alt+Home n'arrivent pas toujours en <c>PreviewKeyDown</c> quand le focus Win32
+        /// est dans la vue : on les prend dans le filtre de messages du thread.
+        /// </summary>
+        private void OnShellBannerFilterMessage(ref System.Windows.Interop.MSG msg, ref bool handled)
+        {
+            if (handled || !useShellView)
+                return;
+
+            const int wmMouseWheel = 0x020A;
+            if (msg.message == wmMouseWheel)
+            {
+                // Quand le focus est dans DirectUIHWND, la molette n'arrive pas en PreviewMouseWheel.
+                long wp = msg.wParam.ToInt64();
+                int keys = unchecked((int)(wp & 0xffff));
+                if ((keys & 0x0008) == 0) // MK_CONTROL
+                    return;
+
+                short delta = unchecked((short)((wp >> 16) & 0xffff));
+                if (ShellView.TryAdjustIconSize(delta))
+                    handled = true;
+                return;
+            }
+
+            const int wmKeyDown = 0x0100;
+            const int wmSysKeyDown = 0x0104;
+            if (msg.message != wmKeyDown && msg.message != wmSysKeyDown)
+                return;
+
+            int vk = unchecked((int)(msg.wParam.ToInt64() & 0xffff));
+            bool ctrl = (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control;
+            if (ctrl && vk == 0x46) // VK_F — focus filtre (sinon DefView mange Ctrl+F)
+            {
+                Dispatcher.BeginInvoke(new Action(FocusPortalFilterBox));
+                handled = true;
+                return;
+            }
+
+            bool alt = (Keyboard.Modifiers & ModifierKeys.Alt) == ModifierKeys.Alt
+                || msg.message == wmSysKeyDown;
+
+            if (!alt)
+                return;
+
+            if (vk == 0x24) // VK_HOME
+            {
+                viewModel.NavigateToRootCommand.Execute(null);
+                handled = true;
+            }
+            else if (vk == 0x25 && viewModel.CanNavigateBack) // VK_LEFT
+            {
+                viewModel.NavigateBackCommand.Execute(null);
+                handled = true;
+            }
         }
 
         /// <summary>
@@ -46,11 +192,39 @@ namespace Naultinus.View
         private void ConfigureShellView()
         {
             AllowsTransparency = false;
-            Background = TryFindResource("NaultinusWindowBrush") as Brush
-                ?? SystemColors.WindowBrush;
+            if (viewModel != null)
+                viewModel.ForceOpaqueBody = true;
+            ApplyShellWindowBackground();
+
+            // L'HwndHost de la vue shell mange les hits souris sur toute sa surface : sans marge,
+            // il recouvre la bande de redimensionnement de WindowChrome (mesuré : impossible de
+            // saisir les bords gauche / droit / bas). On laisse 6 px de WPF autour.
+            const double resizeBand = 6;
+            ShellView.Margin = new Thickness(resizeBand);
+            WindowChrome.SetWindowChrome(this, new WindowChrome
+            {
+                CaptionHeight = 0,
+                ResizeBorderThickness = new Thickness(resizeBand),
+                CornerRadius = new CornerRadius(0),
+                GlassFrameThickness = new Thickness(0),
+                NonClientFrameEdges = NonClientFrameEdges.None,
+                UseAeroCaptionButtons = false,
+            });
 
             WpfGridView.Visibility = Visibility.Collapsed;
             ShellView.Visibility = Visibility.Visible;
+
+            SizeChanged += OnShellViewWindowSizeChanged;
+
+            // WPF pré-traite tout le clavier du thread (HwndSource.OnPreprocessMessage). Sans
+            // DirectionalNavigation=None, ↑/↓ déclenchent KeyboardNavigation.Navigate : le focus
+            // Win32 quitte DirectUIHWND pendant le KEYDOWN (mesuré : seule le KEYUP arrive à la
+            // vue ; pile = KeyboardNavigation → UIElement.Focus). TabNavigation seul ne suffit pas.
+            KeyboardNavigation.SetTabNavigation(ShellView, KeyboardNavigationMode.None);
+            KeyboardNavigation.SetDirectionalNavigation(ShellView, KeyboardNavigationMode.None);
+            KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.None);
+            KeyboardNavigation.SetDirectionalNavigation(this, KeyboardNavigationMode.None);
+            KeyboardNavigation.SetIsTabStop(ShellView, true);
 
             if (viewModel != null)
             {
@@ -59,22 +233,48 @@ namespace Naultinus.View
                 viewModel.BodyRenderedByShell = true;
                 viewModel.PropertyChanged += ViewModel_PropertyChanged;
                 ShellView.Navigated += ShellView_Navigated;
-                Loaded += (_, _) => ShellView.Navigate(viewModel.CurrentPath);
+                ShellView.BrowseFailed += ShellView_BrowseFailed;
+                ShellView.BrowseSucceeded += ShellView_BrowseSucceeded;
+                ShellView.EmptyBackgroundDoubleClick += ShellView_EmptyBackgroundDoubleClick;
+                viewModel.ShellFolderNeedsRefresh += ShellView_NeedsRefresh;
+                Closed += (_, _) =>
+                {
+                    viewModel.ShellFolderNeedsRefresh -= ShellView_NeedsRefresh;
+                    // HwndHost ne se dispose pas tout seul à la fermeture WPF : sans cela,
+                    // NaultinusShellViewSite + IExplorerBrowser restent vivants (fuite mesurée ×10).
+                    ShellView.Dispose();
+                };
+                ApplyShellInteractionPolicy();
+                Loaded += (_, _) =>
+                {
+                    ShellView.SetNameFilter(viewModel.FilterQuery);
+                    ShellView.Navigate(viewModel.CurrentPath);
+                };
             }
 
             // La vue peut changer de mode par son propre menu, et l'en-tête de colonnes reste alors
-            // accroché : on le remet d'accord avec le mode à chaque activation du portail.
+            // accroché : on le remet d'accord avec le mode à chaque activation du portail. Le focus
+            // clavier doit finir sur la fenêtre de liste, sinon F2 et Suppr ne répondent pas : appelé
+            // pendant l'activation, il était écrasé par la restauration du focus côté WPF et ne
+            // marchait qu'au deuxième clic — il est donc différé derrière elle.
             Activated += (_, _) =>
             {
-                ShellView.FocusView();
                 ShellView.ReconcileViewMode();
                 ShellView.StartModeWatch();
+                Dispatcher.BeginInvoke(
+                    new Action(() =>
+                    {
+                        System.Windows.Input.Keyboard.Focus(ShellView);
+                        ShellView.FocusView();
+                    }),
+                    System.Windows.Threading.DispatcherPriority.Background);
             };
             Deactivated += (_, _) => ShellView.SlowModeWatch();
 
             if (Environment.GetEnvironmentVariable("NAULTINUS_SHELLVIEW_DIAGMODE") == "cycle"
                 || string.Equals(Environment.GetEnvironmentVariable("NAULTINUS_SHELLVIEW_DIAGMODE"), "menu", StringComparison.OrdinalIgnoreCase))
                 StartModeCycleForDiagnostics();
+
         }
 
         /// <summary>
@@ -120,6 +320,19 @@ namespace Naultinus.View
 
         private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
+            if (e.PropertyName == nameof(FolderPortalViewModel.FilterQuery))
+            {
+                ShellView.SetNameFilter(viewModel.FilterQuery);
+                return;
+            }
+
+            if (e.PropertyName == nameof(FolderPortalViewModel.ErrorMessage)
+                && !string.IsNullOrEmpty(viewModel.ErrorMessage))
+            {
+                ShellView.ShowUnavailable(viewModel.ErrorMessage);
+                return;
+            }
+
             if (e.PropertyName != nameof(FolderPortalViewModel.CurrentPath))
                 return;
 
@@ -139,11 +352,161 @@ namespace Naultinus.View
             viewModel.AdoptShellPath(path);
         }
 
+        private void ShellView_BrowseFailed(string message)
+        {
+            viewModel.ErrorMessage = message;
+        }
+
+        private void ShellView_BrowseSucceeded()
+        {
+            if (!string.IsNullOrEmpty(viewModel.ErrorMessage))
+                viewModel.ErrorMessage = "";
+        }
+
+        private void ShellView_NeedsRefresh()
+        {
+            ShellView.RefreshView();
+        }
+
+        private void ApplyShellInteractionPolicy()
+        {
+            ShellView.AllowDoubleClick = viewModel.AllowDoubleClick;
+            ShellView.AllowKeyboard = viewModel.AllowKeyboard;
+            ShellView.AllowContextMenu = viewModel.AllowContextMenu;
+            ShellView.AllowShellDrop = viewModel.AllowDrop;
+            ShellView.AllowShellDragOut = viewModel.AllowDragOut;
+            ShellView.ApplyInteractionPolicy();
+        }
+
+        /// <summary>
+        /// Fond opaque de la fenêtre shell : teinte corps/en-tête personnalisée, sinon thème.
+        /// L'alpha Fences est ignorée (HwndHost exige une fenêtre non layered).
+        /// </summary>
+        private void ApplyShellWindowBackground()
+        {
+            if (!useShellView || viewModel == null)
+                return;
+
+            Background = viewModel.HasCustomBodyColor
+                ? viewModel.BodyBackgroundBrush
+                : viewModel.HeaderBackgroundBrush;
+            LayoutRoot.Background = Background;
+        }
+
+        /// <summary>
+        /// Corps WPF transparent (opacité inférieure à 100 % ou opt-out shell) : le bureau transparaît.
+        /// </summary>
+        private void ConfigureTransparentWpfBody()
+        {
+            viewModel.ForceOpaqueBody = false;
+            viewModel.BodyRenderedByShell = false;
+            AllowsTransparency = true;
+            Background = Brushes.Transparent;
+            // Ne pas poser de valeur locale sur LayoutRoot : le Style (UsesBodyTint) doit rester actif.
+            LayoutRoot.ClearValue(Border.BackgroundProperty);
+            WpfGridView.Visibility = Visibility.Visible;
+            ShellView.Visibility = Visibility.Collapsed;
+            WindowBackdrop.Apply(this);
+        }
+
+        /// <summary>
+        /// Met à jour teinte / politique sans recréer la fenêtre (le dialogue Éditer resterait
+        /// sinon fermé à chaque tick du curseur d'opacité).
+        /// </summary>
+        private void HookAppearanceChanges()
+        {
+            if (_appearanceHooked)
+                return;
+            viewModel.PropertyChanged += OnAppearancePropertyChanged;
+            _appearanceHooked = true;
+        }
+
+        private void UnhookAppearanceChanges()
+        {
+            if (!_appearanceHooked)
+                return;
+            viewModel.PropertyChanged -= OnAppearancePropertyChanged;
+            _appearanceHooked = false;
+        }
+
+        private void OnAppearancePropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName is nameof(FolderPortalViewModel.AllowDoubleClick)
+                or nameof(FolderPortalViewModel.AllowKeyboard)
+                or nameof(FolderPortalViewModel.AllowContextMenu)
+                or nameof(FolderPortalViewModel.AllowDrop)
+                or nameof(FolderPortalViewModel.AllowDragOut))
+            {
+                if (useShellView)
+                    ApplyShellInteractionPolicy();
+                return;
+            }
+
+            if (e.PropertyName is nameof(FolderPortalViewModel.BodyOpacity)
+                or nameof(FolderPortalViewModel.BodyColor)
+                or nameof(FolderPortalViewModel.BodyTintOpacity)
+                or nameof(FolderPortalViewModel.BodyTintBrush)
+                or nameof(FolderPortalViewModel.HeaderColor)
+                or nameof(FolderPortalViewModel.UsesBodyTint))
+            {
+                if (useShellView)
+                    ApplyShellWindowBackground();
+                else
+                    WindowBackdrop.Apply(this);
+            }
+        }
+
+        private void ShellView_EmptyBackgroundDoubleClick(bool control)
+        {
+            if (!viewModel.AllowDoubleClick)
+                return;
+            if (control)
+                viewModel.NavigateToRootCommand.Execute(null);
+            else
+                viewModel.OpenInExplorerCommand.Execute(null);
+        }
+
         private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            base.OnMouseLeftButtonDown(e);
+            if (e.ClickCount == 2)
+            {
+                if (IsHeaderInteractiveSource(e.OriginalSource as DependencyObject))
+                    return;
+
+                if (!viewModel.AllowDoubleClick)
+                {
+                    e.Handled = true;
+                    return;
+                }
+
+                if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+                    viewModel.NavigateToRootCommand.Execute(null);
+                else
+                    viewModel.OpenInExplorerCommand.Execute(null);
+                e.Handled = true;
+                return;
+            }
+
+            // Laisser boutons / filtre de la barre de chemin ; déplacer sur le reste de l'en-tête.
+            if (IsHeaderInteractiveSource(e.OriginalSource as DependencyObject))
+                return;
+
             try { DragMove(); }
             catch (System.InvalidOperationException) { /* le bouton gauche n'est plus enfoncé : sans effet */ }
+            e.Handled = true;
+        }
+
+        private static bool IsHeaderInteractiveSource(DependencyObject? source)
+        {
+            for (DependencyObject? current = source; current != null; current = VisualTreeHelper.GetParent(current))
+            {
+                if (current is System.Windows.Controls.Primitives.ButtonBase or TextBox or ComboBox)
+                    return true;
+                if (current is Window)
+                    return false;
+            }
+
+            return false;
         }
 
         private void Header_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
@@ -159,6 +522,7 @@ namespace Naultinus.View
                 cm.Placement = PlacementMode.Bottom;
                 cm.IsOpen = true;
             }
+
             e.Handled = true;
         }
 

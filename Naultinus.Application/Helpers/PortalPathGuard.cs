@@ -15,6 +15,10 @@ namespace Naultinus.Helpers
 
         internal static bool IsAllowed(string? rootPath, string? candidatePath)
         {
+            // Racine espace de noms shell (recherche, etc.) : pas de contrainte FS.
+            if (PortalFolderAccess.IsShellNamespacePath(rootPath))
+                return !string.IsNullOrWhiteSpace(candidatePath);
+
             Func<string, string?>? resolve = OperatingSystem.IsWindows()
                 ? ShellPathResolver.TryResolveFinal
                 : null;

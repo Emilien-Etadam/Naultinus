@@ -79,6 +79,9 @@ namespace Naultinus.Properties
         public static string CannotOpenFileFormat => ResourceManager.GetString(nameof(CannotOpenFileFormat)) ?? string.Empty;
         public static string FolderNotFoundFormat => ResourceManager.GetString(nameof(FolderNotFoundFormat)) ?? string.Empty;
         public static string AccessDeniedFormat => ResourceManager.GetString(nameof(AccessDeniedFormat)) ?? string.Empty;
+        public static string PortalFolderUnreachableFormat => ResourceManager.GetString(nameof(PortalFolderUnreachableFormat)) ?? string.Empty;
+        public static string PortalFolderGoneFormat => ResourceManager.GetString(nameof(PortalFolderGoneFormat)) ?? string.Empty;
+        public static string PortalNavigationFailedFormat => ResourceManager.GetString(nameof(PortalNavigationFailedFormat)) ?? string.Empty;
         public static string ErrorGenericFormat => ResourceManager.GetString(nameof(ErrorGenericFormat)) ?? string.Empty;
         public static string FileOperationFailedFormat => ResourceManager.GetString(nameof(FileOperationFailedFormat)) ?? string.Empty;
         public static string CopyVerb => ResourceManager.GetString(nameof(CopyVerb)) ?? string.Empty;
@@ -184,6 +187,23 @@ namespace Naultinus.Properties
         public static string LabelPassword => ResourceManager.GetString(nameof(LabelPassword)) ?? string.Empty;
         public static string LabelRootFolder => ResourceManager.GetString(nameof(LabelRootFolder)) ?? string.Empty;
         public static string LabelRootPath => ResourceManager.GetString(nameof(LabelRootPath)) ?? string.Empty;
+        public static string LabelPortalInteractions => ResourceManager.GetString(nameof(LabelPortalInteractions)) ?? string.Empty;
+        public static string LabelAllowDoubleClick => ResourceManager.GetString(nameof(LabelAllowDoubleClick)) ?? string.Empty;
+        public static string LabelAllowDragOut => ResourceManager.GetString(nameof(LabelAllowDragOut)) ?? string.Empty;
+        public static string LabelAllowDrop => ResourceManager.GetString(nameof(LabelAllowDrop)) ?? string.Empty;
+        public static string LabelAllowContextMenu => ResourceManager.GetString(nameof(LabelAllowContextMenu)) ?? string.Empty;
+        public static string LabelAllowKeyboard => ResourceManager.GetString(nameof(LabelAllowKeyboard)) ?? string.Empty;
+        public static string LabelHideShortcutOverlay => ResourceManager.GetString(nameof(LabelHideShortcutOverlay)) ?? string.Empty;
+        public static string LabelHideSyncOverlay => ResourceManager.GetString(nameof(LabelHideSyncOverlay)) ?? string.Empty;
+        public static string LabelAppearance => ResourceManager.GetString(nameof(LabelAppearance)) ?? string.Empty;
+        public static string LabelHeaderColor => ResourceManager.GetString(nameof(LabelHeaderColor)) ?? string.Empty;
+        public static string LabelBodyColor => ResourceManager.GetString(nameof(LabelBodyColor)) ?? string.Empty;
+        public static string LabelBodyOpacity => ResourceManager.GetString(nameof(LabelBodyOpacity)) ?? string.Empty;
+        public static string LabelTitleColor => ResourceManager.GetString(nameof(LabelTitleColor)) ?? string.Empty;
+        public static string LabelLabelsColor => ResourceManager.GetString(nameof(LabelLabelsColor)) ?? string.Empty;
+        public static string ButtonClearColor => ResourceManager.GetString(nameof(ButtonClearColor)) ?? string.Empty;
+        public static string ButtonResetAppearance => ResourceManager.GetString(nameof(ButtonResetAppearance)) ?? string.Empty;
+        public static string HintAppearanceShellOpaque => ResourceManager.GetString(nameof(HintAppearanceShellOpaque)) ?? string.Empty;
         public static string LabelStartDate => ResourceManager.GetString(nameof(LabelStartDate)) ?? string.Empty;
         public static string LabelStartTime => ResourceManager.GetString(nameof(LabelStartTime)) ?? string.Empty;
         public static string LabelSyncIntervalMinutes => ResourceManager.GetString(nameof(LabelSyncIntervalMinutes)) ?? string.Empty;
@@ -200,6 +220,7 @@ namespace Naultinus.Properties
         public static string ManageSnapshotsNaultinusCountFormat => ResourceManager.GetString(nameof(ManageSnapshotsNaultinusCountFormat)) ?? string.Empty;
         public static string MenuAbout => ResourceManager.GetString(nameof(MenuAbout)) ?? string.Empty;
         public static string MenuDelete => ResourceManager.GetString(nameof(MenuDelete)) ?? string.Empty;
+        public static string MenuHide => ResourceManager.GetString(nameof(MenuHide)) ?? string.Empty;
         public static string MenuDeleteSelection => ResourceManager.GetString(nameof(MenuDeleteSelection)) ?? string.Empty;
         public static string MenuEdit => ResourceManager.GetString(nameof(MenuEdit)) ?? string.Empty;
         public static string MenuLayouts => ResourceManager.GetString(nameof(MenuLayouts)) ?? string.Empty;
@@ -216,7 +237,15 @@ namespace Naultinus.Properties
         public static string MenuOpenWebmail => ResourceManager.GetString(nameof(MenuOpenWebmail)) ?? string.Empty;
         public static string MenuPaste => ResourceManager.GetString(nameof(MenuPaste)) ?? string.Empty;
         public static string MenuRefresh => ResourceManager.GetString(nameof(MenuRefresh)) ?? string.Empty;
+        public static string MenuView => ResourceManager.GetString(nameof(MenuView)) ?? string.Empty;
+        public static string MenuViewContent => ResourceManager.GetString(nameof(MenuViewContent)) ?? string.Empty;
+        public static string MenuViewDetails => ResourceManager.GetString(nameof(MenuViewDetails)) ?? string.Empty;
+        public static string MenuViewIcons => ResourceManager.GetString(nameof(MenuViewIcons)) ?? string.Empty;
+        public static string MenuViewList => ResourceManager.GetString(nameof(MenuViewList)) ?? string.Empty;
+        public static string MenuViewThumbnails => ResourceManager.GetString(nameof(MenuViewThumbnails)) ?? string.Empty;
+        public static string MenuViewTiles => ResourceManager.GetString(nameof(MenuViewTiles)) ?? string.Empty;
         public static string MenuSaveCurrentLayout => ResourceManager.GetString(nameof(MenuSaveCurrentLayout)) ?? string.Empty;
+        public static string MenuSort => ResourceManager.GetString(nameof(MenuSort)) ?? string.Empty;
         public static string MenuSortByDate => ResourceManager.GetString(nameof(MenuSortByDate)) ?? string.Empty;
 
         public static string MenuSortByName => ResourceManager.GetString(nameof(MenuSortByName)) ?? string.Empty;
@@ -241,6 +270,7 @@ namespace Naultinus.Properties
         public static string PortalGoUp => ResourceManager.GetString(nameof(PortalGoUp)) ?? string.Empty;
         public static string PortalHome => ResourceManager.GetString(nameof(PortalHome)) ?? string.Empty;
         public static string TooltipGoToRoot => ResourceManager.GetString(nameof(TooltipGoToRoot)) ?? string.Empty;
+        public static string TooltipPortalFilter => ResourceManager.GetString(nameof(TooltipPortalFilter)) ?? string.Empty;
         public static string TooltipImapHostExample => ResourceManager.GetString(nameof(TooltipImapHostExample)) ?? string.Empty;
         public static string TooltipMenu => ResourceManager.GetString(nameof(TooltipMenu)) ?? string.Empty;
         public static string TooltipNavigateBack => ResourceManager.GetString(nameof(TooltipNavigateBack)) ?? string.Empty;

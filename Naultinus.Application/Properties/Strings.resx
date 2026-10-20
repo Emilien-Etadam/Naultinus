@@ -223,6 +223,15 @@
   <data name="AccessDeniedFormat" xml:space="preserve">
     <value>Access denied: {0}</value>
   </data>
+  <data name="PortalFolderUnreachableFormat" xml:space="preserve">
+    <value>Folder unreachable (network or permissions): {0}</value>
+  </data>
+  <data name="PortalFolderGoneFormat" xml:space="preserve">
+    <value>Folder was deleted or renamed: {0}</value>
+  </data>
+  <data name="PortalNavigationFailedFormat" xml:space="preserve">
+    <value>Cannot open folder: {0}</value>
+  </data>
   <data name="ErrorGenericFormat" xml:space="preserve">
     <value>Error: {0}</value>
   </data>
@@ -538,6 +547,57 @@
   <data name="LabelRootPath" xml:space="preserve">
     <value>Root path</value>
   </data>
+  <data name="LabelPortalInteractions" xml:space="preserve">
+    <value>Interactions</value>
+  </data>
+  <data name="LabelAllowDoubleClick" xml:space="preserve">
+    <value>Allow double-click</value>
+  </data>
+  <data name="LabelAllowDragOut" xml:space="preserve">
+    <value>Allow drag out</value>
+  </data>
+  <data name="LabelAllowDrop" xml:space="preserve">
+    <value>Allow drop</value>
+  </data>
+  <data name="LabelAllowContextMenu" xml:space="preserve">
+    <value>Allow context menu</value>
+  </data>
+  <data name="LabelAllowKeyboard" xml:space="preserve">
+    <value>Allow keyboard in body</value>
+  </data>
+  <data name="LabelHideShortcutOverlay" xml:space="preserve">
+    <value>Hide shortcut arrow overlay (WPF grid)</value>
+  </data>
+  <data name="LabelHideSyncOverlay" xml:space="preserve">
+    <value>Hide sync overlays (WPF grid)</value>
+  </data>
+  <data name="LabelAppearance" xml:space="preserve">
+    <value>Appearance</value>
+  </data>
+  <data name="LabelHeaderColor" xml:space="preserve">
+    <value>Header color</value>
+  </data>
+  <data name="LabelBodyColor" xml:space="preserve">
+    <value>Background color</value>
+  </data>
+  <data name="LabelBodyOpacity" xml:space="preserve">
+    <value>Background opacity</value>
+  </data>
+  <data name="LabelTitleColor" xml:space="preserve">
+    <value>Title color</value>
+  </data>
+  <data name="LabelLabelsColor" xml:space="preserve">
+    <value>Labels color</value>
+  </data>
+  <data name="ButtonClearColor" xml:space="preserve">
+    <value>Clear color</value>
+  </data>
+  <data name="ButtonResetAppearance" xml:space="preserve">
+    <value>Reset to theme</value>
+  </data>
+  <data name="HintAppearanceShellOpaque" xml:space="preserve">
+    <value>Opacity below 100% uses the WPF body (wallpaper shows through). At 100%, browse naultinus can use the shell Explorer view (opaque host).</value>
+  </data>
   <data name="LabelStartDate" xml:space="preserve">
     <value>Start date</value>
   </data>
@@ -585,6 +645,9 @@
   </data>
   <data name="MenuDelete" xml:space="preserve">
     <value>Delete</value>
+  </data>
+  <data name="MenuHide" xml:space="preserve">
+    <value>Hide</value>
   </data>
   <data name="MenuDeleteSelection" xml:space="preserve">
     <value>Delete selection</value>
@@ -634,8 +697,32 @@
   <data name="MenuRefresh" xml:space="preserve">
     <value>Refresh</value>
   </data>
+  <data name="MenuView" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="MenuViewContent" xml:space="preserve">
+    <value>Content</value>
+  </data>
+  <data name="MenuViewDetails" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="MenuViewIcons" xml:space="preserve">
+    <value>Icons</value>
+  </data>
+  <data name="MenuViewList" xml:space="preserve">
+    <value>List</value>
+  </data>
+  <data name="MenuViewThumbnails" xml:space="preserve">
+    <value>Thumbnails</value>
+  </data>
+  <data name="MenuViewTiles" xml:space="preserve">
+    <value>Tiles</value>
+  </data>
   <data name="MenuSaveCurrentLayout" xml:space="preserve">
     <value>Save current layout…</value>
+  </data>
+  <data name="MenuSort" xml:space="preserve">
+    <value>Sort</value>
   </data>
   <data name="MenuSortByDate" xml:space="preserve">
     <value>Sort by date</value>
@@ -680,13 +767,16 @@
     <value>Force sync</value>
   </data>
   <data name="PortalGoUp" xml:space="preserve">
-    <value>Up one folder</value>
+    <value>Back</value>
   </data>
   <data name="PortalHome" xml:space="preserve">
     <value>Home</value>
   </data>
   <data name="TooltipGoToRoot" xml:space="preserve">
     <value>Go to root folder</value>
+  </data>
+  <data name="TooltipPortalFilter" xml:space="preserve">
+    <value>Filter items by name (Ctrl+F)</value>
   </data>
   <data name="TooltipImapHostExample" xml:space="preserve">
     <value>e.g. imap.example.com</value>
@@ -695,7 +785,7 @@
     <value>Menu</value>
   </data>
   <data name="TooltipNavigateBack" xml:space="preserve">
-    <value>Up one folder</value>
+    <value>Go back</value>
   </data>
   <data name="TooltipRefresh" xml:space="preserve">
     <value>Refresh</value>

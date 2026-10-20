@@ -1,13 +1,24 @@
 using System;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
+using Naultinus.ViewModel;
 
 namespace Naultinus.Helpers
 {
     public static class WindowBackdrop
     {
+        /// <summary>DWM_SYSTEMBACKDROP_TYPE : aucun matériau (bureau visible à travers une fenêtre layered).</summary>
+        private const int DwmSbtNone = 1;
+
+        /// <summary>DWM_SYSTEMBACKDROP_TYPE : Mica (DWMSBT_MAINWINDOW).</summary>
+        private const int DwmSbtMainWindow = 2;
+
+        private static readonly ConditionalWeakTable<Window, AppearanceSubscription> Subscriptions = new();
+
         public static readonly DependencyProperty IsEnabledProperty =
             DependencyProperty.RegisterAttached("IsEnabled", typeof(bool), typeof(WindowBackdrop),
                 new PropertyMetadata(false, OnIsEnabledChanged));
@@ -17,37 +28,80 @@ namespace Naultinus.Helpers
 
         private static void OnIsEnabledChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            if (d is Window window && (bool)e.NewValue)
+            if (d is not Window window)
+                return;
+
+            if ((bool)e.NewValue)
             {
+                window.DataContextChanged += OnDataContextChanged;
+                EnsureSubscription(window).Retarget(window.DataContext as INotifyPropertyChanged);
                 if (window.IsLoaded)
                     Apply(window);
                 else
-                    window.Loaded += (_, _) => Apply(window);
+                    window.Loaded += OnWindowLoaded;
+            }
+            else
+            {
+                window.DataContextChanged -= OnDataContextChanged;
+                window.Loaded -= OnWindowLoaded;
+                if (Subscriptions.TryGetValue(window, out AppearanceSubscription? sub))
+                    sub.Retarget(null);
             }
         }
 
-        private static void Apply(Window window)
+        private static void OnWindowLoaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is Window window)
+                Apply(window);
+        }
+
+        private static void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (sender is not Window window)
+                return;
+            EnsureSubscription(window).Retarget(e.NewValue as INotifyPropertyChanged);
+            if (window.IsLoaded)
+                Apply(window);
+        }
+
+        private static AppearanceSubscription EnsureSubscription(Window window)
+        {
+            if (Subscriptions.TryGetValue(window, out AppearanceSubscription? existing))
+                return existing;
+
+            var created = new AppearanceSubscription(window);
+            Subscriptions.Add(window, created);
+            return created;
+        }
+
+        /// <summary>
+        /// Applique Mica (thème) ou aucun backdrop (teinte transparente façon Fences).
+        /// Avec Mica, l'alpha WPF ne laisse voir que le matériau DWM — pas le papier peint.
+        /// </summary>
+        public static void Apply(Window window)
         {
             var hwnd = new WindowInteropHelper(window).Handle;
-            if (hwnd == IntPtr.Zero) return;
+            if (hwnd == IntPtr.Zero)
+                return;
 
-            // Le mode sombre du chrome DWM (attr. 20) est supporté dès Windows 10 1809.
             int useDark = IsSystemDarkMode() ? 1 : 0;
             TrySetAttribute(hwnd, 20, useDark, "dark-mode");
 
-            // Mica (attr. 38) et la préférence de coins (attr. 33) sont spécifiques à Windows 11
-            // (build >= 22000). Sous Windows 10 ces appels échouent en silence, et laisser le fond
-            // transparent rendrait la fenêtre illisible (aucun backdrop dessous). On ne rend donc la
-            // fenêtre transparente que là où Mica est réellement appliqué.
+            bool wallpaperTint = window.AllowsTransparency
+                && window.DataContext is ViewModelBase vm
+                && vm.UsesBodyTint;
+
             if (IsWindows11OrGreater())
             {
-                TrySetAttribute(hwnd, 38, 2, "mica");    // DWMSBT_MAINWINDOW
-                TrySetAttribute(hwnd, 33, 1, "corner");  // DWMWCP_DONOTROUND
-                window.Background = Brushes.Transparent;
+                int backdrop = wallpaperTint ? DwmSbtNone : DwmSbtMainWindow;
+                TrySetAttribute(hwnd, 38, backdrop, wallpaperTint ? "none" : "mica");
+                TrySetAttribute(hwnd, 33, 1, "corner");
             }
+
+            if (window.AllowsTransparency)
+                window.Background = Brushes.Transparent;
         }
 
-        // Applique un attribut DWM et journalise si l'appel échoue, au lieu d'ignorer le HRESULT.
         private static void TrySetAttribute(IntPtr hwnd, int attribute, int value, string label)
         {
             int hr = DwmSetWindowAttribute(hwnd, attribute, ref value, sizeof(int));
@@ -70,10 +124,47 @@ namespace Naultinus.Helpers
                 var val = key?.GetValue("AppsUseLightTheme");
                 return val is int i && i == 0;
             }
-            catch (Exception ex) { NaultinusDiagnostics.LogDebug("WindowBackdrop.IsSystemDarkMode", ex); return false; }
+            catch (Exception ex)
+            {
+                NaultinusDiagnostics.LogDebug("WindowBackdrop.IsSystemDarkMode", ex);
+                return false;
+            }
         }
 
         [DllImport("dwmapi.dll", PreserveSig = true)]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+
+        private sealed class AppearanceSubscription
+        {
+            private readonly Window _window;
+            private INotifyPropertyChanged? _source;
+
+            public AppearanceSubscription(Window window) => _window = window;
+
+            public void Retarget(INotifyPropertyChanged? next)
+            {
+                if (ReferenceEquals(_source, next))
+                    return;
+                if (_source != null)
+                    _source.PropertyChanged -= OnPropertyChanged;
+                _source = next;
+                if (_source != null)
+                    _source.PropertyChanged += OnPropertyChanged;
+            }
+
+            private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+            {
+                if (e.PropertyName is nameof(ViewModelBase.UsesBodyTint)
+                    or nameof(ViewModelBase.WantsTranslucentBody)
+                    or nameof(ViewModelBase.BodyOpacity)
+                    or nameof(ViewModelBase.BodyColor)
+                    or nameof(ViewModelBase.HeaderColor)
+                    or nameof(ViewModelBase.BodyTintOpacity)
+                    or nameof(ViewModelBase.BodyTintBrush))
+                {
+                    Apply(_window);
+                }
+            }
+        }
     }
 }
