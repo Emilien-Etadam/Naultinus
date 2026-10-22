@@ -37,5 +37,29 @@ namespace Naultinus.Tests.Services
             service.Dispose();
             service.Dispose();
         }
+
+        [Fact]
+        public async Task GetRecentUnreadSubjectsAsync_WithoutConnect_Throws()
+        {
+            using var service = new ImapMailService("imap.example.test", 993, "user", "pass");
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => service.GetRecentUnreadSubjectsAsync("INBOX", 5));
+            Assert.Contains("not connected", ex.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task GetFolderNamesAsync_WithoutConnect_Throws()
+        {
+            using var service = new ImapMailService("imap.example.test", 993, "user", "pass");
+            await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetFolderNamesAsync());
+        }
+
+        [Fact]
+        public void Disconnect_WhenNeverConnected_DoesNotThrow()
+        {
+            using var service = new ImapMailService("imap.example.test", 993, "user", "pass");
+            service.Disconnect();
+            Assert.False(service.IsConnected);
+        }
     }
 }

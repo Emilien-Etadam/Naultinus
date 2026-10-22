@@ -35,16 +35,9 @@ namespace Naultinus
                     using var reader = new StreamReader(stateFile);
                     var obj = SafeXml.Deserialize(ViewModelBase.SharedSerializer, reader);
                     if (obj is NaultinusModel legacy)
-                    {
-                        var concrete = NaultinusModelMigration.ToConcreteModel(legacy);
-                        if (concrete.SchemaVersion == 0) concrete.SchemaVersion = 1;
-                        loadedConcrete.Add(concrete);
-                    }
+                        loadedConcrete.Add(NaultinusModelMigration.ToConcreteModel(legacy));
                     else if (obj is NaultinusModelBase concrete)
-                    {
-                        if (concrete.SchemaVersion == 0) concrete.SchemaVersion = 1;
                         loadedConcrete.Add(concrete);
-                    }
                 }
                 catch (Exception ex)
                 {
@@ -52,15 +45,13 @@ namespace Naultinus
                 }
             }
 
-            var grouped = loadedConcrete.Where(m => !string.IsNullOrEmpty(m.GroupId) && !m.IsHidden).ToList();
-            var standalone = loadedConcrete.Where(m => string.IsNullOrEmpty(m.GroupId) && !m.IsHidden).ToList();
+            NaultinusLoadPlan plan = NaultinusLoadPlanner.Plan(loadedConcrete);
 
-            foreach (var g in grouped.GroupBy(m => m.GroupId!))
+            foreach (IReadOnlyList<NaultinusModelBase> ordered in plan.Groups)
             {
-                var groupId = g.Key;
-                var ordered = g.OrderBy(m => m.TabOrder).ToList();
+                string groupId = ordered[0].GroupId!;
                 var viewModels = new List<INaultinusViewModel>();
-                foreach (var concrete in ordered)
+                foreach (NaultinusModelBase concrete in ordered)
                 {
                     var vm = NaultinusFactory.CreateViewModel(concrete);
                     if (vm != null)
@@ -75,7 +66,7 @@ namespace Naultinus
                     naultinus[vm.Identifier] = tabbed;
             }
 
-            foreach (NaultinusModelBase concrete in standalone)
+            foreach (NaultinusModelBase concrete in plan.Standalone)
             {
                 var vm = NaultinusFactory.CreateViewModel(concrete);
                 if (vm == null) continue;

@@ -2,6 +2,7 @@ using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Search;
 using MailKit.Security;
+using Naultinus.Helpers;
 using Naultinus.Model;
 using System;
 using System.Collections.Generic;
@@ -109,7 +110,7 @@ namespace Naultinus.Services
             // Résolution par nom complet (GetFolderAsync), comme GetUnreadCountAsync : gère aussi bien
             // les dossiers racine (Junk, Archive…) que les sous-dossiers, contrairement à
             // Inbox.GetSubfolderAsync qui supposait à tort un sous-dossier d'INBOX.
-            IMailFolder folder = string.Equals(folderName, "INBOX", StringComparison.OrdinalIgnoreCase)
+            IMailFolder folder = ImapMailSummaries.IsInbox(folderName)
                 ? _client!.Inbox
                 : await _client!.GetFolderAsync(folderName).ConfigureAwait(false);
 
@@ -122,20 +123,15 @@ namespace Naultinus.Services
                 var take = Math.Min(maxCount, uids.Count);
                 var lastUids = uids.TakeLast(take).ToArray();
                 var summaries = await folder.FetchAsync(lastUids, MessageSummaryItems.Envelope | MessageSummaryItems.InternalDate).ConfigureAwait(false);
-                var result = new List<MailSummaryItem>();
-                foreach (var s in summaries.OrderByDescending(x => x.InternalDate))
+                var snippets = summaries.Select(s =>
                 {
                     var env = s.Envelope;
-                    var from = env?.From?.ToString() ?? "";
-                    if (from.Length > 50) from = string.Concat(from.AsSpan(0, 47), "...");
-                    result.Add(new MailSummaryItem
-                    {
-                        Sender = from,
-                        Subject = env?.Subject ?? "",
-                        Date = s.InternalDate?.DateTime ?? default
-                    });
-                }
-                return result;
+                    return new ImapEnvelopeSnippet(
+                        env?.From?.ToString(),
+                        env?.Subject,
+                        s.InternalDate?.DateTime ?? default);
+                });
+                return ImapMailSummaries.ToDisplayItems(snippets, maxCount);
             }
             finally
             {
