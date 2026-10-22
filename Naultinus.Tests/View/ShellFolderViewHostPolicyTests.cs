@@ -1,4 +1,5 @@
 using System;
+using Naultinus.Tests.Support;
 using Naultinus.View;
 using Xunit;
 
@@ -65,13 +66,17 @@ namespace Naultinus.Tests.View
         [Fact]
         public void InteractionDefaults_AllowShellGestures()
         {
-            var host = new ShellFolderViewHost();
-            Assert.True(host.AllowDoubleClick);
-            Assert.True(host.AllowKeyboard);
-            Assert.True(host.AllowContextMenu);
-            Assert.True(host.AllowShellDrop);
-            Assert.True(host.AllowShellDragOut);
-            Assert.False(host.IsAvailable);
+            // HwndHost exige un fil STA (xUnit tourne en MTA par défaut).
+            StaRunner.Run(() =>
+            {
+                var host = new ShellFolderViewHost();
+                Assert.True(host.AllowDoubleClick);
+                Assert.True(host.AllowKeyboard);
+                Assert.True(host.AllowContextMenu);
+                Assert.True(host.AllowShellDrop);
+                Assert.True(host.AllowShellDragOut);
+                Assert.False(host.IsAvailable);
+            });
         }
     }
 }
