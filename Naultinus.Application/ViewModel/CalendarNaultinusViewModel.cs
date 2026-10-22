@@ -1,6 +1,3 @@
-using Ical.Net;
-using Ical.Net.CalendarComponents;
-using Ical.Net.DataTypes;
 using Ical.Net.Serialization;
 using Naultinus;
 using Naultinus.Helpers;
@@ -233,24 +230,16 @@ namespace Naultinus.ViewModel
                 });
                 var start = VisibleStart.Date;
                 var end = start.AddDays(DaysToShow);
-                var allEvents = new List<Model.CalendarEvent>();
                 var colorsChanged = EnsureCalendarColors();
                 UpdateCalendarLegend();
-                for (var i = 0; i < _model.CalendarIds.Count; i++)
-                {
-                    var calId = _model.CalendarIds[i];
-                    var color = _model.CalendarColors[calId];
-                    var list = await _calendarService.GetEventsAsync(calId, start, end, color);
-                    allEvents.AddRange(list);
-                }
-
+                var ordered = await CalendarEventQuery.FetchVisibleAsync(
+                    _calendarService,
+                    _model.CalendarIds,
+                    _model.CalendarColors,
+                    start,
+                    end);
                 if (colorsChanged)
                     Save();
-                allEvents = allEvents.Where(e => e.DtEnd > start && e.DtStart < end).ToList();
-                var ordered = allEvents
-                    .OrderBy(e => AgendaAnchor.DisplayDay(e.DtStart, start))
-                    .ThenBy(e => e.DtStart)
-                    .ToList();
                 DecorateDayHeaders(ordered, start);
                 Dispatch(() => ShowEvents(ordered));
             }
@@ -676,25 +665,8 @@ namespace Naultinus.ViewModel
             }
 
             if (_model.CalendarIds == null || _model.CalendarIds.Count == 0) return;
-            var calendar = new Ical.Net.Calendar();
-            var dtStart = evt.IsAllDay
-                ? new CalDateTime(evt.DtStart.Year, evt.DtStart.Month, evt.DtStart.Day)
-                : new CalDateTime(evt.DtStart);
-            var dtEnd = evt.IsAllDay
-                ? new CalDateTime(evt.DtEnd.Year, evt.DtEnd.Month, evt.DtEnd.Day)
-                : new CalDateTime(evt.DtEnd);
-            var vevent = new Ical.Net.CalendarComponents.CalendarEvent
-            {
-                Uid = Guid.NewGuid().ToString(),
-                Summary = evt.Summary,
-                Description = evt.Description ?? "",
-                Location = evt.Location ?? "",
-                DtStart = dtStart,
-                DtEnd = dtEnd
-            };
-            calendar.Events.Add(vevent);
-            var icalData = _calendarSerializer.SerializeToString(calendar);
-            await _calendarService.CreateEventAsync(_model.CalendarIds[0], icalData ?? "");
+            var icalData = CalendarEventIcs.BuildNewEvent(evt, _calendarSerializer);
+            await _calendarService.CreateEventAsync(_model.CalendarIds[0], icalData);
         }
 
         public ICommand PreviousDayCommand { get; }

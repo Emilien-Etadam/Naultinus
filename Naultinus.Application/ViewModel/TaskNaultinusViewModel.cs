@@ -397,19 +397,15 @@ namespace Naultinus.ViewModel
 
             try
             {
-                var listId = GetListIdForTask(task);
-                task.LastModified = DateTime.Now;
-                var createdTask = await _caldavService.CreateTaskAsync(listId, task);
-                task.CalDAVId = createdTask.CalDAVId;
-                task.CalDAVEtag = createdTask.CalDAVEtag;
-                if (!string.IsNullOrEmpty(createdTask.Uid))
-                    task.Uid = createdTask.Uid;
+                var error = await TaskCalDavMutations.TryCreateAsync(_caldavService, GetListIdForTask(task), task);
+                if (error != null)
+                {
+                    ErrorMessage = error;
+                    return;
+                }
+
                 ErrorMessage = string.Empty;
                 SyncStatus = Strings.TaskSavedSuccess;
-            }
-            catch (Exception ex)
-            {
-                ErrorMessage = string.Format(CultureInfo.CurrentCulture, Strings.TaskSaveFailedFormat, ex.Message);
             }
             finally
             {
@@ -475,32 +471,12 @@ namespace Naultinus.ViewModel
         /// </summary>
         private async Task ApplyRemoteTaskEditAsync(CalDAVTask task, StoredLocalTask edited)
         {
-            var previousTitle = task.Title;
-            var previousDescription = task.Description;
-            var previousDue = task.DueDate;
-            var previousModified = task.LastModified;
-
-            task.Title = edited.Title ?? string.Empty;
-            task.Description = edited.Description ?? string.Empty;
-            task.DueDate = edited.DueDate;
-            task.LastModified = edited.LastModified == default ? DateTime.Now : edited.LastModified;
-
-            if (string.IsNullOrEmpty(task.CalDAVId))
-                return;
-
-            try
-            {
-                await _caldavService.UpdateTaskAsync(GetListIdForTask(task), task);
-                ErrorMessage = string.Empty;
-            }
-            catch (Exception ex)
-            {
-                task.Title = previousTitle;
-                task.Description = previousDescription;
-                task.DueDate = previousDue;
-                task.LastModified = previousModified;
-                ErrorMessage = string.Format(CultureInfo.CurrentCulture, Strings.TaskUpdateFailedFormat, ex.Message);
-            }
+            var error = await TaskCalDavMutations.TryApplyEditAsync(
+                _caldavService,
+                GetListIdForTask(task),
+                task,
+                edited);
+            ErrorMessage = error ?? string.Empty;
         }
 
         private void DeleteLocalTask(CalDAVTask task)

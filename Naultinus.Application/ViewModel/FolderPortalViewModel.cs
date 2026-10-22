@@ -886,49 +886,19 @@ namespace Naultinus.ViewModel
                 return;
             }
 
-            if (dropInfo.Data is DataObject dataObject && dataObject.GetDataPresent(DataFormats.FileDrop))
-            {
-                bool isCopy = PortalDragDropKeys.IsCopy(dropInfo.KeyStates);
-                dropInfo.Effects = isCopy ? DragDropEffects.Copy : DragDropEffects.Move;
-                dropInfo.DropTargetAdorner = DropTargetAdorners.Highlight;
-                return;
-            }
-            if (dropInfo.Data is IDataObject iDataObject && iDataObject.GetDataPresent(DataFormats.FileDrop))
-            {
-                bool isCopy = PortalDragDropKeys.IsCopy(dropInfo.KeyStates);
-                dropInfo.Effects = isCopy ? DragDropEffects.Copy : DragDropEffects.Move;
-                dropInfo.DropTargetAdorner = DropTargetAdorners.Highlight;
-                return;
-            }
-            if (dropInfo.Data is FolderPortalItem)
-            {
-                bool isCopy = PortalDragDropKeys.IsCopy(dropInfo.KeyStates);
-                dropInfo.Effects = isCopy ? DragDropEffects.Copy : DragDropEffects.Move;
-                dropInfo.DropTargetAdorner = DropTargetAdorners.Highlight;
-            }
+            if (PortalDropPayload.LooksLikeFileDrop(dropInfo.Data))
+                PortalDropPayload.ApplyFileDropEffects(dropInfo);
         }
 
         public void Drop(IDropInfo dropInfo)
         {
             if (!AllowDrop)
                 return;
-
-            string[]? files = null;
-            if (dropInfo.Data is DataObject dataObject && dataObject.GetDataPresent(DataFormats.FileDrop))
-                files = dataObject.GetData(DataFormats.FileDrop) as string[];
-            else if (dropInfo.Data is IDataObject iDataObject && iDataObject.GetDataPresent(DataFormats.FileDrop))
-                files = iDataObject.GetData(DataFormats.FileDrop) as string[];
-            else if (dropInfo.Data is FolderPortalItem item && !string.IsNullOrEmpty(item.FullPath))
-                files = new[] { item.FullPath };
-
-            if (files == null || files.Length == 0)
+            if (!PortalDropPayload.TryGetPaths(dropInfo.Data, out var files))
                 return;
 
             bool isCopy = PortalDragDropKeys.IsCopy(dropInfo.KeyStates);
-            string? intoFolder = dropInfo.TargetItem is FolderPortalItem folder && folder.IsDirectory
-                ? folder.FullPath
-                : null;
-            ImportFileSystemPaths(files, isCopy, intoFolder);
+            ImportFileSystemPaths(files, isCopy, PortalDropPayload.TargetDirectory(dropInfo));
         }
 
         public void ImportExplorerFileDrop(string[] files, bool isCopy, string? targetDirectory = null)
@@ -941,54 +911,11 @@ namespace Naultinus.ViewModel
         private void ImportFileSystemPaths(string[] files, bool isCopy, string? targetDirectory = null)
         {
             string targetDir = string.IsNullOrEmpty(targetDirectory) ? CurrentPath : targetDirectory;
-            if (string.IsNullOrEmpty(targetDir) || !Directory.Exists(targetDir) || !PortalPathGuard.IsAllowed(RootPath, targetDir))
-                return;
-
-            foreach (string sourcePath in files)
-            {
-                try
-                {
-                    string fileName = Path.GetFileName(sourcePath);
-                    string destPath = Path.Combine(targetDir, fileName);
-
-                    if (string.Equals(sourcePath, destPath, StringComparison.OrdinalIgnoreCase))
-                        continue;
-
-                    if (File.Exists(destPath) || Directory.Exists(destPath))
-                    {
-                        string nameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
-                        string ext = Path.GetExtension(fileName);
-                        int counter = 1;
-                        do
-                        {
-                            destPath = Path.Combine(targetDir, $"{nameWithoutExt} ({counter}){ext}");
-                            counter++;
-                        }
-                        while (File.Exists(destPath) || Directory.Exists(destPath));
-                    }
-
-                    if (Directory.Exists(sourcePath))
-                    {
-                        if (isCopy)
-                            AppPaths.CopyDirectory(sourcePath, destPath);
-                        else
-                            Directory.Move(sourcePath, destPath);
-                    }
-                    else if (File.Exists(sourcePath))
-                    {
-                        if (isCopy)
-                            File.Copy(sourcePath, destPath);
-                        else
-                            File.Move(sourcePath, destPath);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    ErrorMessage = string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.FileOperationFailedFormat, isCopy ? Strings.CopyVerb : Strings.MoveVerb, Path.GetFileName(sourcePath), ex.Message);
-                }
-            }
-
-            if (!string.IsNullOrEmpty(CurrentPath)) LoadFolder(CurrentPath);
+            string? error = PortalFileTransfer.TryImport(RootPath, targetDir, files, isCopy);
+            if (error != null)
+                ErrorMessage = error;
+            if (!string.IsNullOrEmpty(CurrentPath))
+                LoadFolder(CurrentPath);
         }
 
         #endregion
