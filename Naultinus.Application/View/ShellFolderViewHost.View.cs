@@ -402,7 +402,7 @@ namespace Naultinus.View
             try
             {
                 Guid iid = typeof(T).GUID;
-                int hr = Marshal.QueryInterface(unknown, ref iid, out IntPtr pointer);
+                int hr = Marshal.QueryInterface(unknown, in iid, out IntPtr pointer);
                 if (hr != 0 || pointer == IntPtr.Zero)
                     return false;
 

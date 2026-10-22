@@ -19,6 +19,7 @@ namespace Naultinus.Tests.Helpers
         {
             if (Directory.Exists(_tempDir))
                 Directory.Delete(_tempDir, recursive: true);
+            GC.SuppressFinalize(this);
         }
 
         #region IsUnderDesktop

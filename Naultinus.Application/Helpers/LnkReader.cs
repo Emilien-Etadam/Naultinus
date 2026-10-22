@@ -57,7 +57,7 @@ namespace Naultinus.Helpers
         private static string? ReadNullTerminatedString(BinaryReader br, Encoding encoding)
         {
             var bytes = new List<byte>();
-            for (; ; )
+            while (true)
             {
                 if (encoding == Encoding.Unicode)
                 {

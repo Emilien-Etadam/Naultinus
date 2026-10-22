@@ -78,10 +78,56 @@ dotnet_diagnostic.SA1305.severity = none
 # Champs publics de structs Win32 / P/Invoke (left, top, SHGFI_*…) : convention native.
 dotnet_diagnostic.SA1307.severity = none
 dotnet_diagnostic.SA1310.severity = none
+dotnet_diagnostic.SA1311.severity = none
+dotnet_diagnostic.SA1306.severity = none
 
 # Sérialisation XML : SafeXml obligatoire (prod + tests).
 dotnet_diagnostic.CA5369.severity = error
 
+# --- Bruit restant (audit qualité) : conventions assumées / interop Win32 ---
+# Ordonnancement des membres (static / readonly / constants) : non suivi.
+dotnet_diagnostic.SA1203.severity = none
+dotnet_diagnostic.SA1204.severity = none
+dotnet_diagnostic.SA1206.severity = none
+dotnet_diagnostic.SA1214.severity = none
+# Un type par fichier / visibilité : helpers et RelayCommand partagent des fichiers.
+dotnet_diagnostic.SA1401.severity = none
+dotnet_diagnostic.SA1402.severity = none
+dotnet_diagnostic.SA1403.severity = none
+dotnet_diagnostic.SA1407.severity = none
+# Mise en page / paramètres multi-lignes / blancs.
+dotnet_diagnostic.SA1028.severity = none
+dotnet_diagnostic.SA1106.severity = none
+dotnet_diagnostic.SA1108.severity = none
+dotnet_diagnostic.SA1111.severity = none
+dotnet_diagnostic.SA1116.severity = none
+dotnet_diagnostic.SA1118.severity = none
+dotnet_diagnostic.SA1119.severity = none
+dotnet_diagnostic.SA1127.severity = none
+dotnet_diagnostic.SA1129.severity = none
+dotnet_diagnostic.SA1132.severity = none
+dotnet_diagnostic.SA1133.severity = none
+dotnet_diagnostic.SA1411.severity = none
+dotnet_diagnostic.SA1505.severity = none
+dotnet_diagnostic.SA1507.severity = none
+dotnet_diagnostic.SA1508.severity = none
+dotnet_diagnostic.SA1519.severity = none
+dotnet_diagnostic.SA1520.severity = none
+dotnet_diagnostic.SA1649.severity = none
+dotnet_diagnostic.SA0001.severity = none
+# Micro-opts et culture : UI FR volontairement locale ; logs / hex non critiques.
+dotnet_diagnostic.CA1305.severity = none
+dotnet_diagnostic.CA1822.severity = none
+dotnet_diagnostic.CA1838.severity = none
+dotnet_diagnostic.CA1861.severity = none
+dotnet_diagnostic.CA1863.severity = none
+dotnet_diagnostic.CA1051.severity = none
+# Interop COM / P/Invoke historique (DllImport, ComImport) : pas de migration Generated*.
+dotnet_diagnostic.SYSLIB1054.severity = none
+dotnet_diagnostic.SYSLIB1096.severity = none
+
 [Naultinus.Tests/**.cs]
 # Noms de tests xUnit avec underscores : convention usuelle, pas une dette de prod.
 dotnet_diagnostic.CA1707.severity = none
+# Assert.Single utilisé pour le compte, puis index : style de test courant.
+dotnet_diagnostic.xUnit2033.severity = none

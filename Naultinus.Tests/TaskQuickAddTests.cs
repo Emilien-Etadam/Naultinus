@@ -196,7 +196,7 @@ namespace Naultinus.Tests
         private static Visibility SaveButtonVisibility(string calDavId)
         {
             var converter = new InverseEmptyStringToVisibilityConverter();
-            return (Visibility)converter.Convert(calDavId, typeof(Visibility), null, System.Globalization.CultureInfo.InvariantCulture);
+            return (Visibility)converter.Convert(calDavId, typeof(Visibility), null!, System.Globalization.CultureInfo.InvariantCulture);
         }
 
         private static Scope NewScope(bool remote)

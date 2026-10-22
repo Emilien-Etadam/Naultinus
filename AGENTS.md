@@ -37,7 +37,13 @@ dotnet test Naultinus.Tests/Naultinus.Tests.csproj -p:EnableWindowsTargeting=tru
 
 ### Lint / static analysis
 
-StyleCop.Analyzers is included as a build-time dependency. Analyzer warnings are emitted during `dotnet build`. There is no separate lint command — the build output IS the lint output. CA5369 (XML unsafe deserialize) is treated as **error** ; prod et tests passent par `SafeXml`. CA1707 est désactivé sur `Naultinus.Tests`. Les autres warnings StyleCop/CA restants sont surtout du bruit de conventions (SA12xx, CA1863, etc.).
+StyleCop.Analyzers is included as a build-time dependency. Analyzer warnings are emitted during `dotnet build`. There is no separate lint command — the build output IS the lint output.
+
+Signal conservé :
+- **CA5369** = error (XML unsafe) ; prod et tests passent par `SafeXml`
+- conventions de nommage SA13xx importantes restent en error (voir `.editorconfig`)
+
+Bruit volontairement coupé dans `.editorconfig` : ordonnancement StyleCop, un-type-par-fichier, micro-opts CA186x/CA1305, modernisation P/Invoke SYSLIB1054/1096, CA1707 et xUnit2033 sur les tests. Objectif : un build quasi silencieux pour que tout nouveau warning soit digne d’attention.
 
 ### Running the application
 
