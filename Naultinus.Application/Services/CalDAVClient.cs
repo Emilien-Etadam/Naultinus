@@ -249,6 +249,24 @@ namespace Naultinus.Services
         }
 
         /// <summary>
+        /// Extrait les ressources multistatus qui portent un <c>calendar-data</c> (tâches / événements).
+        /// </summary>
+        public static IEnumerable<(string Href, string Etag, string CalendarData)> EnumerateCalendarData(XDocument doc)
+        {
+            foreach (var (href, props, _) in ParseMultistatus(doc))
+            {
+                if (string.IsNullOrEmpty(href))
+                    continue;
+                if (!props.TryGetValue("getetag", out var etag))
+                    etag = "";
+                etag = etag.Trim('"');
+                if (!props.TryGetValue("calendar-data", out var calendarData) || string.IsNullOrWhiteSpace(calendarData))
+                    continue;
+                yield return (href, etag, calendarData);
+            }
+        }
+
+        /// <summary>
         /// Parse une réponse multistatus WebDAV et retourne la liste des responses avec href, propriétés (200) et status.
         /// </summary>
         public static List<(string Href, Dictionary<string, string> Props, string? Status)> ParseMultistatus(XDocument doc)

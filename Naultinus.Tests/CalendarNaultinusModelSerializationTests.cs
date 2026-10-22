@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Xml.Serialization;
+using Naultinus.Helpers;
 using Naultinus.Model;
 using Naultinus.ViewModel;
 using Xunit;
@@ -38,7 +39,7 @@ namespace Naultinus.Tests
             var xml = writer.ToString();
 
             using var reader = new StringReader(xml);
-            var deserialized = (CalendarNaultinusModel)serializer.Deserialize(reader)!;
+            var deserialized = (CalendarNaultinusModel)SafeXml.Deserialize(serializer, reader)!;
 
             Assert.Equal(model.Name, deserialized.Name);
             Assert.Equal(model.CalDAVBaseUrl, deserialized.CalDAVBaseUrl);
@@ -68,7 +69,7 @@ namespace Naultinus.Tests
             serializer.Serialize(writer, model);
 
             using var reader = new StringReader(writer.ToString());
-            var deserialized = (CalendarNaultinusModel)serializer.Deserialize(reader)!;
+            var deserialized = (CalendarNaultinusModel)SafeXml.Deserialize(serializer, reader)!;
 
             Assert.NotNull(deserialized.CalendarIds);
             Assert.Empty(deserialized.CalendarIds);
@@ -95,7 +96,7 @@ namespace Naultinus.Tests
             var xml = writer.ToString();
 
             using var reader = new StringReader(xml);
-            var deserialized = (CalendarNaultinusModel)ViewModelBase.SharedSerializer.Deserialize(reader)!;
+            var deserialized = (CalendarNaultinusModel)SafeXml.Deserialize(ViewModelBase.SharedSerializer, reader)!;
 
             Assert.Equal(model.Name, deserialized.Name);
             Assert.Equal(model.CalendarIds.Count, deserialized.CalendarIds.Count);
@@ -125,7 +126,7 @@ namespace Naultinus.Tests
             serializer.Serialize(writer, model);
 
             using var reader = new StringReader(writer.ToString());
-            var deserialized = (TaskNaultinusModel)serializer.Deserialize(reader)!;
+            var deserialized = (TaskNaultinusModel)SafeXml.Deserialize(serializer, reader)!;
 
             Assert.Equal(model.Name, deserialized.Name);
             Assert.Equal(model.CalDAVUrl, deserialized.CalDAVUrl);
@@ -157,7 +158,7 @@ namespace Naultinus.Tests
             var xml = writer.ToString();
 
             using var reader = new StringReader(xml);
-            var deserialized = (StandardNaultinusModel)ViewModelBase.SharedSerializer.Deserialize(reader)!;
+            var deserialized = (StandardNaultinusModel)SafeXml.Deserialize(ViewModelBase.SharedSerializer, reader)!;
 
             Assert.Equal(model.Name, deserialized.Name);
             Assert.Equal(2, deserialized.Shortcuts.Count);

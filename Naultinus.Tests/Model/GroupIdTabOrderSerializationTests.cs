@@ -1,9 +1,10 @@
 using System.IO;
+using Naultinus.Helpers;
 using Naultinus.Model;
 using Naultinus.ViewModel;
 using Xunit;
 
-namespace Naultinus.Tests.Models
+namespace Naultinus.Tests.Model
 {
     public class GroupIdTabOrderSerializationTests
     {
@@ -14,7 +15,7 @@ namespace Naultinus.Tests.Models
             using var writer = new StringWriter();
             ViewModelBase.SharedSerializer.Serialize(writer, model);
             using var reader = new StringReader(writer.ToString());
-            var d = (StandardNaultinusModel)ViewModelBase.SharedSerializer.Deserialize(reader)!;
+            var d = (StandardNaultinusModel)SafeXml.Deserialize(ViewModelBase.SharedSerializer, reader)!;
             Assert.Equal("group-abc", d.GroupId);
             Assert.Equal(2, d.TabOrder);
         }
@@ -26,7 +27,7 @@ namespace Naultinus.Tests.Models
             using var writer = new StringWriter();
             ViewModelBase.SharedSerializer.Serialize(writer, model);
             using var reader = new StringReader(writer.ToString());
-            var d = (StandardNaultinusModel)ViewModelBase.SharedSerializer.Deserialize(reader)!;
+            var d = (StandardNaultinusModel)SafeXml.Deserialize(ViewModelBase.SharedSerializer, reader)!;
             Assert.Null(d.GroupId);
             Assert.Equal(0, d.TabOrder);
         }

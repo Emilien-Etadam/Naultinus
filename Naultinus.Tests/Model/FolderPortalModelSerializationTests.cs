@@ -1,9 +1,10 @@
 using System.IO;
+using Naultinus.Helpers;
 using Naultinus.Model;
 using Naultinus.ViewModel;
 using Xunit;
 
-namespace Naultinus.Tests.Models
+namespace Naultinus.Tests.Model
 {
     public class FolderPortalModelSerializationTests
     {
@@ -27,7 +28,7 @@ namespace Naultinus.Tests.Models
             using var writer = new StringWriter();
             ViewModelBase.SharedSerializer.Serialize(writer, model);
             using var reader = new StringReader(writer.ToString());
-            var d = (FolderPortalModel)ViewModelBase.SharedSerializer.Deserialize(reader)!;
+            var d = (FolderPortalModel)SafeXml.Deserialize(ViewModelBase.SharedSerializer, reader)!;
 
             Assert.Equal(model.Name, d.Name);
             Assert.Equal(model.RootPath, d.RootPath);

@@ -1,7 +1,7 @@
 using Naultinus.Model;
 using Xunit;
 
-namespace Naultinus.Tests.Models
+namespace Naultinus.Tests.Model
 {
     public class NaultinusModelMigrationTests
     {

@@ -30,6 +30,21 @@ jobs:
           $v = "${{ github.ref_name }}" -replace '^v',''
           echo "clean=$v" >> $env:GITHUB_OUTPUT
 
+      - name: Restore dependencies
+        run: dotnet restore Naultinus.sln
+
+      - name: Check NuGet vulnerabilities
+        shell: pwsh
+        run: |
+          $out = dotnet list Naultinus.sln package --vulnerable --include-transitive 2>&1 | Out-String
+          Write-Host $out
+          if ($out -match '(?i)Severity\s+Advisory|has the following vulnerable') {
+            if ($out -match '(?i)\b(Critical|High)\b') {
+              throw 'Vulnerable NuGet packages with Critical/High severity detected.'
+            }
+            Write-Warning 'Vulnerable packages reported (Moderate/Low) — review advisory output above.'
+          }
+
       - name: Publish
         run: >
           dotnet publish Naultinus.Application/Naultinus.Application.csproj
@@ -38,6 +53,7 @@ jobs:
           -p:IncludeNativeLibrariesForSelfExtract=true
           -p:Version=${{ steps.version.outputs.clean }}
           -o ./publish
+          --no-restore
 
       - name: Zip portable
         shell: pwsh

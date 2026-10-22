@@ -13,7 +13,7 @@ dotnet restore Naultinus.sln -p:EnableWindowsTargeting=true
 dotnet build Naultinus.sln -p:EnableWindowsTargeting=true
 ```
 
-The `-p:EnableWindowsTargeting=true` flag is **required on Linux** for both restore and build. The main application csproj already sets this property, but the test project (`Naultinus.Tests`) does not, so the CLI property is needed for the solution-level commands.
+The `-p:EnableWindowsTargeting=true` flag is **required on Linux** for solution-level restore/build if a project omits the property. Both `Naultinus.Application` and `Naultinus.Tests` set it in their csproj ; le garder en CLI reste inoffensif.
 
 ### Local toolchain (WSL)
 
@@ -37,7 +37,7 @@ dotnet test Naultinus.Tests/Naultinus.Tests.csproj -p:EnableWindowsTargeting=tru
 
 ### Lint / static analysis
 
-StyleCop.Analyzers is included as a build-time dependency. Analyzer warnings are emitted during `dotnet build`. There is no separate lint command — the build output IS the lint output. Expect ~1750 analyzer warnings (mostly CA1707 naming conventions in tests and CA5369 in serialization code); these are pre-existing.
+StyleCop.Analyzers is included as a build-time dependency. Analyzer warnings are emitted during `dotnet build`. There is no separate lint command — the build output IS the lint output. CA5369 (XML unsafe deserialize) is treated as **error** ; prod et tests passent par `SafeXml`. CA1707 est désactivé sur `Naultinus.Tests`. Les autres warnings StyleCop/CA restants sont surtout du bruit de conventions (SA12xx, CA1863, etc.).
 
 ### Running the application
 

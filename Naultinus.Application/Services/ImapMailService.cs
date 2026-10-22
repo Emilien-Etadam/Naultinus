@@ -2,7 +2,6 @@ using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Search;
 using MailKit.Security;
-using MimeKit;
 using Naultinus.Model;
 using System;
 using System.Collections.Generic;

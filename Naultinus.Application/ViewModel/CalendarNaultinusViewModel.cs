@@ -590,7 +590,7 @@ namespace Naultinus.ViewModel
             if (string.IsNullOrWhiteSpace(label))
                 label = "—";
             var message = string.Format(CultureInfo.CurrentCulture, Strings.DeleteEventConfirmFormat, label);
-            if (MessageBox.Show(message, Strings.ConfirmTitle, MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+            if (!UserDialogs.ConfirmYesNo(message, Strings.ConfirmTitle))
                 return;
 
             if (!IsRemote)

@@ -401,8 +401,7 @@ namespace Naultinus.ViewModel
         public ICommand RestoreSnapshotCommand { get; } = new RelayCommand<string>(id =>
         {
             if (string.IsNullOrEmpty(id)) return;
-            if (System.Windows.MessageBox.Show(Strings.RestoreLayoutConfirm, Strings.RestoreLayoutTitle,
-                    System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question) != System.Windows.MessageBoxResult.Yes)
+            if (!UserDialogs.ConfirmYesNo(Strings.RestoreLayoutConfirm, Strings.RestoreLayoutTitle))
                 return;
             LayoutSnapshotService.RestoreSnapshot(id);
         });

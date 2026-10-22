@@ -102,16 +102,8 @@ namespace Naultinus.Services
 
         private static void ParseEventsFromMultistatus(XDocument xdoc, string calendarId, string calendarName, string defaultColorHex, List<Model.CalendarEvent> events)
         {
-            var responses = CalDAVClient.ParseMultistatus(xdoc);
-            foreach (var (href, props, _) in responses)
+            foreach (var (href, etag, calendarData) in CalDAVClient.EnumerateCalendarData(xdoc))
             {
-                if (string.IsNullOrEmpty(href))
-                    continue;
-                if (!props.TryGetValue("getetag", out var etag))
-                    etag = "";
-                etag = etag.Trim('"');
-                if (!props.TryGetValue("calendar-data", out var calendarData) || string.IsNullOrWhiteSpace(calendarData))
-                    continue;
                 try
                 {
                     var calendar = Ical.Net.Calendar.Load(calendarData);

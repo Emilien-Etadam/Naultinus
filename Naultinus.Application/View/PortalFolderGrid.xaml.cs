@@ -160,7 +160,7 @@ namespace Naultinus.View
                 return;
             }
 
-            bool isCopy = (e.KeyStates & DragDropKeyStates.ControlKey) != 0;
+            bool isCopy = PortalDragDropKeys.IsCopy(e.KeyStates);
             e.Effects = isCopy ? DragDropEffects.Copy : DragDropEffects.Move;
             e.Handled = true;
         }
@@ -178,7 +178,7 @@ namespace Naultinus.View
             if (e.Data.GetData(DataFormats.FileDrop) is not string[] files || files.Length == 0)
                 return;
 
-            bool isCopy = (e.KeyStates & DragDropKeyStates.ControlKey) != 0;
+            bool isCopy = PortalDragDropKeys.IsCopy(e.KeyStates);
             FolderPortalItem? over = FindItem(e.OriginalSource as DependencyObject);
             string? into = over is { IsDirectory: true } ? over.FullPath : null;
             portal.ImportExplorerFileDrop(files, isCopy, into);

@@ -888,21 +888,21 @@ namespace Naultinus.ViewModel
 
             if (dropInfo.Data is DataObject dataObject && dataObject.GetDataPresent(DataFormats.FileDrop))
             {
-                bool isCopy = (dropInfo.KeyStates & DragDropKeyStates.ControlKey) != 0;
+                bool isCopy = PortalDragDropKeys.IsCopy(dropInfo.KeyStates);
                 dropInfo.Effects = isCopy ? DragDropEffects.Copy : DragDropEffects.Move;
                 dropInfo.DropTargetAdorner = DropTargetAdorners.Highlight;
                 return;
             }
             if (dropInfo.Data is IDataObject iDataObject && iDataObject.GetDataPresent(DataFormats.FileDrop))
             {
-                bool isCopy = (dropInfo.KeyStates & DragDropKeyStates.ControlKey) != 0;
+                bool isCopy = PortalDragDropKeys.IsCopy(dropInfo.KeyStates);
                 dropInfo.Effects = isCopy ? DragDropEffects.Copy : DragDropEffects.Move;
                 dropInfo.DropTargetAdorner = DropTargetAdorners.Highlight;
                 return;
             }
             if (dropInfo.Data is FolderPortalItem)
             {
-                bool isCopy = (dropInfo.KeyStates & DragDropKeyStates.ControlKey) != 0;
+                bool isCopy = PortalDragDropKeys.IsCopy(dropInfo.KeyStates);
                 dropInfo.Effects = isCopy ? DragDropEffects.Copy : DragDropEffects.Move;
                 dropInfo.DropTargetAdorner = DropTargetAdorners.Highlight;
             }
@@ -924,7 +924,7 @@ namespace Naultinus.ViewModel
             if (files == null || files.Length == 0)
                 return;
 
-            bool isCopy = (dropInfo.KeyStates & DragDropKeyStates.ControlKey) != 0;
+            bool isCopy = PortalDragDropKeys.IsCopy(dropInfo.KeyStates);
             string? intoFolder = dropInfo.TargetItem is FolderPortalItem folder && folder.IsDirectory
                 ? folder.FullPath
                 : null;

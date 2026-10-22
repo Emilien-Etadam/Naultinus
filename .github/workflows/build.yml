@@ -27,10 +27,22 @@ jobs:
           restore-keys: nuget-
 
       - name: Restore dependencies
-        run: dotnet restore Naultinus.Application/Naultinus.Application.csproj
+        run: dotnet restore Naultinus.sln
+
+      - name: Check NuGet vulnerabilities
+        shell: pwsh
+        run: |
+          $out = dotnet list Naultinus.sln package --vulnerable --include-transitive 2>&1 | Out-String
+          Write-Host $out
+          if ($out -match '(?i)Severity\s+Advisory|has the following vulnerable') {
+            if ($out -match '(?i)\b(Critical|High)\b') {
+              throw 'Vulnerable NuGet packages with Critical/High severity detected.'
+            }
+            Write-Warning 'Vulnerable packages reported (Moderate/Low) — review advisory output above.'
+          }
 
       - name: Run tests
-        run: dotnet test Naultinus.Tests/Naultinus.Tests.csproj -c Debug
+        run: dotnet test Naultinus.Tests/Naultinus.Tests.csproj -c Debug --no-restore
 
       - name: Build (Release)
         run: dotnet build Naultinus.Application/Naultinus.Application.csproj -c Release --no-restore

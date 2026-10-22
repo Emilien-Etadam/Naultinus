@@ -56,19 +56,9 @@ namespace Naultinus.Services
         private static List<CalDAVTask> ParseMultistatusCalendarData(XDocument xdoc)
         {
             var tasks = new List<CalDAVTask>();
-            var responses = CalDAVClient.ParseMultistatus(xdoc);
-
-            foreach (var (href, props, _) in responses)
+            foreach (var (href, etag, calendarData) in CalDAVClient.EnumerateCalendarData(xdoc))
             {
-                if (string.IsNullOrEmpty(href))
-                    continue;
                 var caldavId = href.Contains('/') ? href.Substring(href.LastIndexOf('/') + 1) : href;
-                if (!props.TryGetValue("getetag", out var etag))
-                    etag = "";
-                etag = etag.Trim('"');
-                if (!props.TryGetValue("calendar-data", out var calendarData) || string.IsNullOrWhiteSpace(calendarData))
-                    continue;
-
                 try
                 {
                     var calendar = Calendar.Load(calendarData);

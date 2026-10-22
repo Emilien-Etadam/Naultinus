@@ -74,3 +74,14 @@ dotnet_diagnostic.SA1128.severity = none
 dotnet_diagnostic.SA1413.severity = none
 dotnet_diagnostic.SA1117.severity = none
 dotnet_diagnostic.SA1305.severity = none
+
+# Champs publics de structs Win32 / P/Invoke (left, top, SHGFI_*…) : convention native.
+dotnet_diagnostic.SA1307.severity = none
+dotnet_diagnostic.SA1310.severity = none
+
+# Sérialisation XML : SafeXml obligatoire (prod + tests).
+dotnet_diagnostic.CA5369.severity = error
+
+[Naultinus.Tests/**.cs]
+# Noms de tests xUnit avec underscores : convention usuelle, pas une dette de prod.
+dotnet_diagnostic.CA1707.severity = none

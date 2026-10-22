@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Naultinus.Helpers;
 using Naultinus.Model;
 using Naultinus.Serialization;
 using Naultinus.ViewModel;
@@ -234,7 +235,7 @@ namespace Naultinus.Tests.Serialization
             using var writer = new StringWriter();
             NaultinusXmlSerialization.NaultinusModelSerializer.Serialize(writer, model);
             using var reader = new StringReader(writer.ToString());
-            return (T)NaultinusXmlSerialization.NaultinusModelSerializer.Deserialize(reader)!;
+            return (T)SafeXml.Deserialize(NaultinusXmlSerialization.NaultinusModelSerializer, reader)!;
         }
     }
 }
