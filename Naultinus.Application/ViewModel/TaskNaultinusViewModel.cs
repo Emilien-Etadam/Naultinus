@@ -556,13 +556,6 @@ namespace Naultinus.ViewModel
             return Array.Empty<string>();
         }
 
-        private static string GetDisplayNameForListId(string href)
-        {
-            if (string.IsNullOrEmpty(href)) return Strings.TaskListDefaultName;
-            var idx = href.TrimEnd('/').LastIndexOf('/');
-            return idx >= 0 ? href.Substring(idx + 1).TrimEnd('/') : href;
-        }
-
         public async Task LoadTasksAsync()
         {
             var listIds = GetListIds().ToList();
@@ -576,16 +569,16 @@ namespace Naultinus.ViewModel
             {
                 Dispatch(() => { IsLoading = true; ErrorMessage = string.Empty; SyncStatus = Strings.SyncLoadingTasks; });
 
-                if (listIds.Count > 1)
+                var loaded = await TaskCalDavOrchestrator.LoadListsAsync(_caldavService, listIds);
+                if (loaded.Count > 1)
                 {
                     Dispatch(() => TaskTabs.Clear());
-                    foreach (var listId in listIds)
+                    foreach (var (listId, displayName, tasks) in loaded)
                     {
-                        var tasks = await _caldavService.GetTasksAsync(listId);
                         var tab = new TaskTabItem
                         {
                             ListId = listId,
-                            DisplayName = GetDisplayNameForListId(listId)
+                            DisplayName = displayName,
                         };
                         foreach (var t in tasks)
                             tab.Tasks.Add(t);
@@ -597,29 +590,25 @@ namespace Naultinus.ViewModel
                                 SelectedTaskTab = TaskTabs[0];
                         });
                     }
-                    Dispatch(() =>
-                    {
-                        SyncStatus = Strings.SyncTasksLoaded;
-                        OnPropertyChanged(nameof(ActiveTasks));
-                        RefreshVisibleTasksFilter();
-                        OnPropertyChanged(nameof(HasNoTasks));
-                    });
                 }
                 else
                 {
-                    var singleId = listIds[0];
-                    var tasks = await _caldavService.GetTasksAsync(singleId);
+                    var tasks = loaded[0].Tasks;
                     Dispatch(() =>
                     {
                         Tasks.Clear();
                         foreach (var task in tasks)
                             Tasks.Add(task);
-                        SyncStatus = Strings.SyncTasksLoaded;
-                        OnPropertyChanged(nameof(ActiveTasks));
-                        RefreshVisibleTasksFilter();
-                        OnPropertyChanged(nameof(HasNoTasks));
                     });
                 }
+
+                Dispatch(() =>
+                {
+                    SyncStatus = Strings.SyncTasksLoaded;
+                    OnPropertyChanged(nameof(ActiveTasks));
+                    RefreshVisibleTasksFilter();
+                    OnPropertyChanged(nameof(HasNoTasks));
+                });
             }
             catch (Exception ex)
             {
@@ -683,7 +672,7 @@ namespace Naultinus.ViewModel
                     foreach (var tab in TaskTabs)
                     {
                         var snapshot = await Application.Current.Dispatcher.InvokeAsync(() => new List<CalDAVTask>(tab.Tasks)).Task;
-                        var merged = await _caldavService.SyncTasksAsync(tab.ListId, snapshot);
+                        var merged = await TaskCalDavOrchestrator.SyncListAsync(_caldavService, tab.ListId, snapshot);
                         Dispatch(() =>
                         {
                             tab.Tasks.Clear();
@@ -691,27 +680,25 @@ namespace Naultinus.ViewModel
                                 tab.Tasks.Add(t);
                         });
                     }
-                    Dispatch(() =>
-                    {
-                        SyncStatus = string.Format(CultureInfo.CurrentCulture, Strings.SyncCompletedFormat, DateTime.Now.ToShortTimeString());
-                        RefreshVisibleTasksFilter();
-                        OnPropertyChanged(nameof(HasNoTasks));
-                    });
                 }
                 else
                 {
                     var tasksSnapshot = await Application.Current.Dispatcher.InvokeAsync(() => new List<CalDAVTask>(Tasks)).Task;
-                    var merged = await _caldavService.SyncTasksAsync(TaskListId, tasksSnapshot);
+                    var merged = await TaskCalDavOrchestrator.SyncListAsync(_caldavService, TaskListId, tasksSnapshot);
                     Dispatch(() =>
                     {
                         Tasks.Clear();
                         foreach (var t in merged)
                             Tasks.Add(t);
-                        SyncStatus = string.Format(CultureInfo.CurrentCulture, Strings.SyncCompletedFormat, DateTime.Now.ToShortTimeString());
-                        RefreshVisibleTasksFilter();
-                        OnPropertyChanged(nameof(HasNoTasks));
                     });
                 }
+
+                Dispatch(() =>
+                {
+                    SyncStatus = string.Format(CultureInfo.CurrentCulture, Strings.SyncCompletedFormat, DateTime.Now.ToShortTimeString());
+                    RefreshVisibleTasksFilter();
+                    OnPropertyChanged(nameof(HasNoTasks));
+                });
             }
             catch (Exception ex)
             {
