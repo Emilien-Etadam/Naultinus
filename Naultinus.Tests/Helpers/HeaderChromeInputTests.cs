@@ -1,5 +1,6 @@
 using System.Windows.Controls;
 using Naultinus.Helpers;
+using Naultinus.Tests.Support;
 using Xunit;
 
 namespace Naultinus.Tests.Helpers
@@ -15,13 +16,15 @@ namespace Naultinus.Tests.Helpers
         [Fact]
         public void IsInteractiveSource_Button_IsTrue()
         {
-            Assert.True(HeaderChromeInput.IsInteractiveSource(new Button()));
+            StaRunner.Run(() =>
+                Assert.True(HeaderChromeInput.IsInteractiveSource(new Button())));
         }
 
         [Fact]
         public void IsInteractiveSource_TextBox_IsTrue()
         {
-            Assert.True(HeaderChromeInput.IsInteractiveSource(new TextBox()));
+            StaRunner.Run(() =>
+                Assert.True(HeaderChromeInput.IsInteractiveSource(new TextBox())));
         }
     }
 }

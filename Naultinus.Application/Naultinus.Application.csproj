@@ -14,7 +14,7 @@
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <SignAssembly>False</SignAssembly>
     <PackageId>Naultinus</PackageId>
-    <Version>0.5.17</Version>
+    <Version>0.5.46</Version>
     <Product>Naultinus</Product>
     <Description>Naultinus — de petites fenêtres de bureau toujours en arrière-plan : raccourcis, mini-explorateur de fichiers, tâches et calendriers CalDAV, compteur de courriels non lus.</Description>
     <PackageProjectUrl>https://github.com/Emilien-Etadam/Naultinus</PackageProjectUrl>
