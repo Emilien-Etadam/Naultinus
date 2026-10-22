@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Naultinus.Helpers
 {
@@ -68,6 +69,44 @@ namespace Naultinus.Helpers
             var trimmed = calendarHref.TrimEnd('/');
             var lastSlash = trimmed.LastIndexOf('/');
             return lastSlash >= 0 ? trimmed.Substring(lastSlash + 1) : trimmed;
+        }
+
+        /// <summary>
+        /// Aligne <paramref name="colors"/> sur <paramref name="calendarIds"/> :
+        /// retire les orphelins, attribue une couleur de palette aux absents.
+        /// </summary>
+        /// <returns><c>true</c> si le dictionnaire a changé.</returns>
+        public static bool SyncStoredColors(IList<string> calendarIds, Dictionary<string, string> colors)
+        {
+            ArgumentNullException.ThrowIfNull(calendarIds);
+            ArgumentNullException.ThrowIfNull(colors);
+
+            var changed = false;
+            foreach (var calendarId in colors.Keys.ToList())
+            {
+                if (!calendarIds.Contains(calendarId))
+                {
+                    colors.Remove(calendarId);
+                    changed = true;
+                }
+            }
+
+            for (var i = 0; i < calendarIds.Count; i++)
+            {
+                var calendarId = calendarIds[i];
+                var resolvedColor = ResolveColor(
+                    i,
+                    colors.TryGetValue(calendarId, out var storedColor) ? storedColor : null);
+
+                if (!colors.TryGetValue(calendarId, out var currentColor)
+                    || !string.Equals(currentColor, resolvedColor, StringComparison.OrdinalIgnoreCase))
+                {
+                    colors[calendarId] = resolvedColor;
+                    changed = true;
+                }
+            }
+
+            return changed;
         }
     }
 }

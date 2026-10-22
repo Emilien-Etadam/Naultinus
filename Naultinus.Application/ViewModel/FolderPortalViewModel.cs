@@ -202,7 +202,7 @@ namespace Naultinus.ViewModel
             _adoptingShellPath = true;
             try
             {
-                PushHistory(path);
+                PortalNavigationHistory.Push(_model, path);
                 CurrentPath = path;
             }
             finally
@@ -278,7 +278,7 @@ namespace Naultinus.ViewModel
             if (!TryLoadContained(model.CurrentPath))
                 TryLoadContained(model.RootPath);
 
-            SeedHistoryFromCurrentPath();
+            PortalNavigationHistory.SeedFromCurrentPath(_model);
             UpdateBreadcrumb();
 
             // Assigné avant les commandes qui l'invoquent (CreateNewFolder/File, Paste) pour que
@@ -414,7 +414,7 @@ namespace Naultinus.ViewModel
             try
             {
                 if (!fromHistory)
-                    PushHistory(path);
+                    PortalNavigationHistory.Push(_model, path);
 
                 if (BodyRenderedByShell || PortalFolderAccess.IsShellNamespacePath(path))
                 {
@@ -425,37 +425,18 @@ namespace Naultinus.ViewModel
                     return;
                 }
 
-                var found = new List<FolderPortalItem>();
                 string iconsDir = AppPaths.GetNaultinusIconsDirectory(Identifier);
-                var loadingStarted = Stopwatch.StartNew();
-
-                string filter = FilterQuery;
-                foreach (string dir in Directory.GetDirectories(path))
-                {
-                    if (IsHiddenOrSystemEntry(dir))
-                        continue;
-                    string dirName = Path.GetFileName(dir);
-                    if (!MatchesFilter(dirName, filter))
-                        continue;
-                    string iconPath = AppPaths.GetOrCreateIcon(
-                        dir, "folder_", iconsDir, HideShortcutOverlay, HideSyncOverlay);
-                    found.Add(new FolderPortalItem(dirName, dir, true, iconPath) { LastWriteUtc = LastWriteUtc(dir) });
-                }
-
-                foreach (string file in Directory.GetFiles(path))
-                {
-                    string fileName = Path.GetFileName(file);
-                    if (fileName.StartsWith("~$", StringComparison.Ordinal) || IsHiddenOrSystemEntry(file))
-                        continue;
-                    if (!MatchesFilter(fileName, filter))
-                        continue;
-                    string iconPath = AppPaths.GetOrCreateIcon(
-                        file, "file_", iconsDir, HideShortcutOverlay, HideSyncOverlay);
-                    found.Add(new FolderPortalItem(fileName, file, false, iconPath) { LastWriteUtc = LastWriteUtc(file) });
-                }
+                var found = PortalFolderListing.Enumerate(
+                    path,
+                    FilterQuery,
+                    iconsDir,
+                    HideShortcutOverlay,
+                    HideSyncOverlay,
+                    _sortField,
+                    out var elapsedMs);
 
                 _selectionAnchor = null;
-                Items = new ObservableCollection<FolderPortalItem>(PortalItemSort.Order(found, _sortField));
+                Items = new ObservableCollection<FolderPortalItem>(found);
                 CurrentPath = path;
                 OnPropertyChanged(nameof(CanNavigateBack));
 
@@ -463,7 +444,7 @@ namespace Naultinus.ViewModel
                 // extraites élément par élément). Utile pour juger ce que coûte la grille WPF.
                 NaultinusDiagnostics.LogDebug(
                     "FolderPortal.LoadFolder : " + path + " -> " + Items.Count + " éléments en "
-                    + loadingStarted.ElapsedMilliseconds + " ms");
+                    + elapsedMs + " ms");
             }
             catch (UnauthorizedAccessException)
             {
@@ -572,41 +553,6 @@ namespace Naultinus.ViewModel
             }
         }
 
-        /// <summary>Ajoute un chemin à l'historique et tronque la branche « avant ».</summary>
-        private void PushHistory(string path)
-        {
-            string normalized = Path.TrimEndingDirectorySeparator(path.Trim());
-            List<string> hist = _model.NavigationHistory;
-            int idx = _model.NavigationIndex;
-
-            if (idx >= 0 && idx < hist.Count && PortalPathGuard.AreSame(hist[idx], normalized))
-                return;
-
-            if (idx >= 0 && idx < hist.Count - 1)
-                hist.RemoveRange(idx + 1, hist.Count - idx - 1);
-
-            hist.Add(normalized);
-            _model.NavigationIndex = hist.Count - 1;
-        }
-
-        /// <summary>Au chargement : amorce la pile depuis <see cref="CurrentPath"/> si elle est vide.</summary>
-        private void SeedHistoryFromCurrentPath()
-        {
-            if (string.IsNullOrEmpty(CurrentPath))
-                return;
-
-            List<string> hist = _model.NavigationHistory;
-            if (hist.Count == 0)
-            {
-                hist.Add(Path.TrimEndingDirectorySeparator(CurrentPath.Trim()));
-                _model.NavigationIndex = 0;
-                return;
-            }
-
-            if (_model.NavigationIndex < 0 || _model.NavigationIndex >= hist.Count)
-                _model.NavigationIndex = hist.Count - 1;
-        }
-
         private void UpdateBreadcrumb()
         {
             IReadOnlyList<PortalPathSegment> segments = PortalBreadcrumb.Build(RootPath, CurrentPath);
@@ -626,22 +572,6 @@ namespace Naultinus.ViewModel
             }
 
             OnPropertyChanged(nameof(CanNavigateBack));
-        }
-
-        private static bool MatchesFilter(string name, string filter)
-        {
-            return string.IsNullOrEmpty(filter)
-                || name.Contains(filter, StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static bool IsHiddenOrSystemEntry(string path)
-        {
-            try
-            {
-                var attrs = File.GetAttributes(path);
-                return (attrs & FileAttributes.Hidden) != 0 || (attrs & FileAttributes.System) != 0;
-            }
-            catch (Exception ex) { NaultinusDiagnostics.LogDebug("FolderPortal.IsHiddenOrSystemEntry", ex); return false; }
         }
 
         private void OnFolderContentsChanged()
@@ -856,19 +786,6 @@ namespace Naultinus.ViewModel
             {
                 NaultinusDiagnostics.LogDebug("FolderPortal.Clipboard", ex);
                 return false;
-            }
-        }
-
-        private static DateTime LastWriteUtc(string path)
-        {
-            try
-            {
-                return File.GetLastWriteTimeUtc(path);
-            }
-            catch (Exception ex)
-            {
-                NaultinusDiagnostics.LogDebug("FolderPortal.LastWrite", ex);
-                return DateTime.MinValue;
             }
         }
 

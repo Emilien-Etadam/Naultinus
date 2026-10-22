@@ -27,7 +27,7 @@ namespace Naultinus.ViewModel
         private string _errorMessage = string.Empty;
         private bool _isLoading;
         private Timer? _refreshTimer;
-        private Timer? _dayChangeTimer;
+        private CalendarDayWatch? _dayWatch;
         private int _loadEventsInProgress;
         private int _reloadRequested;
         private bool _disposed;
@@ -72,8 +72,12 @@ namespace Naultinus.ViewModel
             if (!startBackgroundWork)
                 return;
 
+            _dayWatch = new CalendarDayWatch(
+                () => _disposed,
+                action => Dispatch(action),
+                () => AlignAgendaWithLocalDay(DateTime.Now, reload: true));
             _ = LoadEventsAsync();
-            StartDayWatch();
+            _dayWatch.Start();
             if (IsRemote)
                 StartRefreshTimer();
         }
@@ -240,7 +244,7 @@ namespace Naultinus.ViewModel
                     end);
                 if (colorsChanged)
                     Save();
-                DecorateDayHeaders(ordered, start);
+                CalendarAgendaPresentation.DecorateDayHeaders(ordered, start);
                 Dispatch(() => ShowEvents(ordered));
             }
             catch (Exception ex)
@@ -333,32 +337,13 @@ namespace Naultinus.ViewModel
                 .OrderBy(e => AgendaAnchor.DisplayDay(e.DtStart, start))
                 .ThenBy(e => e.DtStart)
                 .ToList();
-            DecorateDayHeaders(ordered, start);
+            CalendarAgendaPresentation.DecorateDayHeaders(ordered, start);
             Dispatch(() =>
             {
                 CalendarLegend.Clear();
                 OnPropertyChanged(nameof(HasCalendarLegend));
                 ShowEvents(ordered);
             });
-        }
-
-        private static void DecorateDayHeaders(List<Model.CalendarEvent> ordered, DateTime rangeStart)
-        {
-            DateTime? prevDate = null;
-            foreach (var evt in ordered)
-            {
-                var evtDate = AgendaAnchor.DisplayDay(evt.DtStart, rangeStart);
-                evt.IsToday = evtDate == DateTime.Today;
-                if (evtDate != prevDate)
-                {
-                    evt.DayHeader = evtDate.ToString("ddd dd MMM");
-                    prevDate = evtDate;
-                }
-                else
-                {
-                    evt.DayHeader = string.Empty;
-                }
-            }
         }
 
         private void ShowEvents(List<Model.CalendarEvent> ordered)
@@ -381,57 +366,22 @@ namespace Naultinus.ViewModel
         }
 
         private bool EnsureCalendarColors()
-        {
-            var calendarIds = _model.CalendarIds ?? new List<string>();
-            var changed = false;
-
-            foreach (var calendarId in _model.CalendarColors.Keys.ToList())
-            {
-                if (!calendarIds.Contains(calendarId))
-                {
-                    _model.CalendarColors.Remove(calendarId);
-                    changed = true;
-                }
-            }
-
-            for (var i = 0; i < calendarIds.Count; i++)
-            {
-                var calendarId = calendarIds[i];
-                var resolvedColor = CalendarColorHelper.ResolveColor(
-                    i,
-                    _model.CalendarColors.TryGetValue(calendarId, out var storedColor) ? storedColor : null);
-
-                if (!_model.CalendarColors.TryGetValue(calendarId, out var currentColor)
-                    || !string.Equals(currentColor, resolvedColor, StringComparison.OrdinalIgnoreCase))
-                {
-                    _model.CalendarColors[calendarId] = resolvedColor;
-                    changed = true;
-                }
-            }
-
-            return changed;
-        }
+            => CalendarColorHelper.SyncStoredColors(
+                _model.CalendarIds ?? new List<string>(),
+                _model.CalendarColors);
 
         private void UpdateCalendarLegend()
         {
+            var entries = CalendarAgendaPresentation.BuildLegendEntries(_model.CalendarIds, _model.CalendarColors);
             Dispatch(() =>
             {
                 CalendarLegend.Clear();
-                if (_model.CalendarIds == null)
+                foreach (var (displayName, colorHex) in entries)
                 {
-                    OnPropertyChanged(nameof(HasCalendarLegend));
-                    return;
-                }
-
-                foreach (var calendarId in _model.CalendarIds)
-                {
-                    if (!_model.CalendarColors.TryGetValue(calendarId, out var color))
-                        continue;
-
                     CalendarLegend.Add(new CalendarLegendItem
                     {
-                        DisplayName = CalendarColorHelper.GetDisplayNameFromHref(calendarId),
-                        ColorHex = color,
+                        DisplayName = displayName,
+                        ColorHex = colorHex,
                     });
                 }
 
@@ -486,36 +436,6 @@ namespace Naultinus.ViewModel
             OnPropertyChanged(nameof(DateRangeDisplay));
             if (reload)
                 _ = LoadEventsAsync();
-        }
-
-        private void StartDayWatch()
-        {
-            var delay = DelayUntilNextLocalMidnight(DateTime.Now);
-            if (_dayChangeTimer == null)
-                _dayChangeTimer = new Timer(OnDayWatch, null, delay, Timeout.InfiniteTimeSpan);
-            else
-                _dayChangeTimer.Change(delay, Timeout.InfiniteTimeSpan);
-        }
-
-        private void OnDayWatch(object? state)
-        {
-            if (_disposed)
-                return;
-
-            Dispatch(() =>
-            {
-                if (_disposed)
-                    return;
-                AlignAgendaWithLocalDay(DateTime.Now, reload: true);
-                if (!_disposed)
-                    StartDayWatch();
-            });
-        }
-
-        private static TimeSpan DelayUntilNextLocalMidnight(DateTime localNow)
-        {
-            var delay = localNow.Date.AddDays(1) - localNow;
-            return delay < TimeSpan.FromSeconds(1) ? TimeSpan.FromSeconds(1) : delay;
         }
 
         private void StartRefreshTimer()
@@ -690,8 +610,8 @@ namespace Naultinus.ViewModel
             _disposed = true;
             _refreshTimer?.Dispose();
             _refreshTimer = null;
-            _dayChangeTimer?.Dispose();
-            _dayChangeTimer = null;
+            _dayWatch?.Dispose();
+            _dayWatch = null;
             (_calendarService as IDisposable)?.Dispose();
             base.Dispose();
             GC.SuppressFinalize(this);

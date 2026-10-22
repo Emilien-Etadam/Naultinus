@@ -48,5 +48,20 @@ namespace Naultinus.Tests
         {
             Assert.Equal(expected, CalendarColorHelper.GetDisplayNameFromHref(href));
         }
+
+        [Fact]
+        public void SyncStoredColors_RemovesOrphansAndAssignsPalette()
+        {
+            var colors = new System.Collections.Generic.Dictionary<string, string>
+            {
+                ["/a"] = "#ABCDEF",
+                ["/orphan"] = "#111111",
+            };
+            var ids = new System.Collections.Generic.List<string> { "/a", "/b" };
+            Assert.True(CalendarColorHelper.SyncStoredColors(ids, colors));
+            Assert.Equal("#ABCDEF", colors["/a"]);
+            Assert.Equal(CalendarColorHelper.Palette[1], colors["/b"]);
+            Assert.False(colors.ContainsKey("/orphan"));
+        }
     }
 }
