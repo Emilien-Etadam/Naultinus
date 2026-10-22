@@ -8,6 +8,7 @@ Notes techniques complémentaires au [README](../README.md) à la racine du dép
 | [PORTAL_EXPLORER_PARITY.md](PORTAL_EXPLORER_PARITY.md) | Parité du portail avec l'Explorateur : choix d'architecture, critères d'acceptation, plan |
 | [PORTAL_KEYBOARD.md](PORTAL_KEYBOARD.md) | Clavier de la vue shell hébergée : symptômes mesurés, hypothèses éliminées, pistes restantes |
 | [CALDAV.md](CALDAV.md) | Intégration CalDAV (tâches et calendriers) |
-| [PLAN-archived.md](PLAN-archived.md) | Plan de développement historique (archivé) |
+
+Le plan de développement historique (`PLAN-archived.md`) a été retiré du dépôt ; il reste consultable dans l’historique Git.
 
 Les instructions pour les agents Cursor restent dans [AGENTS.md](../AGENTS.md) à la racine.
