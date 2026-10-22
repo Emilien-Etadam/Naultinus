@@ -31,7 +31,8 @@ jobs:
           echo "clean=$v" >> $env:GITHUB_OUTPUT
 
       - name: Restore dependencies
-        run: dotnet restore Naultinus.sln
+        # RID requis : publish utilise --no-restore et attend netTFM/win-x64 dans project.assets.json.
+        run: dotnet restore Naultinus.sln -r win-x64
 
       - name: Check NuGet vulnerabilities
         shell: pwsh
