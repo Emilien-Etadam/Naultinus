@@ -496,7 +496,7 @@ namespace Naultinus.View
         {
             if (e.ClickCount == 2)
             {
-                if (IsHeaderInteractiveSource(e.OriginalSource as DependencyObject))
+                if (HeaderChromeInput.IsInteractiveSource(e.OriginalSource as DependencyObject))
                     return;
 
                 if (!viewModel.AllowDoubleClick)
@@ -514,25 +514,12 @@ namespace Naultinus.View
             }
 
             // Laisser boutons / filtre de la barre de chemin ; déplacer sur le reste de l'en-tête.
-            if (IsHeaderInteractiveSource(e.OriginalSource as DependencyObject))
+            if (HeaderChromeInput.IsInteractiveSource(e.OriginalSource as DependencyObject))
                 return;
 
             try { DragMove(); }
             catch (System.InvalidOperationException) { /* le bouton gauche n'est plus enfoncé : sans effet */ }
             e.Handled = true;
-        }
-
-        private static bool IsHeaderInteractiveSource(DependencyObject? source)
-        {
-            for (DependencyObject? current = source; current != null; current = VisualTreeHelper.GetParent(current))
-            {
-                if (current is System.Windows.Controls.Primitives.ButtonBase or TextBox or ComboBox)
-                    return true;
-                if (current is Window)
-                    return false;
-            }
-
-            return false;
         }
 
         private void Header_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)

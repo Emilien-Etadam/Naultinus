@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using Naultinus.Helpers;
 using Naultinus.Model;
 using Naultinus.ViewModel;
 using Naultinus;
@@ -97,36 +98,34 @@ namespace Naultinus.View
             _group.SetBounds((int)Left, (int)Top, w, h);
         }
 
-        private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            try { DragMove(); }
-            catch (System.InvalidOperationException) { /* le bouton gauche n'est plus enfoncé : sans effet */ }
-        }
-
         private void Header_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
         {
             BannerContextMenu.Open(Header, e);
         }
 
-        // Le Button d'un onglet marque MouseLeftButtonDown comme géré : le Grid ne reçoit plus l'événement
-        // et DragMove ne démarre pas. Dès le deuxième onglet, les libellés (surtout Parcourir) couvrent
-        // la barre ; la poignée de 12 px ne suffit plus. Un écart au-delà du seuil système lance le
-        // déplacement, un clic court laisse la commande de sélection s'exécuter.
+        // Preview : les Button mangent MouseLeftButtonDown, donc DragMove doit partir ici.
+        // Onglet : seuil système puis DragMove (clic court = sélection). Chrome vide = DragMove immédiat.
         private void Header_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             _tabDragPending = false;
             if (e.ChangedButton != MouseButton.Left)
                 return;
-            if (FindAncestor<Button>(e.OriginalSource as DependencyObject) is not Button button)
+
+            if (FindAncestor<Button>(e.OriginalSource as DependencyObject) is Button button
+                && FindAncestor<ItemsControl>(button) is not null
+                && button.DataContext is INaultinusViewModel)
+            {
+                _tabDragOrigin = e.GetPosition(this);
+                _tabDragPending = true;
                 return;
-            // Les actions d'en-tête (⟳, ⚙, ✎, retour, racine) ne sont pas des onglets : leur clic reste le leur.
-            if (FindAncestor<ItemsControl>(button) is null)
-                return;
-            if (button.DataContext is not INaultinusViewModel)
+            }
+
+            if (HeaderChromeInput.IsInteractiveSource(e.OriginalSource as DependencyObject))
                 return;
 
-            _tabDragOrigin = e.GetPosition(this);
-            _tabDragPending = true;
+            try { DragMove(); }
+            catch (InvalidOperationException) { /* bouton gauche relâché : sans effet */ }
+            e.Handled = true;
         }
 
         private void Header_PreviewMouseMove(object sender, MouseEventArgs e)

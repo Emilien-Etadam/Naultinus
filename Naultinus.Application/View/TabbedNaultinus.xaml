@@ -522,16 +522,15 @@
                     Opacity="{Binding SelectedMember.BodyTintOpacity}"
                     IsHitTestVisible="False"/>
             <DockPanel>
-            <!-- Un seul Header nommé : DragMove + menu. Teinte en sous-couche A=1 (HitTestableClear). -->
+            <!-- Un seul Header nommé : DragMove en Preview (comme FolderPortal). Fond toujours hit-testable. -->
             <Grid DockPanel.Dock="Top"
                   x:Name="Header"
-                  MouseLeftButtonDown="Header_MouseLeftButtonDown"
                   PreviewMouseLeftButtonDown="Header_PreviewMouseLeftButtonDown"
                   PreviewMouseMove="Header_PreviewMouseMove"
                   PreviewMouseLeftButtonUp="Header_PreviewMouseLeftButtonUp"
                   PreviewMouseRightButtonUp="Header_PreviewMouseRightButtonUp"
                   IsHitTestVisible="True"
-                  Background="{Binding SelectedMember.HeaderChromeBrush}"
+                  Background="{Binding SelectedMember.HeaderChromeBrush, FallbackValue=#01000000}"
                   RowDefinitions="Auto,Auto">
                 <Grid.ContextMenu>
                     <ContextMenu>
@@ -598,8 +597,14 @@
                 <Button Grid.Column="0" x:Name="TitleBarMenuButton" Style="{StaticResource HeaderActionButton}" Margin="4,0,0,0" Click="TitleBarMenuButton_Click" ToolTip="{x:Static properties:Strings.TooltipMenu}">
                     <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE700;" FontSize="12" VerticalAlignment="Center"/>
                 </Button>
-                <Border Grid.Column="1" Background="{Binding SelectedMember.HeaderChromeBrush, FallbackValue=#01000000}" Cursor="SizeAll"/>
-                <ScrollViewer Grid.Column="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                <Border Grid.Column="1"
+                        Background="{Binding SelectedMember.HeaderChromeBrush, FallbackValue=#01000000}"
+                        Cursor="SizeAll"/>
+                <!-- Fond A=1 : zone vide à droite des onglets reste déplaçable (Transparent ignore les clics). -->
+                <ScrollViewer Grid.Column="2"
+                              Background="#01000000"
+                              HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Disabled"
                               PreviewMouseRightButtonDown="TabStrip_PreviewMouseRightButtonDown">
                     <ItemsControl ItemsSource="{Binding Members}">
                         <ItemsControl.ItemsPanel>
