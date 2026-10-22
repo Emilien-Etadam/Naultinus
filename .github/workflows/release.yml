@@ -31,8 +31,7 @@ jobs:
           echo "clean=$v" >> $env:GITHUB_OUTPUT
 
       - name: Restore dependencies
-        # RID requis : publish utilise --no-restore et attend netTFM/win-x64 dans project.assets.json.
-        run: dotnet restore Naultinus.sln -r win-x64
+        run: dotnet restore Naultinus.sln
 
       - name: Check NuGet vulnerabilities
         shell: pwsh
@@ -47,6 +46,8 @@ jobs:
           }
 
       - name: Publish
+        # Sans --no-restore : le restore solution ci-dessus n'écrit pas la cible TFM/win-x64
+        # (SDK 10) ; publish doit re-restaurer avec le RID demandé.
         run: >
           dotnet publish Naultinus.Application/Naultinus.Application.csproj
           -c Release -r win-x64 --self-contained
@@ -54,7 +55,6 @@ jobs:
           -p:IncludeNativeLibrariesForSelfExtract=true
           -p:Version=${{ steps.version.outputs.clean }}
           -o ./publish
-          --no-restore
 
       - name: Zip portable
         shell: pwsh
